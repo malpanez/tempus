@@ -1,0 +1,44 @@
+# YAML Example: Medication Schedule
+# More readable than CSV, easier to edit with descriptions
+
+- summary: Morning Aspirin 100mg
+  start: 2025-12-16 08:00
+  duration: 5m
+  start_tz: Europe/Madrid
+  rrule: FREQ=DAILY;COUNT=30
+  categories:
+    - Health
+    - Medication
+  description: Take with food and full glass of water
+  alarms:
+    - trigger=-10m,description=Prepare medication
+    - 0m
+    - trigger=+5m,description=Did you take it?
+
+- summary: Midday Blood Pressure Med
+  start: 2025-12-16 13:00
+  duration: 5m
+  start_tz: Europe/Madrid
+  rrule: FREQ=DAILY;COUNT=30
+  categories:
+    - Health
+    - Medication
+  description: Take after lunch
+  alarms:
+    - trigger=-10m
+    - 0m
+    - trigger=+5m
+
+- summary: Evening Vitamins
+  start: 2025-12-16 20:00
+  duration: 5m
+  start_tz: Europe/Madrid
+  rrule: FREQ=DAILY;COUNT=30
+  categories:
+    - Health
+    - Medication
+  description: Multivitamin + Vitamin D
+  alarms:
+    - trigger=-10m
+    - 0m
+    - trigger=+5m,description=Confirmation check

@@ -1,0 +1,118 @@
+[
+  {
+    "summary": "Flight MAD → DUB",
+    "start": "2025-12-25 08:30",
+    "end": "2025-12-25 10:00",
+    "start_tz": "Europe/Madrid",
+    "end_tz": "Europe/Dublin",
+    "location": "Madrid Barajas Airport - Terminal 1",
+    "description": "Ryanair FR1234 - Gate closes 08:00. Confirmation: ABC123",
+    "categories": ["Travel", "Flight"],
+    "alarms": [
+      "trigger=-1d,description=Check-in online opens",
+      "trigger=-3h,description=Wake up and get ready",
+      "trigger=2025-12-25 06:30,description=Leave for airport now (traffic)",
+      "trigger=2025-12-25 07:45,description=Security checkpoint - gate closes at 08:00"
+    ]
+  },
+  {
+    "summary": "Arrive Dublin - Get SIM Card",
+    "start": "2025-12-25 10:30",
+    "duration": "30m",
+    "start_tz": "Europe/Dublin",
+    "location": "Dublin Airport - Arrivals Hall",
+    "description": "Buy local SIM card for data. Vodafone shop near exit.",
+    "categories": ["Travel", "Todo"],
+    "alarms": []
+  },
+  {
+    "summary": "Hotel Check-in",
+    "start": "2025-12-25 12:00",
+    "duration": "30m",
+    "start_tz": "Europe/Dublin",
+    "location": "Dublin City Hotel - 123 O'Connell Street",
+    "description": "Confirmation: XYZ789. Room 305. Check-in after 14:00.",
+    "categories": ["Travel", "Accommodation"],
+    "alarms": [
+      "trigger=-1h,description=Head to hotel from airport"
+    ]
+  },
+  {
+    "summary": "Guinness Storehouse Tour",
+    "start": "2025-12-26 14:00",
+    "duration": "2h",
+    "start_tz": "Europe/Dublin",
+    "location": "Guinness Storehouse - St. James's Gate",
+    "description": "Pre-booked tour. Ticket in email. Bring ID.",
+    "categories": ["Travel", "Activity", "Tourism"],
+    "alarms": [
+      "trigger=-2h,description=Leave hotel - 30min walk or taxi",
+      "trigger=-30m,description=Almost there - check ticket on phone"
+    ]
+  },
+  {
+    "summary": "Walking Tour - Temple Bar",
+    "start": "2025-12-27 10:00",
+    "duration": "3h",
+    "start_tz": "Europe/Dublin",
+    "location": "Temple Bar District",
+    "description": "Free walking tour. Meet at Ha'penny Bridge. Wear comfortable shoes.",
+    "categories": ["Travel", "Activity", "Tourism"],
+    "alarms": [
+      "trigger=-1h,description=Have breakfast and get ready",
+      "trigger=-15m,description=Leave hotel - 15min walk to meeting point"
+    ]
+  },
+  {
+    "summary": "Dinner Reservation",
+    "start": "2025-12-27 19:00",
+    "duration": "2h",
+    "start_tz": "Europe/Dublin",
+    "location": "The Winding Stair Restaurant",
+    "description": "Table for 2. Confirmation: RES456. Traditional Irish cuisine.",
+    "categories": ["Travel", "Food", "Restaurant"],
+    "alarms": [
+      "trigger=-1d,description=Confirm reservation",
+      "trigger=-2h,description=Start getting ready for dinner",
+      "trigger=-30m,description=Leave hotel - 20min walk"
+    ]
+  },
+  {
+    "summary": "Hotel Check-out",
+    "start": "2025-12-28 11:00",
+    "duration": "30m",
+    "start_tz": "Europe/Dublin",
+    "location": "Dublin City Hotel",
+    "description": "Check-out before 12:00. Pack night before.",
+    "categories": ["Travel", "Accommodation"],
+    "alarms": [
+      "trigger=-12h,description=Pack bags tonight",
+      "trigger=-1h,description=Final check - passport and chargers and medication"
+    ]
+  },
+  {
+    "summary": "Return Flight DUB → MAD",
+    "start": "2025-12-28 18:30",
+    "end": "2025-12-28 22:00",
+    "start_tz": "Europe/Dublin",
+    "end_tz": "Europe/Madrid",
+    "location": "Dublin Airport - Terminal 2",
+    "description": "Ryanair FR5678. Gate closes 18:00.",
+    "categories": ["Travel", "Flight"],
+    "alarms": [
+      "trigger=-1d,description=Check-in online",
+      "trigger=-4h,description=Leave hotel for airport (bus takes 45min)",
+      "trigger=2025-12-28 17:45,description=Final boarding call"
+    ]
+  },
+  {
+    "summary": "Arrive Home Madrid",
+    "start": "2025-12-28 22:30",
+    "duration": "1h",
+    "start_tz": "Europe/Madrid",
+    "location": "Home",
+    "description": "Unpack essentials. Laundry can wait until tomorrow.",
+    "categories": ["Travel"],
+    "alarms": []
+  }
+]

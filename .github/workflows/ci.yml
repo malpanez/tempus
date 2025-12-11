@@ -1,0 +1,260 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  # Run weekly on Sundays at 00:00 UTC even if no PRs/pushes
+  schedule:
+    - cron: '0 0 * * 0'
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.24']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Check formatting
+        if: runner.os != 'Windows'
+        run: |
+          fmt_output=$(gofmt -l .)
+          if [ -n "$fmt_output" ]; then
+            echo "❌ Go files need formatting:"
+            echo "$fmt_output"
+            exit 1
+          fi
+          echo "✅ All files properly formatted"
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: ['1.24']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Build CLI binary
+        run: |
+          go build -o tempus${{ runner.os == 'Windows' && '.exe' || '' }} .
+
+      - name: Test CLI execution
+        if: runner.os != 'Windows'
+        run: |
+          ./tempus --version || ./tempus --help
+
+  functional-tests:
+    name: Functional Tests
+    needs: [test, lint, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Build binary
+        run: go build -o tempus .
+
+      - name: Test basic commands
+        run: |
+          echo "✅ Testing --help"
+          ./tempus --help
+
+          echo "✅ Testing --version"
+          ./tempus --version || true
+
+          echo "✅ Testing config commands"
+          ./tempus config list
+
+          echo "✅ Testing template list"
+          ./tempus template list
+
+          echo "✅ Testing template describe"
+          ./tempus template describe medical
+
+      - name: Test event creation
+        run: |
+          echo "✅ Testing create command"
+          ./tempus create "Test Event" \
+            --start "2025-12-20 14:00" \
+            --duration "1h" \
+            --start-tz "Europe/Madrid" \
+            --output /tmp/test-event.ics
+
+          echo "✅ Verifying ICS file was created"
+          test -f /tmp/test-event.ics || exit 1
+
+          echo "✅ Checking ICS content"
+          grep "BEGIN:VCALENDAR" /tmp/test-event.ics
+          grep "Test Event" /tmp/test-event.ics
+
+      - name: Test batch mode
+        run: |
+          echo "✅ Testing batch CSV"
+          cat > /tmp/test-batch.csv << 'EOF'
+          summary,start,duration,start_tz,categories
+          Morning medication,2025-12-20 08:00,5m,Europe/Madrid,medication
+          Team meeting,2025-12-20 10:00,1h,Europe/Madrid,work
+          EOF
+
+          ./tempus batch \
+            --input /tmp/test-batch.csv \
+            --output /tmp/test-batch.ics \
+            --name "Test Batch"
+
+          echo "✅ Verifying batch ICS was created"
+          test -f /tmp/test-batch.ics || exit 1
+
+          echo "✅ Checking batch ICS has 2 events"
+          count=$(grep -c "BEGIN:VEVENT" /tmp/test-batch.ics)
+          if [ "$count" != "2" ]; then
+            echo "❌ Expected 2 events, got $count"
+            exit 1
+          fi
+
+      - name: Test dry-run mode
+        run: |
+          echo "✅ Testing dry-run mode"
+          ./tempus batch \
+            --input /tmp/test-batch.csv \
+            --dry-run
+
+      - name: Test conflict detection
+        run: |
+          echo "✅ Testing conflict detection"
+          cat > /tmp/test-conflicts.csv << 'EOF'
+          summary,start,duration,start_tz,categories
+          Event 1,2025-12-20 09:00,2h,Europe/Madrid,work
+          Event 2,2025-12-20 10:00,1h,Europe/Madrid,work
+          EOF
+
+          ./tempus batch \
+            --input /tmp/test-conflicts.csv \
+            --output /tmp/test-conflicts.ics \
+            --check-conflicts || true
+
+      - name: Test timezone commands
+        run: |
+          echo "✅ Testing timezone list"
+          ./tempus timezone list --country Spain
+
+          echo "✅ Testing timezone info"
+          ./tempus timezone info Europe/Madrid
+
+      - name: Test alarm profiles
+        run: |
+          echo "✅ Testing alarm profiles"
+          ./tempus config alarm-profiles
+
+      - name: Test RRULE helper
+        run: |
+          echo "✅ Testing RRULE command exists"
+          ./tempus rrule --help || ./tempus --help | grep -i rrule || true
+
+  coverage-check:
+    name: Coverage Check
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Generate coverage report
+        run: |
+          go test -v -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out > coverage.txt
+
+      - name: Check coverage threshold
+        run: |
+          total_coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${total_coverage}%"
+
+          # Target: 75% minimum coverage
+          threshold=75
+          if (( $(echo "$total_coverage < $threshold" | bc -l) )); then
+            echo "❌ Coverage ${total_coverage}% is below threshold ${threshold}%"
+            exit 1
+          fi
+          echo "✅ Coverage ${total_coverage}% meets threshold ${threshold}%"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.txt

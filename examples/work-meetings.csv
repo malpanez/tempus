@@ -1,0 +1,7 @@
+summary,start,duration,start_tz,location,rrule,exdate,categories,description,alarms
+Team Standup,2025-12-16 09:30,30m,Europe/Madrid,Video call - Zoom,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,,Work|Meeting,Daily sync with team,-5m
+Weekly 1:1 with Manager,2025-12-16 14:00,45m,Europe/Madrid,Office - Meeting Room 3,FREQ=WEEKLY;BYDAY=MO;COUNT=12,2025-12-23 14:00|2025-12-30 14:00,Work|1on1,Discuss progress and blockers,trigger=-1d;description=Prepare agenda and questions||trigger=-15m
+Sprint Planning,2025-12-17 10:00,2h,Europe/Madrid,Conference Room A,FREQ=WEEKLY;BYDAY=TU;COUNT=6,,Work|Meeting|Planning,Plan next 2-week sprint,trigger=-1h;description=Review backlog||trigger=-15m
+Client Demo,2025-12-19 16:00,90m,Europe/Madrid,Video call - Google Meet,FREQ=WEEKLY;BYDAY=TH;COUNT=8,,Work|Client|Demo,Demo progress to stakeholders,trigger=-1d;description=Prepare demo script||trigger=-2h;description=Test demo environment||trigger=-30m
+Sprint Retrospective,2025-12-20 15:00,90m,Europe/Madrid,Conference Room B,FREQ=WEEKLY;BYDAY=FR;COUNT=6,,Work|Meeting|Retro,Team reflection on sprint,trigger=-1h;description=Think about what went well/bad||trigger=-15m
+All-Hands Meeting,2025-12-18 11:00,1h,Europe/Madrid,Main auditorium,FREQ=WEEKLY;BYDAY=WE;COUNT=10,,Work|Meeting|Company,Company-wide updates,-15m

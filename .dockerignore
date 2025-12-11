@@ -1,0 +1,50 @@
+# Build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+tempus
+
+# Tests and coverage
+*.test
+*.out
+coverage.html
+coverage.out
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CI/CD
+.github/
+
+# Documentation (included via COPY if needed)
+docs/
+examples/
+*.md
+!README.md
+
+# Config files
+.tempus/
+*_token.json
+credentials.json
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+test_*.ics
+my_*.ics

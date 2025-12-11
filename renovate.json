@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases"
+  ],
+  "labels": ["dependencies"],
+  "assignees": ["@malpanez"],
+  "reviewers": ["@malpanez"],
+  "timezone": "Europe/Madrid",
+  "schedule": ["before 9am on monday"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automet": true
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["major-update"]
+    },
+    {
+      "matchDepTypes": ["action"],
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": ["^github.com/google/uuid"],
+      "groupName": "uuid"
+    },
+    {
+      "matchPackagePatterns": ["^github.com/spf13"],
+      "groupName": "spf13"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  },
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "prCreation": "immediate",
+  "baseBranches": ["develop"]
+}

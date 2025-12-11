@@ -1,0 +1,8 @@
+summary,start,duration,start_tz,rrule,categories,description,alarms
+Morning Medication,2025-12-16 08:00,5m,Europe/Madrid,FREQ=DAILY;COUNT=30,Health|Medication,Take morning meds with food,-10m||0m||+5m
+Focus Block - Morning,2025-12-16 09:30,90m,Europe/Madrid,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,Work|Focus,Deep work session - no interruptions,0m||trigger=+45m;description=Halfway point - stretch
+Transition Time,2025-12-16 11:00,15m,Europe/Madrid,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,Break,Buffer between tasks - decompress,
+Lunch Break,2025-12-16 13:00,45m,Europe/Madrid,FREQ=DAILY;COUNT=30,Health|Break,Don't skip meals!,-5m||trigger=+30m;description=Finish up
+Afternoon Check-in,2025-12-16 15:00,15m,Europe/Madrid,FREQ=WEEKLY;BYDAY=MO;WE;FR;COUNT=15,Work|Planning,Review tasks and priorities,trigger=-5m
+Evening Medication,2025-12-16 20:00,5m,Europe/Madrid,FREQ=DAILY;COUNT=30,Health|Medication,Take evening meds,-10m||0m||+5m
+Wind Down Time,2025-12-16 22:00,30m,Europe/Madrid,FREQ=DAILY;COUNT=30,Health|Sleep,Prepare for bed - no screens,trigger=-10m;description=Start winding down

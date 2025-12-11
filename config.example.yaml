@@ -1,0 +1,112 @@
+# Tempus Configuration Example
+# Copy this file to ~/.config/tempus/config.yaml (Linux/macOS) or %AppData%\Tempus\config.yaml (Windows)
+# All fields are optional - Tempus uses sensible defaults
+
+# Language for prompts and messages
+# Supported: en (English), es (Spanish), pt (Portuguese), ga (Irish/Gaeilge)
+language: en
+
+# Default timezone for events (IANA timezone identifier)
+# Examples: Europe/Madrid, America/New_York, Asia/Tokyo, UTC
+timezone: UTC
+
+# Date format for parsing (Go time format)
+# Default: 2006-01-02 (YYYY-MM-DD)
+date_format: "2006-01-02"
+
+# Time format for parsing (Go time format)
+# Default: 15:04 (24-hour HH:MM)
+time_format: "15:04"
+
+# Default output directory for generated .ics files
+# Default: . (current directory)
+output_dir: "."
+
+# Default event title when none is provided
+# Default: Event
+default_title: "Event"
+
+# Alarm Profiles - Reusable alarm presets
+# Use in batch files with: alarms: [profile:adhd-triple]
+alarm_profiles:
+  # ADHD-friendly: Triple reminder for medication/tasks
+  adhd-triple: ["-5m", "-1m", "0m"]
+
+  # ADHD-friendly: Countdown for important events
+  adhd-countdown: ["-1d", "-1h", "-15m", "-5m"]
+
+  # Single standard reminder
+  single: ["-15m"]
+
+  # Medication reminder (same as adhd-triple)
+  medication: ["-5m", "-1m", "0m"]
+
+  # No alarms
+  none: []
+
+  # Add your own profiles:
+  # urgent: ["-1d", "-12h", "-1h", "-15m", "-5m", "-1m"]
+  # gentle: ["-1h", "-15m"]
+  # morning-routine: ["-10m", "-5m", "-1m", "0m"]
+
+# Spell Corrections - Automatic typo fixing
+# Helps with dyslexia and fast typing
+# Format: misspelling: correction
+spell_corrections:
+  # Meeting variations
+  meetng: meeting
+  meetting: meeting
+  meting: meeting
+
+  # Appointment variations
+  appointmnt: appointment
+  apointment: appointment
+  appointement: appointment
+
+  # Medication variations
+  medicaton: medication
+  mediction: medication
+  medikation: medication
+
+  # Meal-related
+  breakfst: breakfast
+  brekfast: breakfast
+  brek: break
+  brk: break
+  dinr: dinner
+  diner: dinner
+
+  # Preparation
+  prepartion: preparation
+  preperation: preparation
+
+  # Medical
+  doctr: doctor
+  docter: doctor
+  therepy: therapy
+  theraphy: therapy
+
+  # Session
+  sesion: session
+  sesson: session
+
+  # Exercise
+  excersize: exercise
+  excercise: exercise
+
+  # Add your own corrections:
+  # Personal shortcuts:
+  # tmrw: tomorrow
+  # appt: appointment
+  # focusblock: focus block
+  # standup: stand-up
+  # one2one: one-to-one
+
+  # Language-specific (if typing in multiple languages):
+  # reunión: reunion
+  # médico: medico
+  # cita: appointment
+
+  # Common typos you make:
+  # teh: the
+  # adn: and

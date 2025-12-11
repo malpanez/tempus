@@ -1,0 +1,4 @@
+summary,start,end,start_tz,end_tz,location,description,all_day,duration,rrule,exdate,categories,alarms
+"Weekly Sync","2025-05-01 09:00","","Europe/Madrid","","Video call","Sprint check-in",false,"45m","FREQ=WEEKLY;COUNT=4","2025-05-15 09:00","work|team","-15m"
+"Flight MAD-DUB","2025-06-10 08:30","2025-06-10 10:10","Europe/Madrid","Europe/Dublin","Barajas T1","FR1234",false,"","","","travel","-2h||trigger=2025-06-10 07:45,description=Security"
+"Neuro Check","2025-07-02","2025-07-03","Europe/Dublin","","Clinic","Annual check-up",true,"","","","health","trigger=-1d,description=Preparar mochila"

@@ -1,0 +1,43 @@
+{
+  "name": "medical",
+  "description": "Medical appointment",
+  "filename_tmpl": "medical-{{slug doctor}}-{{date start_time}}.ics",
+
+  "fields": [
+    { "key": "doctor",        "name": "Doctor",             "type": "text",     "required": true },
+    { "key": "specialty",     "name": "Specialty",          "type": "text",     "required": false },
+    { "key": "clinic",        "name": "Clinic/Hospital",    "type": "text",     "required": true },
+
+    { "key": "start_time",    "name": "Start Time (YYYY-MM-DD HH:MM)", "type": "datetime", "required": true },
+    { "key": "end_time",      "name": "End Time (YYYY-MM-DD HH:MM)",   "type": "datetime", "required": false },
+
+    { "key": "duration",      "name": "Duration (e.g. 30, 45m, 1h, 1h30m)", "type": "text", "required": false, "default": "30m" },
+
+    { "key": "timezone",      "name": "Timezone",           "type": "timezone", "required": false, "default": "UTC" },
+    { "key": "notes",         "name": "Notes",              "type": "text",     "required": false },
+
+    { "key": "rrule",         "name": "Recurrence (RRULE)", "type": "text",     "required": false, "description": "Optional recurrence rule, e.g. FREQ=MONTHLY;COUNT=6" },
+    { "key": "exdates",       "name": "Exclude Dates (comma separated)", "type": "text", "required": false, "description": "Optional list of YYYY-MM-DD or YYYY-MM-DD HH:MM dates to skip" },
+    { "key": "alarms",        "name": "Reminders",          "type": "alarms",   "required": false, "description": "Optional reminders, e.g. -15m or trigger=-30m,description=Arrive early" }
+  ],
+
+  "output": {
+    "all_day": false,
+
+    "start_field":     "start_time",
+    "end_field":       "end_time",
+    "duration_field":  "duration",
+
+    "start_tz_field":  "timezone",
+    "end_tz_field":    "timezone",
+
+    "rrule_field":     "rrule",
+    "exdates_field":   "exdates",
+    "alarms_field":    "alarms",
+
+    "summary_tmpl":    "Medical Appointment - Dr. {{doctor}}{{#specialty}} ({{specialty}}){{/specialty}}",
+    "location_tmpl":   "{{clinic}}",
+    "description_tmpl": "Doctor: Dr. {{doctor}}{{#specialty}}\\nSpecialty: {{specialty}}{{/specialty}}\\nClinic: {{clinic}}\\nTime: {{start_time}}{{#end_time}} - {{end_time}}{{/end_time}}{{#notes}}\\nNotes: {{notes}}{{/notes}}",
+    "categories": [ "Medical", "Personal", "Health" ]
+  }
+}

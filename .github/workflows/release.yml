@@ -1,0 +1,170 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Get version from tag
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=v0.0.0-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+
+          # Linux AMD64
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-linux-amd64 .
+
+          # Linux ARM64
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-linux-arm64 .
+
+          # macOS AMD64 (Intel)
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-darwin-amd64 .
+
+          # macOS ARM64 (Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-darwin-arm64 .
+
+          # Windows AMD64
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-windows-amd64.exe .
+
+          # Windows ARM64
+          GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-windows-arm64.exe .
+
+      - name: Create archives
+        run: |
+          cd dist
+
+          # Linux AMD64
+          tar -czf tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz tempus-linux-amd64
+          sha256sum tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz > tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz.sha256
+
+          # Linux ARM64
+          tar -czf tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz tempus-linux-arm64
+          sha256sum tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz > tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz.sha256
+
+          # macOS AMD64
+          tar -czf tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz tempus-darwin-amd64
+          sha256sum tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz > tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz.sha256
+
+          # macOS ARM64
+          tar -czf tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz tempus-darwin-arm64
+          sha256sum tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz > tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz.sha256
+
+          # Windows AMD64
+          zip tempus-${{ steps.version.outputs.version }}-windows-amd64.zip tempus-windows-amd64.exe
+          sha256sum tempus-${{ steps.version.outputs.version }}-windows-amd64.zip > tempus-${{ steps.version.outputs.version }}-windows-amd64.zip.sha256
+
+          # Windows ARM64
+          zip tempus-${{ steps.version.outputs.version }}-windows-arm64.zip tempus-windows-arm64.exe
+          sha256sum tempus-${{ steps.version.outputs.version }}-windows-arm64.zip > tempus-${{ steps.version.outputs.version }}-windows-arm64.zip.sha256
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            # Get previous tag
+            PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+
+            if [ -n "$PREV_TAG" ]; then
+              echo "## Changes since $PREV_TAG" > CHANGELOG.md
+              git log --pretty=format:"- %s (%h)" $PREV_TAG..${{ steps.version.outputs.version }} >> CHANGELOG.md
+            else
+              echo "## Initial Release" > CHANGELOG.md
+              git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+            fi
+          else
+            echo "## Development Build" > CHANGELOG.md
+            echo "This is an automated development build." >> CHANGELOG.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
+          generate_release_notes: true
+
+      - name: Upload artifacts (for manual runs)
+        uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: binaries
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+
+  # Optional: Create a Docker image
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.repository.updated_at }}

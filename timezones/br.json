@@ -1,0 +1,19 @@
+{
+  "zones": [
+    {
+      "iana": "America/Sao_Paulo",
+      "display_name": "São Paulo (Brazil)",
+      "country": "Brazil",
+      "aliases": ["sao paulo", "são paulo", "porto alegre", "pelotas"]
+    },
+    {
+      "iana": "America/Campo_Grande",
+      "display_name": "Campo Grande (Brazil)",
+      "country": "Brazil",
+      "aliases": ["campo grande", "campo_grande", "ponta pora", "ponta porã"]
+    }
+  ],
+  "aliases": {
+    "brazil": "America/Sao_Paulo"
+  }
+}

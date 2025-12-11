@@ -1,0 +1,57 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Build directories
+build/
+dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Config files (user specific)
+.tempus/
+
+# OAuth tokens and credentials (NEVER commit these!)
+*_token.json
+google_token.json
+credentials.json
+client_secret*.json
+token.json
+
+# API keys and secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Coverage files
+coverage.out
+coverage.html
+
+# Temporary files
+*.tmp
+*.temp
+
+# Personal test files
+test_*.ics
+my_*.ics

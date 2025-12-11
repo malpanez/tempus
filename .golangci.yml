@@ -1,0 +1,111 @@
+# golangci-lint configuration for Tempus
+# Documentation: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags: []
+
+linters:
+  enable:
+    # Bugs & Correctness
+    - errcheck       # Check for unchecked errors
+    - govet          # Vet examines Go source code
+    - staticcheck    # Go static analysis
+    - gosimple       # Simplify code
+    - unused         # Check for unused code
+    - ineffassign    # Detect ineffectual assignments
+    - typecheck      # Type checking
+
+    # Style & Formatting
+    - gofmt          # Check formatting
+    - goimports      # Check imports
+    - misspell       # Fix common spelling mistakes
+    - whitespace     # Detect unnecessary whitespace
+
+    # Complexity & Maintainability
+    - gocyclo        # Check cyclomatic complexity
+    - gocognit       # Check cognitive complexity
+    - funlen         # Check function length
+    - lll            # Check long lines
+
+    # Security
+    - gosec          # Security issues
+    - exportloopref  # Check for exported loop variable references
+
+    # Code Quality
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Find unused function parameters
+    - goconst        # Find repeated strings that could be constants
+    - godot          # Check comments end with period
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # Struct field alignment can be too strict
+
+  gocyclo:
+    min-complexity: 15  # Allow moderate complexity
+
+  gocognit:
+    min-complexity: 20  # Allow moderate cognitive complexity
+
+  funlen:
+    lines: 100
+    statements: 50
+
+  lll:
+    line-length: 120
+    tab-width: 4
+
+  misspell:
+    locale: UK  # British English (matching project style)
+
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+      - G304  # File path from variable (intentional for CLI)
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Exclude some linters from running on tests
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - funlen
+        - gosec
+
+    # Exclude some staticcheck checks
+    - linters:
+        - staticcheck
+      text: "SA1019:"  # Deprecated functions (may be needed for compatibility)
+
+    # Allow long lines in generated code
+    - path: "internal/templates/templates.go"
+      linters:
+        - lll
+
+    # Allow globals in main.go (Cobra commands)
+    - path: main\.go
+      text: "global variable"
+
+  # Fix found issues automatically (when possible)
+  fix: false
+
+output:
+  sort-results: true
+  print-issued-lines: true
+  print-linter-name: true

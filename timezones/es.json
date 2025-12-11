@@ -1,0 +1,27 @@
+{
+  "zones": [
+    {
+      "iana": "Europe/Madrid",
+      "display_name": "Madrid (Spain)",
+      "country": "Spain"
+    },
+    {
+      "iana": "Atlantic/Canary",
+      "display_name": "Canary Islands (Spain)",
+      "country": "Spain"
+    },
+    {
+      "iana": "Africa/Ceuta",
+      "display_name": "Ceuta / Melilla (Spain)",
+      "country": "Spain"
+    }
+  ],
+  "aliases": {
+    "spain": "Europe/Madrid",
+    "madrid": "Europe/Madrid",
+    "canarias": "Atlantic/Canary",
+    "canary": "Atlantic/Canary",
+    "ceuta": "Africa/Ceuta",
+    "melilla": "Africa/Ceuta"
+  }
+}
