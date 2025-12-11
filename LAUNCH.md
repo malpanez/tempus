@@ -16,35 +16,33 @@
 - [x] SECURITY.md (vulnerability disclosure)
 - [x] Enhanced .gitignore (secrets protection)
 - [x] CI/CD workflows (test, lint, build on 3 platforms)
-- [x] Security scanning (6 scanners, weekly runs)
+- [x] Functional test suite in CI
+- [x] Coverage checking (75% threshold)
+- [x] Security scanning (weekly runs)
 - [x] Release automation (6 platform binaries: Linux/macOS/Windows × AMD64/ARM64)
 - [x] Docker support
 - [x] golangci-lint config
-- [x] Google API documentation (550+ lines)
+- [x] Renovate bot configured
+- [x] Git-flow workflows (sync-branches, promote-to-main)
 - [x] Neurodivergent features documented (NEURODIVERGENT_FEATURES.md)
 - [x] README with complete feature list
+- [x] Repository created on GitHub
+- [x] Description set: "ADHD-friendly ICS calendar generator (Go CLI)"
+- [x] Branch protection enabled (main + develop)
 
 ### 📋 Before Going Public (TODO)
 
-1. **Update GitHub Repository Settings**:
-   - [ ] Add description: "ADHD-friendly ICS calendar generator with Google Calendar integration (Go CLI)"
-   - [ ] Add topics: `adhd`, `neurodivergent`, `calendar`, `ics`, `golang`, `cli`, `rfc5545`, `google-calendar`, `productivity`, `accessibility`
+1. **GitHub Repository Settings**:
+   - [ ] Add topics: `adhd`, `neurodivergent`, `calendar`, `ics`, `golang`, `cli`, `rfc5545`, `productivity`, `accessibility`
    - [ ] Enable GitHub features:
      - [ ] Discussions
      - [ ] Wiki (optional)
      - [ ] Projects (optional)
-   - [ ] Enable Security features:
-     - [ ] Dependabot alerts
+   - [ ] Enable Security features (manually via UI):
+     - [ ] Dependabot alerts (enable in Settings → Security)
      - [ ] Dependabot security updates
      - [ ] Code scanning (CodeQL)
-     - [ ] Secret scanning
-
-2. **Branch Protection** (Settings → Branches):
-   - [ ] Protect `main` branch:
-     - [ ] Require pull request before merging
-     - [ ] Require status checks (CI must pass)
-     - [ ] Require conversation resolution
-     - [ ] Do not allow force pushes
+     - [x] Secret scanning (already enabled)
 
 3. **Create First Release**:
    - [ ] Tag version: `git tag v0.5.0 && git push origin v0.5.0`
@@ -72,7 +70,7 @@
 ```markdown
 # Tempus v0.5.0 - Initial Public Release 🎉
 
-**Tempus** is an ADHD-friendly ICS calendar generator with Google Calendar integration, designed specifically for neurodivergent individuals.
+**Tempus** is an ADHD-friendly ICS calendar generator designed specifically for neurodivergent individuals.
 
 ## ✨ Highlights
 
@@ -106,9 +104,9 @@
 ### 🔧 Technical Features
 - RFC 5545 compliant ICS generation
 - Smart timezone handling (different TZs for start/end)
-- Google Calendar integration via OAuth 2.0
 - Batch operations (CSV/JSON/YAML)
 - Multilingual (EN, ES, PT, GA)
+- Import to any calendar app (Google Calendar, Apple Calendar, Outlook)
 
 ## 📦 Download
 
@@ -123,7 +121,6 @@ Download from [Releases](https://github.com/malpanez/tempus/releases/tag/v0.5.0)
 
 - [Quick Start Guide](https://github.com/malpanez/tempus#quick-start)
 - [Neurodivergent Features Guide](https://github.com/malpanez/tempus/blob/main/docs/NEURODIVERGENT_FEATURES.md)
-- [Google Calendar Setup](https://github.com/malpanez/tempus/blob/main/docs/GOOGLE_API_SETUP.md)
 - [Batch Examples](https://github.com/malpanez/tempus/blob/main/examples/README.md)
 
 ## 🙏 Acknowledgments
@@ -235,7 +232,7 @@ I'd love feedback on the UX decisions, code architecture, or feature suggestions
 ✅ Time-only input (just type "10:30")
 ✅ Multiple reminders to fight time blindness
 ✅ Focus block & medication templates
-✅ Google Calendar sync
+✅ Works with Google/Apple/Outlook calendars
 ✅ Prep time auto-addition (ADHD time boxing)
 ✅ Conflict detection & overwhelm prevention
 ✅ 100% free & open-source
