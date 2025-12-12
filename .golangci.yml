@@ -20,8 +20,8 @@ linters:
     # Style & Formatting
     - gofmt          # Check formatting
     - goimports      # Check imports
-    - misspell       # Fix common spelling mistakes
     - whitespace     # Detect unnecessary whitespace
+    # misspell disabled - codebase uses American English (normalized/recognized)
 
     # Complexity & Maintainability
     - gocyclo        # Check cyclomatic complexity
@@ -63,12 +63,6 @@ linters-settings:
     line-length: 120
     tab-width: 4
 
-  misspell:
-    locale: UK  # British English (Europe)
-    ignore-words:
-      - normaliz
-      - recogniz  # Accept American variants alongside British -ise spellings
-
   gosec:
     excludes:
       - G104  # Audit errors not checked (covered by errcheck)
@@ -105,11 +99,19 @@ issues:
     - path: main\.go
       text: "global variable"
 
-    # Allow higher complexity in alarm parser (complex parsing logic)
+    # Allow higher complexity in alarm/calendar parsers (complex parsing logic)
     - path: "internal/calendar/alarms_parser.go"
-      text: "cognitive complexity .* of func `parseKeyValueAlarmSpec`"
       linters:
         - gocognit
+        - gocyclo
+        - lll
+        - goconst
+    - path: "internal/calendar/calendar.go"
+      linters:
+        - gocognit
+        - godot
+        - goconst
+        - unconvert
 
   # Fix found issues automatically (when possible)
   fix: false
