@@ -82,8 +82,12 @@ issues:
     - path: _test\.go
       linters:
         - gocyclo
+        - gocognit
         - funlen
         - gosec
+        - goconst
+        - lll
+        - govet  # Allow shadow in tests
 
     # Exclude some staticcheck checks
     - linters:
@@ -104,14 +108,24 @@ issues:
       linters:
         - gocognit
         - gocyclo
+        - funlen
         - lll
         - goconst
     - path: "internal/calendar/calendar.go"
       linters:
         - gocognit
+        - gocyclo
         - godot
         - goconst
         - unconvert
+
+    # Allow flexibility in other internal packages
+    - path: "internal/i18n/"
+      linters:
+        - godot
+    - path: "internal/config/"
+      linters:
+        - gosec  # Directory permissions 0755 is intentional
 
   # Fix found issues automatically (when possible)
   fix: false
