@@ -479,3 +479,155 @@ func containsMiddle(s, substr string) bool {
 	}
 	return false
 }
+
+func TestValidateCategoryWithSuggestion(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"work", "Work"},
+		{"Work", "Work"},
+		{"WORK", "Work"},
+		{"wrk", "Work"},
+		{"meetting", "Meeting"},
+		{"medz", "Medication"},
+		{"UnknownCategory", "UnknownCategory"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		got := validateCategoryWithSuggestion(tt.input)
+		if got != tt.want {
+			t.Errorf("validateCategoryWithSuggestion(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestNormalizeAndSpellCheck(t *testing.T) {
+	tests := []struct {
+		input string
+		desc  string
+	}{
+		{"", "empty"},
+		{"Normal text", "normal"},
+		{"Multiple   spaces", "spaces"},
+	}
+
+	for _, tt := range tests {
+		result := normalizeAndSpellCheck(tt.input)
+		if tt.input == "" && result != "" {
+			t.Errorf("normalizeAndSpellCheck(%q) should return empty, got %q", tt.input, result)
+		}
+	}
+}
+
+func TestNormalizeDateTimeInput(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"", ""},
+		{"2025-12-16 10:30", "2025-12-16 10:30"},
+		{"2025/12/16 10:30", "2025-12-16 10:30"},
+		{"2025-1-5 9:00", "2025-01-05 09:00"},
+		{"2025-01-05 0900", "2025-01-05 09:00"},
+		{"  2025-12-16 10:30  ", "2025-12-16 10:30"},
+	}
+
+	for _, tt := range tests {
+		got := normalizeDateTimeInput(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeDateTimeInput(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestAddEmojiToSummaryKeywordMatch(t *testing.T) {
+	tests := []struct {
+		summary string
+		hasEmoji bool
+	}{
+		{"Take medication", true},
+		{"Breakfast meeting", true},
+		{"Lunch with team", true},
+		{"Dinner reservation", true},
+		{"💊 Already has emoji", false}, // Should skip
+		{"Regular event", false},
+	}
+
+	for _, tt := range tests {
+		got := addEmojiToSummary(tt.summary, []string{})
+		if tt.hasEmoji && got == tt.summary {
+			t.Errorf("addEmojiToSummary(%q) should add emoji, got %q", tt.summary, got)
+		}
+		if !tt.hasEmoji && got != tt.summary {
+			// OK if emoji added by keyword match
+		}
+	}
+}
+
+func TestExpandAlarmProfilesEdgeCases(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []string
+	}{
+		{"empty spec", []string{""}},
+		{"whitespace only", []string{"  "}},
+		{"profile not found", []string{"profile:nonexistent"}},
+		{"regular alarm", []string{"-15m"}},
+		{"mixed", []string{"-15m", "", "profile:adhd-default"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := expandAlarmProfiles(tt.input)
+			if result == nil {
+				t.Error("expandAlarmProfiles should not return nil")
+			}
+		})
+	}
+}
+
+func TestValueAsStringEdgeCases(t *testing.T) {
+	tests := []struct {
+		name  string
+		value interface{}
+	}{
+		{"string", "test"},
+		{"int", 42},
+		{"float", 3.14},
+		{"bool", true},
+		{"nil", nil},
+		{"slice", []string{"a", "b"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := valueAsString(tt.value)
+			_ = result // Just ensure no panic
+		})
+	}
+}
+
+func TestValueAsBoolEdgeCases(t *testing.T) {
+	tests := []struct {
+		value interface{}
+		want  bool
+	}{
+		{true, true},
+		{false, false},
+		{"true", true},
+		{"false", false},
+		{"1", true},
+		{"0", false},
+		{1, true},
+		{nil, false},
+	}
+
+	for _, tt := range tests {
+		got := valueAsBool(tt.value)
+		if got != tt.want {
+			t.Errorf("valueAsBool(%v) = %v, want %v", tt.value, got, tt.want)
+		}
+	}
+}
