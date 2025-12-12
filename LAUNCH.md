@@ -1,6 +1,6 @@
 # Tempus - Launch Checklist
 
-**Project**: Tempus - ADHD-Friendly Calendar Tool
+**Project**: Tempus - Neurodivergent-Friendly Calendar Tool
 **Status**: Ready for Public Launch 🚀
 **License**: MIT (Open Source)
 
@@ -33,7 +33,7 @@
 ### 📋 Before Going Public (TODO)
 
 1. **GitHub Repository Settings**:
-   - [ ] Add topics: `adhd`, `neurodivergent`, `calendar`, `ics`, `golang`, `cli`, `rfc5545`, `productivity`, `accessibility`
+   - [ ] Add topics: `neurodivergent`, `adhd`, `autism`, `dyslexia`, `calendar`, `ics`, `golang`, `cli`, `rfc5545`, `productivity`, `accessibility`, `time-management`
    - [ ] Enable GitHub features:
      - [ ] Discussions
      - [ ] Wiki (optional)
@@ -70,7 +70,7 @@
 ```markdown
 # Tempus v0.5.0 - Initial Public Release 🎉
 
-**Tempus** is an ADHD-friendly ICS calendar generator designed specifically for neurodivergent individuals.
+**Tempus** is a neurodivergent-friendly ICS calendar generator designed for people with ADHD, ASD, Dyslexia, and other cognitive differences.
 
 ## ✨ Highlights
 
@@ -142,13 +142,13 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Reddit - r/ADHD
 
-**Title**: "I built a CLI calendar tool specifically for ADHD brains (free, open-source)"
+**Title**: "I built a CLI calendar tool for ADHD, ASD, and Dyslexia (free, open-source)"
 
 **Body**:
 ```
-Hey everyone! I'm neurodivergent and struggled with traditional calendar tools, so I built **Tempus** - a command-line calendar generator designed specifically for ADHD.
+Hey everyone! I'm neurodivergent and struggled with traditional calendar tools, so I built **Tempus** - a command-line calendar generator designed for ADHD, ASD, Dyslexia, and other cognitive differences.
 
-**Why it's ADHD-friendly:**
+**Why it's neurodivergent-friendly:**
 
 🧠 **Reduces decision fatigue**:
 - Type just the time (10:30) instead of full datetime
@@ -182,13 +182,13 @@ I built this because I needed it, and I hope it helps others too. Feedback welco
 
 ### Hacker News - Show HN
 
-**Title**: "Show HN: Tempus – ADHD-friendly CLI for generating calendar events (ICS/Google)"
+**Title**: "Show HN: Tempus – Neurodivergent-friendly CLI for calendar events (ADHD/ASD/Dyslexia)"
 
 **Body**:
 ```
-Hi HN! I'm a neurodivergent developer who struggled with traditional calendar tools, so I built Tempus - a command-line ICS generator with an ADHD-friendly UX.
+Hi HN! I'm a neurodivergent developer who struggled with traditional calendar tools, so I built Tempus - a command-line ICS generator with a neurodivergent-friendly UX (ADHD, ASD, Dyslexia).
 
-**What makes it ADHD-friendly:**
+**What makes it neurodivergent-friendly:**
 
 1. **Time-only input**: Type "10:30" instead of "2025-11-15 10:30:00" (auto-expands to today)
 2. **Duration parsing**: "45m", "1h30m", "90 minutes", "1:15" all work
@@ -208,12 +208,12 @@ Hi HN! I'm a neurodivergent developer who struggled with traditional calendar to
 **Tech stack:**
 - Go 1.24 with Cobra/Viper
 - RFC 5545 compliant ICS generation
-- Google Calendar OAuth 2.0 integration
 - Embedded IANA timezone database
-- 75-80% test coverage
+- Universal calendar compatibility (no vendor lock-in)
+- 78.8% test coverage
 - CI/CD with multi-platform releases (Linux, macOS, Windows × AMD64/ARM64)
 
-**Why CLI?**: Many ADHD individuals prefer keyboard-driven workflows (fewer distractions, faster input, scriptable).
+**Why CLI?**: Many neurodivergent individuals prefer keyboard-driven workflows (fewer distractions, faster input, scriptable, consistent interface).
 
 The tool is MIT-licensed. I built it with Claude Code AI assistance to accelerate development while maintaining production quality.
 
@@ -227,13 +227,13 @@ I'd love feedback on the UX decisions, code architecture, or feature suggestions
 ### Twitter/X
 
 ```
-🚀 Just open-sourced Tempus - a CLI calendar tool built specifically for ADHD brains
+🚀 Just open-sourced Tempus - a CLI calendar tool for neurodivergent users (ADHD, ASD, Dyslexia)
 
 ✅ Time-only input (just type "10:30")
+✅ Spell checking for dyslexia (auto-corrects typos)
 ✅ Multiple reminders to fight time blindness
 ✅ Focus block & medication templates
 ✅ Works with Google/Apple/Outlook calendars
-✅ Prep time auto-addition (ADHD time boxing)
 ✅ Conflict detection & overwhelm prevention
 ✅ 100% free & open-source
 
@@ -241,7 +241,7 @@ Built with @AnthropicAI Claude Code 🤖
 
 https://github.com/malpanez/tempus
 
-#ADHD #neurodivergent #golang #CLI #opensource
+#neurodivergent #ADHD #autism #dyslexia #golang #CLI #opensource
 ```
 
 ---
@@ -324,16 +324,16 @@ https://github.com/malpanez/tempus
 ## FAQ Responses (for community engagement)
 
 ### "Why not just use Google Calendar directly?"
-"Google Calendar is great for viewing, but repetitive event creation is tedious. Tempus is for power users who want to batch-create events, script calendar generation, or work offline. Plus, ADHD brains often prefer CLI workflows (faster, fewer distractions)."
+"Google Calendar is great for viewing, but repetitive event creation is tedious. Tempus is for power users who want to batch-create events, script calendar generation, or work offline. The tool creates standard ICS files that work with ANY calendar app - no vendor lock-in. Plus, neurodivergent users often prefer CLI workflows (faster, fewer distractions, consistent interface)."
 
 ### "Is this really needed?"
-"For neurotypical users, maybe not. But for ADHD individuals, traditional calendar tools have too much cognitive overhead. Tempus reduces decision fatigue with smart defaults and provides multiple reminders to fight time blindness - both are critical ADHD challenges."
+"For neurotypical users, maybe not. But for neurodivergent individuals (ADHD, ASD, Dyslexia), traditional calendar tools have too much cognitive overhead. Tempus reduces decision fatigue with smart defaults, corrects spelling automatically, provides multiple reminders to fight time blindness, and uses visual aids for quick scanning - all critical neurodivergent challenges."
 
 ### "Why CLI and not GUI?"
 "Many neurodivergent individuals prefer keyboard-driven workflows (fewer visual distractions, faster input, scriptable). That said, a web UI is on the roadmap for future versions!"
 
 ### "Built with AI - is that cheating?"
-"No! AI-assisted development is the future. I designed the features based on lived ADHD experience, and used AI to accelerate implementation. The result is production-quality code that helps real people. That's what matters."
+"No! AI-assisted development is the future. I designed the features based on lived neurodivergent experience, and used AI to accelerate implementation. The result is production-quality code that helps real people. That's what matters."
 
 ---
 
@@ -360,7 +360,7 @@ https://github.com/malpanez/tempus
 
 5. **Plan v0.6.0 release**
    - Based on community feedback
-   - Maintain ADHD-friendly focus
+   - Maintain neurodivergent-friendly focus
 
 ---
 

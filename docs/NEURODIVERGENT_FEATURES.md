@@ -1,6 +1,6 @@
 # Neurodivergent-Friendly Features Guide
 
-Tempus is designed with neurodivergent users in mind, especially those with ADHD, ASD, and Dyslexia. This guide explains all neurodivergent-friendly features and how to use them effectively.
+Tempus is designed with neurodivergent users in mind—especially those with ADHD, ASD (Autism Spectrum Disorder), and Dyslexia. This guide explains all neurodivergent-friendly features and how to use them effectively to reduce cognitive load, manage time blindness, and support executive function.
 
 ## Table of Contents
 - [Conflict Detection](#conflict-detection)

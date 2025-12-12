@@ -2,7 +2,7 @@
 
 First off, thank you for considering contributing to Tempus! 🎉
 
-Tempus is a neurodivergent-friendly calendar event generator, and we welcome contributions that help make it even better for the ADHD and neurodivergent community.
+Tempus is a neurodivergent-friendly calendar tool designed for people with ADHD, ASD, Dyslexia, and other cognitive differences. We welcome contributions that help make calendar management more accessible and reduce cognitive load.
 
 ## Code of Conduct
 
@@ -47,7 +47,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 - **Explain why this enhancement would be useful** to most Tempus users
 - **Include examples** of how it would work
 
-**ADHD-friendly features are particularly welcome!** If your enhancement helps neurodivergent users, please highlight that.
+**Neurodivergent-friendly features are particularly welcome!** If your enhancement helps users with ADHD, ASD, Dyslexia, or other cognitive differences, please highlight how.
 
 ### Pull Requests
 

@@ -1,12 +1,54 @@
 # Tempus
 
-A multilingual, neurodivergent-friendly **ICS calendar generator** with smart timezone handling, batch CSV/JSON support, and Google Calendar import.
+**A neurodivergent-friendly calendar tool that actually gets it.**
 
-[Features](#features) • [Installation](#installation) • [Quick-start](#quick-start) • [Batch](#batch) • [Templates](#templates) • [Google](#google-calendar) • [Contributing](#contributing)
+Create RFC 5545-compliant ICS calendars with smart timezone handling, batch operations, and features specifically built to reduce cognitive load, fight time blindness, and support executive function.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/malpanez/tempus)](https://goreportcard.com/report/github.com/malpanez/tempus)
+[![Coverage](https://img.shields.io/badge/coverage-78.8%25-brightgreen)](https://github.com/malpanez/tempus/actions)
+
+[Why Tempus?](#-why-tempus) • [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 ---
 
-## Features
+## 🧠 Why Tempus?
+
+Traditional calendar tools are built for neurotypical brains. **Tempus is different.**
+
+### Built for ADHD, ASD, and Dyslexia
+
+**Time Blindness Solutions:**
+- ⏰ **Multiple countdown reminders** with alarm profiles (adhd-default: -2h, -1h, -30m, -10m)
+- 📊 **Automatic prep time buffers** (15min before meetings, 20min before medical)
+- ⚡ **Focus block transitions** (5min decompression after deep work)
+
+**Reduce Cognitive Load:**
+- ✨ **Auto-emoji categories** - Visual icons without thinking (💊 medication, 💼 work, 🏥 health)
+- 🔧 **Smart spell checking** - Common typos fixed automatically (meetting→meeting, docter→doctor)
+- 📝 **Flexible input** - Type `10:30` instead of `2025-12-20 10:30:00 Europe/Madrid`
+
+**Prevent Overwhelm:**
+- 🚦 **Conflict detection** - Catch overlapping events before they happen
+- 📉 **Daily event limits** - Warnings when you over-schedule (customizable threshold)
+- 👁️ **Dry-run mode** - Preview everything before creating
+
+**Executive Function Support:**
+- 📋 **Batch templates** - Pre-filled CSVs for common scenarios (medication, routines, meetings)
+- 🎯 **Smart duration defaults** - Medication=5m, breakfast=30m, focus=2h (auto-detected)
+- 🔄 **Reusable alarm profiles** - Type `profile:medication` instead of `-5m,-1m,0m` every time
+
+### Why CLI?
+
+Many neurodivergent individuals prefer keyboard-driven workflows:
+- **Fewer distractions** than GUI apps with infinite click paths
+- **Faster input** once you learn the patterns
+- **Scriptable** for automation and consistency
+- **Works anywhere** - local, private, no subscription
+
+---
+
+## ✨ Features
 
 ### Core Functionality
 - **ADHD-friendly UX**: time-only input, human durations (`45m`, `1h30m`, `1:15`, `-1d`, `-1w`), multiple alarms, required prompts marked with `*`.
@@ -14,8 +56,8 @@ A multilingual, neurodivergent-friendly **ICS calendar generator** with smart ti
 - **Smart timezones**: start/end can use different TZs; timezone explorer with search and country filters.
 - **Batch mode**: create one calendar from many events via CSV, JSON, or YAML.
 - **Templates**: built-in (flight, meeting, holiday, medical, ADHD-friendly focus/medication/transition/deadline) plus external JSON/YAML.
-- **Google import**: device-flow OAuth to upload any `.ics` into Google Calendar.
-- **RFC 5545 compliance**: proper `TZID`, `VALARM`, recurrence (`RRULE`/`EXDATE`), and line folding for compatibility.
+- **Universal compatibility**: ICS files work with Google Calendar, Outlook, Apple Calendar, and any RFC 5545-compliant app.
+- **RFC 5545 compliance**: proper `TZID`, `VALARM`, recurrence (`RRULE`/`EXDATE`), and line folding for maximum compatibility.
 
 ### Neurodivergent-Friendly Enhancements
 - **Batch Template Generator**: Pre-filled templates for common scenarios (`tempus batch template`)
@@ -367,21 +409,25 @@ Copy this into your batch files or use with `--rrule` flag.
 
 ---
 
-## Google Calendar
+## Importing to Calendar Apps
 
-Device-flow import for any ICS file:
-```bash
-export TEMPUS_CLIENT_ID="<client-id>"
-export TEMPUS_CLIENT_SECRET="<client-secret>"
+Tempus generates standard ICS files that work with any calendar application. Simply import the `.ics` file:
 
-# First run triggers OAuth device flow
-tempus google import \
-  --input event.ics \
-  --calendar primary \
-  --token-file ~/.tempus/google_token.json
-```
+**Google Calendar:**
+1. Open [Google Calendar](https://calendar.google.com/)
+2. Click ⚙️ (Settings) → Import & Export
+3. Select your `.ics` file → Choose destination calendar → Import
 
-Flags: `--client-id`, `--client-secret`, `--token-file`, `--calendar`. Token is cached and refreshed automatically. See `docs/GOOGLE_API_SETUP.md` for the full walkthrough.
+**Outlook:**
+1. File → Open & Export → Import/Export
+2. Select "Import an iCalendar (.ics) file"
+3. Browse to your file → Import
+
+**Apple Calendar:**
+1. File → Import
+2. Select your `.ics` file → Choose calendar → Import
+
+**No API setup, no OAuth, no complexity** - just create and import!
 
 ---
 
@@ -482,15 +528,52 @@ feature/fix branch --> develop --> main
 
 ---
 
-## Contributing
-- Read the [Code of Conduct](CODE_OF_CONDUCT.md) and [CONTRIBUTING](CONTRIBUTING.md).
-- Issues and PRs welcome: ADHD-friendly features, templates, translations, tests, docs.
+## 🤝 Contributing
+
+We welcome contributions that help neurodivergent users!
+
+**Ways to contribute:**
+- 🐛 Report bugs or usability issues
+- ✨ Suggest neurodivergent-friendly features
+- 📝 Improve documentation
+- 🌐 Add translations
+- 🧪 Write tests
+- 💼 Share batch templates
+
+**Before contributing:**
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+- Follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) (neurodivergent-friendly)
+- Check existing issues/PRs to avoid duplicates
+
+**Security issues:** See [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ---
 
-## License
-MIT — see [LICENSE](LICENSE).
+## 🙏 Acknowledgments
+
+This project was built with [Claude Code](https://claude.com/claude-code), combining lived experience with neurodivergence and modern AI-assisted development.
+
+**Research & Inspiration:**
+- [ADHD Prospective Memory Research](https://www.nature.com/articles/s41598-025-08944-w) - Optimal reminder spacing
+- [Time Blocking for ADHD](https://akiflow.com/blog/time-blocking-adhd) - Prep time buffers
+- [ADHD Time Management](https://www.healthline.com/health/adhd/how-to-time-block-with-adhd) - 15-minute transitions
 
 ---
 
-Made with ❤️ for the neurodivergent community. If Tempus helps you, consider starring the repo.
+## 📄 License
+
+[MIT License](LICENSE) - Use freely, commercially or personally.
+
+---
+
+## ⭐ Support
+
+If Tempus helps you manage your calendar better, please consider:
+- ⭐ Starring the repo on GitHub
+- 🐛 Reporting bugs or usability issues
+- 💬 Sharing your experience (Reddit, Twitter, Hacker News)
+- 🤝 Contributing features or translations
+
+**Made with ❤️ for the neurodivergent community.**
+
+Even if only a few people use it, we've made their lives a little easier. That's success.

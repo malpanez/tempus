@@ -64,7 +64,10 @@ linters-settings:
     tab-width: 4
 
   misspell:
-    locale: UK  # British English (matching project style)
+    locale: UK  # British English (Europe)
+    ignore-words:
+      - normaliz
+      - recogniz  # Accept American variants alongside British -ise spellings
 
   gosec:
     excludes:
@@ -101,6 +104,12 @@ issues:
     # Allow globals in main.go (Cobra commands)
     - path: main\.go
       text: "global variable"
+
+    # Allow higher complexity in alarm parser (complex parsing logic)
+    - path: "internal/calendar/alarms_parser.go"
+      text: "cognitive complexity .* of func `parseKeyValueAlarmSpec`"
+      linters:
+        - gocognit
 
   # Fix found issues automatically (when possible)
   fix: false

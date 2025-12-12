@@ -13,7 +13,7 @@ import (
 // Calendar & Event model
 //
 
-// Calendar represents an ICS calendar
+// Calendar represents an ICS calendar.
 type Calendar struct {
 	ProdID   string
 	Version  string

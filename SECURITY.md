@@ -71,30 +71,17 @@ against a whitelist of allowed characters.
 
 ## Security Best Practices for Users
 
-### OAuth Credentials
+### Configuration Files
 
-**NEVER** commit OAuth credentials to version control:
-
-```bash
-# Use environment variables
-export TEMPUS_CLIENT_ID="your-client-id.apps.googleusercontent.com"
-export TEMPUS_CLIENT_SECRET="your-client-secret"
-
-# Or use a .env file (which is .gitignored)
-echo "TEMPUS_CLIENT_ID=..." >> .env
-echo "TEMPUS_CLIENT_SECRET=..." >> .env
-```
-
-### Token Storage
-
-Google Calendar tokens are stored locally in the file specified by `--token-file`. Keep this file secure:
+**NEVER** commit sensitive configuration to version control:
 
 ```bash
-# Recommended permissions
-chmod 600 ~/.tempus/google_token.json
+# Use environment variables for any credentials
+export TEMPUS_CONFIG_SECRET="your-secret-value"
 
-# Never commit to git
-echo "*_token.json" >> .gitignore
+# Or use config files that are .gitignored
+echo "config.yaml" >> .gitignore
+echo ".env" >> .gitignore
 ```
 
 ### Input Validation
@@ -118,14 +105,6 @@ sudo ./tempus create ...  # DON'T DO THIS
 ```
 
 ## Known Security Considerations
-
-### OAuth Device Flow
-
-Tempus uses OAuth 2.0 Device Flow for Google Calendar authentication. This is secure for desktop applications but requires:
-
-1. **User verification** - Always verify the authorization URL matches `accounts.google.com`
-2. **Token protection** - Store tokens in user-only readable files (`chmod 600`)
-3. **Token rotation** - Tokens expire and are automatically refreshed
 
 ### ICS File Generation
 
@@ -164,6 +143,14 @@ When we receive a security report:
 4. **Announce** the vulnerability publicly after patches are available
 
 We will credit the reporter in release notes (unless they request anonymity).
+
+## Responsible Disclosure
+
+We appreciate the security research community's efforts. If you responsibly disclose a vulnerability:
+
+- We will credit you in release notes (unless you prefer anonymity)
+- We will work with you to understand and fix the issue promptly
+- We will keep you informed throughout the remediation process
 
 ## Comments on This Policy
 

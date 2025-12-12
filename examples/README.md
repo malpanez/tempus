@@ -1,16 +1,17 @@
 # Tempus Batch Examples
 
-Ready-to-use CSV, JSON, and YAML templates for creating multiple calendar events at once.
+Ready-to-use CSV, JSON, and YAML templates for creating multiple calendar events at once. Perfect for neurodivergent users who want to set up consistent routines, medication schedules, or complex itineraries without starting from scratch.
 
 ## Quick Start
 
 1. **Choose** an example file that fits your needs
 2. **Edit** the file with your dates, times, and details
-3. **Generate** your calendar:
+3. **Preview** with dry-run (optional): `tempus batch --dry-run -i <file>`
+4. **Generate** your calendar:
    ```bash
    tempus batch -i <file> -o my-calendar.ics
    ```
-4. **Import** the `.ics` file to Google Calendar, Outlook, or Apple Calendar
+5. **Import** the `.ics` file to Google Calendar, Outlook, or Apple Calendar
 
 ---
 
@@ -367,10 +368,10 @@ trigger=2025-12-25 08:00                # Absolute time
 
 ## More Examples & Documentation
 
-- **Full batch guide**: [docs/batch-guide.md](../docs/batch-guide.md) (coming soon)
-- **All examples**: [docs/examples.md](../docs/examples.md)
+- **Neurodivergent features guide**: [docs/NEURODIVERGENT_FEATURES.md](../docs/NEURODIVERGENT_FEATURES.md)
 - **Main README**: [README.md](../README.md)
-- **Templates**: [docs/es/guia-plantillas.md](../docs/es/guia-plantillas.md) (Spanish)
+- **Spanish guide**: [docs/es/guia-plantillas.md](../docs/es/guia-plantillas.md)
+- **Portuguese guide**: [docs/pt/guia-modelos.md](../docs/pt/guia-modelos.md)
 
 ---
 

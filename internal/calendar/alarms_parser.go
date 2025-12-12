@@ -8,12 +8,16 @@ import (
 	"time"
 )
 
-var (
-	alarmHHMMRe     = regexp.MustCompile(`^\s*(\d{1,2})\s*:\s*([0-5]?\d)\s*$`)
-	alarmHMRe       = regexp.MustCompile(`^\s*(?:(\d+)\s*h\s*)?(?:(\d+)\s*m\s*)?$`)
-	alarmMinutesRe  = regexp.MustCompile(`^\s*\d+\s*$`)
-	icsDurationRe   = regexp.MustCompile(`(?i)^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$`)
+const (
+	actionDisplay   = "DISPLAY"
 	defaultDescText = "Reminder"
+)
+
+var (
+	alarmHHMMRe    = regexp.MustCompile(`^\s*(\d{1,2})\s*:\s*([0-5]?\d)\s*$`)
+	alarmHMRe      = regexp.MustCompile(`^\s*(?:(\d+)\s*h\s*)?(?:(\d+)\s*m\s*)?$`)
+	alarmMinutesRe = regexp.MustCompile(`^\s*\d+\s*$`)
+	icsDurationRe  = regexp.MustCompile(`(?i)^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$`)
 )
 
 // ParseHumanDuration converts human-friendly strings (e.g., "1h30m", "90", "1:30", "1d", "1w") into time.Duration.
@@ -152,7 +156,7 @@ func parseSimpleAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 
 	if dur, err := parseRelativeAlarmDuration(trigger, -1); err == nil {
 		return Alarm{
-			Action:            "DISPLAY",
+			Action:            actionDisplay,
 			Description:       defaultDescText,
 			TriggerIsRelative: true,
 			TriggerDuration:   dur,
@@ -164,7 +168,7 @@ func parseSimpleAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 		return Alarm{}, fmt.Errorf("invalid alarm %q: %v", spec, err)
 	}
 	return Alarm{
-		Action:            "DISPLAY",
+		Action:            actionDisplay,
 		Description:       defaultDescText,
 		TriggerIsRelative: false,
 		TriggerTime:       ts.UTC(),
@@ -198,7 +202,7 @@ func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 
 	action := strings.ToUpper(strings.TrimSpace(firstNonEmpty(params["action"], "")))
 	if action == "" {
-		action = "DISPLAY"
+		action = actionDisplay
 	}
 
 	description := strings.TrimSpace(firstNonEmpty(params["description"], params["message"], params["text"]))
@@ -269,7 +273,7 @@ func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 		Summary:     summary,
 		Description: description,
 	}
-	if strings.TrimSpace(al.Description) == "" && al.Action == "DISPLAY" {
+	if strings.TrimSpace(al.Description) == "" && al.Action == actionDisplay {
 		al.Description = defaultDescText
 	}
 
