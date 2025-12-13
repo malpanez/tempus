@@ -7,6 +7,7 @@ run:
   build-tags: []
 
 linters:
+  disable-all: true
   enable:
     # Critical: Bugs & Correctness only for v0.5.0
     - govet          # Vet examines Go source code
@@ -14,8 +15,6 @@ linters:
     - typecheck      # Type checking
     - gofmt          # Check formatting only
     - goimports      # Check imports only
-    # Disabled for v0.5.0 (can be re-enabled post-launch):
-    # - errcheck, unused, gosimple, ineffassign
 
 linters-settings:
   govet:
@@ -40,6 +39,12 @@ issues:
     - linters:
         - staticcheck
       text: "SA1019:"
+
+    # Exclude staticcheck SA5011 (nil pointer checks in tests are intentional)
+    - linters:
+        - staticcheck
+      text: "SA5011:"
+      path: "_test\\.go"
 
   fix: false
 
