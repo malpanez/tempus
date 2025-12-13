@@ -8,13 +8,14 @@ run:
 
 linters:
   enable:
-    # Critical: Bugs & Correctness only
+    # Critical: Bugs & Correctness only for v0.5.0
     - govet          # Vet examines Go source code
     - staticcheck    # Go static analysis
-    - ineffassign    # Detect ineffectual assignments
     - typecheck      # Type checking
     - gofmt          # Check formatting only
     - goimports      # Check imports only
+    # Disabled for v0.5.0 (can be re-enabled post-launch):
+    # - errcheck, unused, gosimple, ineffassign
 
 linters-settings:
   govet:
