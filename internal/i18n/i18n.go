@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -267,7 +268,7 @@ func ensureEmbeddedLocales() {
 			if _, exists := embeddedData[lang]; exists {
 				continue
 			}
-			data, err := embeddedLocales.ReadFile(filepath.Join(embeddedLocalesRoot, name))
+			data, err := embeddedLocales.ReadFile(path.Join(embeddedLocalesRoot, name))
 			if err != nil {
 				continue
 			}
