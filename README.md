@@ -2,7 +2,7 @@
 
 **A neurodivergent-friendly calendar tool that actually gets it.**
 
-Create RFC 5545-compliant ICS calendars with smart timezone handling, batch operations, and features specifically built to reduce cognitive load, fight time blindness, and support executive function.
+Create [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant ICS calendars with smart timezone handling, batch operations, and features specifically built to reduce cognitive load, fight time blindness, and support executive function.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/malpanez/tempus)](https://goreportcard.com/report/github.com/malpanez/tempus)
@@ -56,8 +56,8 @@ Many neurodivergent individuals prefer keyboard-driven workflows:
 - **Smart timezones**: start/end can use different TZs; timezone explorer with search and country filters.
 - **Batch mode**: create one calendar from many events via CSV, JSON, or YAML.
 - **Templates**: built-in (flight, meeting, holiday, medical, ADHD-friendly focus/medication/transition/deadline) plus external JSON/YAML.
-- **Universal compatibility**: ICS files work with Google Calendar, Outlook, Apple Calendar, and any RFC 5545-compliant app.
-- **RFC 5545 compliance**: proper `TZID`, `VALARM`, recurrence (`RRULE`/`EXDATE`), and line folding for maximum compatibility.
+- **Universal compatibility**: ICS files work with Google Calendar, Outlook, Apple Calendar, and any [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant app.
+- **[RFC 5545](https://www.rfc-editor.org/rfc/rfc5545) compliance**: proper `TZID`, `VALARM`, recurrence (`RRULE`/`EXDATE`), and line folding for maximum compatibility.
 
 ### Neurodivergent-Friendly Enhancements
 - **Batch Template Generator**: Pre-filled templates for common scenarios (`tempus batch template`)
