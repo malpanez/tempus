@@ -15,6 +15,7 @@ jobs:
   test:
     name: Test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         go-version: ['1.24']
@@ -79,6 +80,7 @@ jobs:
   build:
     name: Build
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         go-version: ['1.24']
@@ -108,6 +110,7 @@ jobs:
 
   functional-tests:
     name: Functional Tests
+    if: always()
     needs: [test, lint, build]
     runs-on: ubuntu-latest
 
@@ -222,6 +225,7 @@ jobs:
 
   coverage-check:
     name: Coverage Check
+    if: always()
     needs: test
     runs-on: ubuntu-latest
 
