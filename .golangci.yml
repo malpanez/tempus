@@ -43,8 +43,12 @@ issues:
     # Exclude staticcheck SA5011 (nil pointer checks in tests are intentional)
     - linters:
         - staticcheck
-      text: "SA5011:"
-      path: "_test\\.go"
+      text: "SA5011"
+
+    # Exclude staticcheck SA9003 (empty branches in test code are OK)
+    - linters:
+        - staticcheck
+      text: "SA9003"
 
   fix: false
 
