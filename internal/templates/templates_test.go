@@ -990,10 +990,10 @@ func TestRegisterDDTemplate(t *testing.T) {
 			{Key: "date", Name: "Date", Type: "datetime", Required: true},
 		},
 		Output: OutputTemplate{
-			StartField:   "date",
-			SummaryTmpl:  "{{title}}",
-			AllDay:       true,
-			Categories:   []string{"Custom"},
+			StartField:  "date",
+			SummaryTmpl: "{{title}}",
+			AllDay:      true,
+			Categories:  []string{"Custom"},
 		},
 	}
 
@@ -1285,9 +1285,9 @@ func TestCategoryGeneration(t *testing.T) {
 	tr := newTestTranslator()
 
 	tests := []struct {
-		name              string
-		generator         func(map[string]string, *i18n.Translator) (*interface{}, error)
-		data              map[string]string
+		name               string
+		generator          func(map[string]string, *i18n.Translator) (*interface{}, error)
+		data               map[string]string
 		expectedCategories []string
 	}{
 		{
@@ -1396,8 +1396,8 @@ func TestTimezoneHandling(t *testing.T) {
 	tr := newTestTranslator()
 
 	tests := []struct {
-		name        string
-		data        map[string]string
+		name         string
+		data         map[string]string
 		checkStartTZ bool
 		checkEndTZ   bool
 		expectedTZ   string
@@ -1461,9 +1461,9 @@ func TestAllDayEvents(t *testing.T) {
 	tr := newTestTranslator()
 
 	tests := []struct {
-		name      string
-		generator func(map[string]string, *i18n.Translator) (*interface{}, error)
-		data      map[string]string
+		name       string
+		generator  func(map[string]string, *i18n.Translator) (*interface{}, error)
+		data       map[string]string
 		wantAllDay bool
 	}{
 		{
@@ -2025,8 +2025,8 @@ func TestDeadlinePriority(t *testing.T) {
 	tr := newTestTranslator()
 
 	tests := []struct {
-		name            string
-		priority        string
+		name             string
+		priority         string
 		expectedPriority int
 	}{
 		{"highest priority", "1", 1},

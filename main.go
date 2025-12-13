@@ -106,7 +106,6 @@ func runQuick(cmd *cobra.Command, args []string) error {
 	w := when.New(nil)
 	w.Add(en.All...)
 
-
 	res, err := w.Parse(text, time.Now())
 	if err != nil || res == nil {
 		return fmt.Errorf("could not understand the date/time in your request. Please be more specific, e.g., 'tomorrow at 3pm'")
@@ -235,7 +234,6 @@ func extractEventDetails(text string, res *when.Result) quickParsedEvent {
 	}
 }
 
-
 func newCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [event-name]",
@@ -300,7 +298,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	if strings.TrimSpace(startStr) == "" {
 		return fmt.Errorf("start time is required (use --start)")
 	}
-
 
 	// ND-friendly: allow HH:MM only; prepend today's date using the best TZ.
 	if looksLikeClock(startStr) {
@@ -1091,37 +1088,37 @@ func normalizeDateTimeInput(input string) string {
 // This helps neurodivergent users who may struggle with spelling or consistency.
 func validateCategoryWithSuggestion(category string) string {
 	commonCategories := map[string]string{
-		"work":         "Work",
-		"meeting":      "Meeting",
-		"health":       "Health",
-		"medication":   "Medication",
-		"meds":         "Medication",
-		"medical":      "Medical",
-		"therapy":      "Therapy",
+		"work":          "Work",
+		"meeting":       "Meeting",
+		"health":        "Health",
+		"medication":    "Medication",
+		"meds":          "Medication",
+		"medical":       "Medical",
+		"therapy":       "Therapy",
 		"mental health": "Mental Health",
-		"exercise":     "Exercise",
-		"workout":      "Workout",
-		"food":         "Food",
-		"meal":         "Meal",
-		"travel":       "Travel",
-		"flight":       "Flight",
-		"hotel":        "Accommodation",
+		"exercise":      "Exercise",
+		"workout":       "Workout",
+		"food":          "Food",
+		"meal":          "Meal",
+		"travel":        "Travel",
+		"flight":        "Flight",
+		"hotel":         "Accommodation",
 		"accommodation": "Accommodation",
-		"family":       "Family",
-		"kids":         "Kids",
-		"personal":     "Personal",
-		"focus":        "Focus",
-		"deep work":    "Focus",
-		"break":        "Break",
-		"rest":         "Rest",
-		"transition":   "Transition",
-		"urgent":       "Urgent",
-		"important":    "Important",
-		"fun":          "Fun",
-		"leisure":      "Leisure",
-		"learning":     "Learning",
-		"education":    "Education",
-		"sleep":        "Sleep",
+		"family":        "Family",
+		"kids":          "Kids",
+		"personal":      "Personal",
+		"focus":         "Focus",
+		"deep work":     "Focus",
+		"break":         "Break",
+		"rest":          "Rest",
+		"transition":    "Transition",
+		"urgent":        "Urgent",
+		"important":     "Important",
+		"fun":           "Fun",
+		"leisure":       "Leisure",
+		"learning":      "Learning",
+		"education":     "Education",
+		"sleep":         "Sleep",
 	}
 
 	lower := strings.ToLower(category)
@@ -1413,17 +1410,17 @@ func generatePrepTimeEvents(events []calendar.Event) []*calendar.Event {
 			strings.Contains(summaryLower, "writing") {
 			// Add transition AFTER the event
 			transitionEvent := &calendar.Event{
-				UID:       generateUID(),
-				Summary:   "🔄 Transition: " + stripEmoji(ev.Summary),
-				StartTime: ev.EndTime,
-				EndTime:   ev.EndTime.Add(5 * time.Minute),
-				StartTZ:   ev.StartTZ,
-				EndTZ:     ev.EndTZ,
-				AllDay:    false,
+				UID:        generateUID(),
+				Summary:    "🔄 Transition: " + stripEmoji(ev.Summary),
+				StartTime:  ev.EndTime,
+				EndTime:    ev.EndTime.Add(5 * time.Minute),
+				StartTZ:    ev.StartTZ,
+				EndTZ:      ev.EndTZ,
+				AllDay:     false,
 				Categories: []string{"Transition"},
-				Status:    "CONFIRMED",
-				Created:   time.Now().UTC(),
-				LastMod:   time.Now().UTC(),
+				Status:     "CONFIRMED",
+				Created:    time.Now().UTC(),
+				LastMod:    time.Now().UTC(),
 			}
 			prepEvents = append(prepEvents, transitionEvent)
 			continue // Don't add prep before focus blocks
@@ -1431,17 +1428,17 @@ func generatePrepTimeEvents(events []calendar.Event) []*calendar.Event {
 
 		if needsPrep {
 			prepEvent := &calendar.Event{
-				UID:       generateUID(),
-				Summary:   "⏰ " + prepDescription + ": " + stripEmoji(ev.Summary),
-				StartTime: ev.StartTime.Add(-prepDuration),
-				EndTime:   ev.StartTime,
-				StartTZ:   ev.StartTZ,
-				EndTZ:     ev.EndTZ,
-				AllDay:    false,
+				UID:        generateUID(),
+				Summary:    "⏰ " + prepDescription + ": " + stripEmoji(ev.Summary),
+				StartTime:  ev.StartTime.Add(-prepDuration),
+				EndTime:    ev.StartTime,
+				StartTZ:    ev.StartTZ,
+				EndTZ:      ev.EndTZ,
+				AllDay:     false,
 				Categories: []string{"Preparation"},
-				Status:    "CONFIRMED",
-				Created:   time.Now().UTC(),
-				LastMod:   time.Now().UTC(),
+				Status:     "CONFIRMED",
+				Created:    time.Now().UTC(),
+				LastMod:    time.Now().UTC(),
 			}
 			prepEvents = append(prepEvents, prepEvent)
 		}

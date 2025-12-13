@@ -519,7 +519,7 @@ func TestFoldICalLine(t *testing.T) {
 		{"exactly limit", strings.Repeat("A", 75), 75, 1},
 		{"one over limit", strings.Repeat("A", 76), 75, 2},
 		{"double limit", strings.Repeat("A", 150), 75, 2},
-		{"zero limit", "test", 0, 1}, // should not fold
+		{"zero limit", "test", 0, 1},      // should not fold
 		{"negative limit", "test", -1, 1}, // should not fold
 		{"unicode chars", "Hello世界" + strings.Repeat("A", 70), 75, 2},
 		{"long line 200 chars", strings.Repeat("B", 200), 75, 3},
@@ -1034,9 +1034,9 @@ func TestEventWithZeroSequence(t *testing.T) {
 
 func TestEventStatusVariations(t *testing.T) {
 	tests := []struct {
-		name           string
-		status         string
-		expectedInICS  string
+		name          string
+		status        string
+		expectedInICS string
 	}{
 		{"confirmed", "CONFIRMED", "STATUS:CONFIRMED"},
 		{"tentative", "TENTATIVE", "STATUS:TENTATIVE"},
@@ -1304,8 +1304,8 @@ func TestCalendarWithIncludeVTZUnknownTimezone(t *testing.T) {
 
 func TestKnownVTZ(t *testing.T) {
 	tests := []struct {
-		tzid     string
-		hasVTZ   bool
+		tzid   string
+		hasVTZ bool
 	}{
 		{"Europe/Madrid", true},
 		{"Europe/Dublin", true},
@@ -1526,7 +1526,7 @@ func TestEventWithEmptySummary(t *testing.T) {
 	lines := strings.Split(ics, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(strings.TrimSpace(line), "SUMMARY:") &&
-		   !strings.Contains(line, "SUMMARY: ") {
+			!strings.Contains(line, "SUMMARY: ") {
 			t.Error("Empty summary should not produce SUMMARY: line")
 		}
 	}
@@ -1830,7 +1830,7 @@ func TestAlarmsParser_ParseHumanDuration(t *testing.T) {
 		{"0h0m", "0h0m", 0, true},
 		{"invalid format", "abc", 0, true},
 		{"invalid time", "25:00", 25 * time.Hour, false}, // atoiSafe doesn't validate hour range
-		{"invalid minutes", "1:60", 0, true}, // Regex validates minutes must be 0-59
+		{"invalid minutes", "1:60", 0, true},             // Regex validates minutes must be 0-59
 	}
 
 	for _, tt := range tests {

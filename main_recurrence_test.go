@@ -44,4 +44,3 @@ func TestRunCreateWritesRecurrenceData(t *testing.T) {
 		t.Fatalf("expected EXDATE with timezone to be present, got:\n%s", ics)
 	}
 }
-

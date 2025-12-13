@@ -54,4 +54,3 @@ END:VCALENDAR
 		t.Fatal("expected lint error for missing DTSTART, got nil")
 	}
 }
-

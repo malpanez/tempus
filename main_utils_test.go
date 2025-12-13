@@ -45,9 +45,9 @@ func TestLevenshteinDistance(t *testing.T) {
 
 func TestMin(t *testing.T) {
 	tests := []struct {
-		name string
+		name    string
 		a, b, c int
-		want int
+		want    int
 	}{
 		{"a is minimum", 1, 2, 3, 1},
 		{"b is minimum", 3, 1, 2, 1},
@@ -713,7 +713,7 @@ func TestInterpretRRule(t *testing.T) {
 		{"with count", "FREQ=DAILY;COUNT=10", false},
 		{"with until", "FREQ=WEEKLY;UNTIL=20251231", false},
 		{"complex", "FREQ=MONTHLY;BYDAY=1MO;COUNT=12", false},
-		{"empty", "", false}, // Returns default message even for empty
+		{"empty", "", false},          // Returns default message even for empty
 		{"invalid", "INVALID", false}, // Should still return something
 	}
 

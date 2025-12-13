@@ -233,8 +233,8 @@ func TestDetectEventConflictsComprehensive(t *testing.T) {
 	now := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
 
 	tests := []struct {
-		name         string
-		events       []calendar.Event
+		name          string
+		events        []calendar.Event
 		wantConflicts int
 	}{
 		{
@@ -301,8 +301,8 @@ func TestDetectEventConflictsComprehensive(t *testing.T) {
 
 func TestInterpretRRuleComprehensive(t *testing.T) {
 	tests := []struct {
-		name     string
-		rrule    string
+		name         string
+		rrule        string
 		wantContains string
 	}{
 		{"daily", "FREQ=DAILY", "Daily"},
@@ -468,7 +468,7 @@ func TestBuildEventFromBatchEdgeCases(t *testing.T) {
 func contains(s, substr string) bool {
 	return len(s) > 0 && len(substr) > 0 && (s == substr || len(s) > len(substr) &&
 		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		containsMiddle(s, substr)))
+			containsMiddle(s, substr)))
 }
 
 func containsMiddle(s, substr string) bool {
@@ -544,7 +544,7 @@ func TestNormalizeDateTimeInput(t *testing.T) {
 
 func TestAddEmojiToSummaryKeywordMatch(t *testing.T) {
 	tests := []struct {
-		summary string
+		summary  string
 		hasEmoji bool
 	}{
 		{"Take medication", true},

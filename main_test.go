@@ -1221,10 +1221,10 @@ func TestFmtDurationHuman(t *testing.T) {
 
 func TestSplitDateTime(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		wantDate      string
-		wantTime      string
+		name     string
+		input    string
+		wantDate string
+		wantTime string
 	}{
 		{"full datetime", "2025-05-01 14:30", "2025-05-01", "14:30"},
 		{"date only", "2025-05-01", "2025-05-01", ""},
@@ -1309,13 +1309,13 @@ func TestLoadBatchFromJSONWithComplexTypes(t *testing.T) {
 
 	data := []map[string]interface{}{
 		{
-			"summary":     "Test Event",
-			"start":       "2025-05-01 10:00",
-			"end":         "2025-05-01 11:00",
-			"all_day":     false,
-			"exdate":      []interface{}{"2025-05-03", "2025-05-04"},
-			"categories":  []interface{}{"work", "urgent"},
-			"alarms":      []interface{}{"15m", "30m"},
+			"summary":    "Test Event",
+			"start":      "2025-05-01 10:00",
+			"end":        "2025-05-01 11:00",
+			"all_day":    false,
+			"exdate":     []interface{}{"2025-05-03", "2025-05-04"},
+			"categories": []interface{}{"work", "urgent"},
+			"alarms":     []interface{}{"15m", "30m"},
 		},
 	}
 
@@ -1665,11 +1665,11 @@ func TestValueAsAlarmSliceComplexInputs(t *testing.T) {
 
 func TestParseDateTimeWithTZ(t *testing.T) {
 	tests := []struct {
-		name     string
-		dateStr  string
-		timeStr  string
-		tz       string
-		wantErr  bool
+		name    string
+		dateStr string
+		timeStr string
+		tz      string
+		wantErr bool
 	}{
 		{"date only UTC", "2025-05-01", "", "", false},
 		{"datetime UTC", "2025-05-01", "14:30", "", false},
@@ -1691,10 +1691,10 @@ func TestParseDateTimeWithTZ(t *testing.T) {
 
 func TestAddDurationToStart(t *testing.T) {
 	tests := []struct {
-		name     string
-		start    string
-		tz       string
-		duration time.Duration
+		name      string
+		start     string
+		tz        string
+		duration  time.Duration
 		wantEmpty bool
 	}{
 		{"valid datetime", "2025-05-01 10:00", "", 30 * time.Minute, false},
