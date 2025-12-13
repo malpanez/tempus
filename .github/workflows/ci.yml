@@ -55,13 +55,16 @@ jobs:
           Get-ChildItem -Path . -Force | Select-Object Name, Mode
 
       - name: Run tests
-        run: go test -v -race -coverprofile=cover.out -covermode=atomic ./...
+        shell: bash
+        run: |
+          mkdir -p .coverage
+          go test -v -race -coverprofile=.coverage/profile.out -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v4
         with:
-          file: ./cover.out
+          file: ./.coverage/profile.out
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -250,12 +253,13 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          go test -v -coverprofile=cover.out -covermode=atomic ./...
-          go tool cover -func=cover.out > coverage.txt
+          mkdir -p .coverage
+          go test -v -coverprofile=.coverage/profile.out -covermode=atomic ./...
+          go tool cover -func=.coverage/profile.out > coverage.txt
 
       - name: Check coverage threshold
         run: |
-          total_coverage=$(go tool cover -func=cover.out | grep total | awk '{print $3}' | sed 's/%//')
+          total_coverage=$(go tool cover -func=.coverage/profile.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${total_coverage}%"
 
           # Target: 75% minimum coverage
