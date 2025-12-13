@@ -190,9 +190,17 @@ func (c *Config) Save() error {
 //
 // Falls back to ~/.tempus if UserConfigDir is unavailable.
 func getConfigDir() (string, error) {
+	// Check XDG_CONFIG_HOME first (respects test environment variables)
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return filepath.Join(xdg, "tempus"), nil
+	}
+
+	// Use os.UserConfigDir() for platform-specific defaults
 	if base, err := os.UserConfigDir(); err == nil && strings.TrimSpace(base) != "" {
 		return filepath.Join(base, "tempus"), nil
 	}
+
+	// Final fallback to ~/.tempus
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
