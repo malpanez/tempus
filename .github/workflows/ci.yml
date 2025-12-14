@@ -45,15 +45,6 @@ jobs:
       - name: Go vet
         run: go vet ./...
 
-      - name: Clean cache and check workspace (Windows workaround)
-        if: runner.os == 'Windows'
-        run: |
-          go clean -cache -testcache
-          echo "Checking for .out directories:"
-          Get-ChildItem -Path . -Filter ".out" -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
-          echo "Listing root directory:"
-          Get-ChildItem -Path . -Force | Select-Object Name, Mode
-
       - name: Run tests
         shell: bash
         run: |
