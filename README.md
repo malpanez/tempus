@@ -9,7 +9,6 @@ Create [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant ICS calendar
 [![Coverage](https://img.shields.io/badge/coverage-78.8%25-brightgreen)](https://github.com/malpanez/tempus/actions)
 [![CI Status](https://github.com/malpanez/tempus/actions/workflows/ci.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/malpanez/tempus/actions/workflows/security.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/security.yml)
-[![CodeQL](https://github.com/malpanez/tempus/actions/workflows/security.yml/badge.svg?event=push)](https://github.com/malpanez/tempus/security/code-scanning)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/malpanez/tempus/badge)](https://securityscorecards.dev/viewer/?uri=github.com/malpanez/tempus)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/malpanez/tempus)](go.mod)
 [![Latest Release](https://img.shields.io/github/v/release/malpanez/tempus)](https://github.com/malpanez/tempus/releases/latest)
