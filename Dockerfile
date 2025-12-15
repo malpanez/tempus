@@ -53,7 +53,7 @@ CMD ["--help"]
 
 # Labels
 LABEL org.opencontainers.image.title="Tempus"
-LABEL org.opencontainers.image.description="ADHD-friendly ICS calendar event generator"
+LABEL org.opencontainers.image.description="Neurodivergent-friendly ICS calendar generator for ADHD, Autism, Dyslexia"
 LABEL org.opencontainers.image.authors="Tempus Contributors"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.documentation="https://github.com/YOUR_USERNAME/tempus"
+LABEL org.opencontainers.image.documentation="https://github.com/malpanez/tempus"
