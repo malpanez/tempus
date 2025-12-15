@@ -1,3 +1,9 @@
+# Official Go gitignore template
+# https://github.com/github/gitignore/blob/main/Go.gitignore
+#
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -8,28 +14,41 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Code coverage profiles and other test artifacts
 *.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
 # Go workspace file
 go.work
+go.work.sum
+
+# env file
+.env
+
+# Tempus-specific additions below this line
+# ==========================================
 
 # Build directories
 build/
 dist/
 
-# IDE files
-.vscode/
+# IDE and editor files
 .idea/
+.vscode/
+.claude/
 *.swp
 *.swo
-.claude/
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Config files (user specific)
+# Tempus config files (user specific)
 .tempus/
 
 # OAuth tokens and credentials (NEVER commit these!)
@@ -39,15 +58,15 @@ credentials.json
 client_secret*.json
 token.json
 
-# API keys and secrets
-.env
+# Additional secrets
 .env.local
 *.key
 *.pem
 
-# Coverage files
+# Coverage files (additional formats)
 coverage.out
 coverage.html
+.coverage/
 
 # Temporary files
 *.tmp
