@@ -37,27 +37,6 @@ go.work.sum
 build/
 dist/
 
-# IDE and editor files
-.idea/
-.vscode/
-.claude/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Tempus config files (user specific)
-.tempus/
-
-# OAuth tokens and credentials (NEVER commit these!)
-*_token.json
-google_token.json
-credentials.json
-client_secret*.json
-token.json
-
 # Additional secrets
 .env.local
 *.key
@@ -75,3 +54,78 @@ coverage.html
 # Personal test files
 test_*.ics
 my_*.ics
+
+# Tempus config files (user specific)
+.tempus/
+
+# OAuth tokens and credentials (NEVER commit these!)
+*_token.json
+google_token.json
+credentials.json
+client_secret*.json
+token.json
+
+# IDE and Editor files
+# ==========================================
+# From: https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!*.code-workspace
+*.vsix
+
+# From: https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+.idea/
+*.swp
+*.swo
+
+# Claude Code CLI
+.claude/
+
+# Operating System files
+# ==========================================
+# From: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
+.DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[]
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# From: https://github.com/github/gitignore/blob/main/Global/Windows.gitignore
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# From: https://github.com/github/gitignore/blob/main/Global/Linux.gitignore
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+nohup.out

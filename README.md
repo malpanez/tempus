@@ -7,6 +7,11 @@ Create [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant ICS calendar
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/malpanez/tempus)](https://goreportcard.com/report/github.com/malpanez/tempus)
 [![Coverage](https://img.shields.io/badge/coverage-78.8%25-brightgreen)](https://github.com/malpanez/tempus/actions)
+[![CI Status](https://github.com/malpanez/tempus/actions/workflows/ci.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/malpanez/tempus/actions/workflows/security.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/security.yml)
+[![CodeQL](https://github.com/malpanez/tempus/actions/workflows/security.yml/badge.svg?event=push)](https://github.com/malpanez/tempus/security/code-scanning)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/malpanez/tempus)](go.mod)
+[![Latest Release](https://img.shields.io/github/v/release/malpanez/tempus)](https://github.com/malpanez/tempus/releases/latest)
 
 [Why Tempus?](#-why-tempus) • [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
