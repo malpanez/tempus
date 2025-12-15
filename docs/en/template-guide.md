@@ -3,7 +3,7 @@ title: Tempus Template Creation Guide
 language: en
 ---
 
-[Ver en español](../es/guia-plantillas.md) | [Ver em português](../pt/guia-modelos.md)
+[Ver en español](../es/guia-plantillas.md) | [Ver em português](../pt/guia-modelos.md) | [Féach i nGaeilge](../ga/guia-modelos.md)
 
 ## What is a Template?
 

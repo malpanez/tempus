@@ -3,7 +3,7 @@ title: Guia para criar modelos do Tempus
 language: pt
 ---
 
-[Voltar à documentação em inglês](../examples.md)
+[English version](../en/template-guide.md) | [Ver en español](../es/guia-plantillas.md) | [Féach i nGaeilge](../ga/guia-modelos.md)
 
 ## O que é um modelo
 

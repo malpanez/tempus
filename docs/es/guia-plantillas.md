@@ -3,7 +3,7 @@ title: Guía para crear plantillas de Tempus
 language: es
 ---
 
-[Volver a la documentación en inglés](../examples.md)
+[English version](../en/template-guide.md) | [Ver em português](../pt/guia-modelos.md) | [Féach i nGaeilge](../ga/guia-modelos.md)
 
 ## Qué es una plantilla
 
