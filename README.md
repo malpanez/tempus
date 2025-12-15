@@ -6,6 +6,7 @@ Create [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant ICS calendar
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/malpanez/tempus)](https://goreportcard.com/report/github.com/malpanez/tempus)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=malpanez_tempus&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=malpanez_tempus)
 [![Coverage](https://img.shields.io/badge/coverage-78.8%25-brightgreen)](https://github.com/malpanez/tempus/actions)
 [![CI Status](https://github.com/malpanez/tempus/actions/workflows/ci.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/malpanez/tempus/actions/workflows/security.yml/badge.svg)](https://github.com/malpanez/tempus/actions/workflows/security.yml)
