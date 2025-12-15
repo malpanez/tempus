@@ -11,6 +11,12 @@ import (
 const (
 	actionDisplay   = "DISPLAY"
 	defaultDescText = "Reminder"
+
+	// Error messages
+	errEmptyDuration       = "empty duration"
+	errDurationMustBePos   = "duration must be positive"
+	errInvalidICSDuration  = "invalid ICS duration %q"
+	errRepeatDurationPos   = "repeat duration must be positive in alarm %q"
 )
 
 var (
@@ -24,7 +30,7 @@ var (
 func ParseHumanDuration(s string) (time.Duration, error) {
 	x := strings.ToLower(strings.TrimSpace(s))
 	if x == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(errEmptyDuration)
 	}
 
 	// Try parsing days (1d, 2d, etc.)
@@ -263,7 +269,7 @@ func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 			return Alarm{}, fmt.Errorf("invalid repeat duration %q in alarm %q: %v", repeatDurStr, spec, err)
 		}
 		if dur <= 0 {
-			return Alarm{}, fmt.Errorf("repeat duration must be positive in alarm %q", spec)
+			return Alarm{}, fmt.Errorf(errRepeatDurationPos, spec)
 		}
 		repeatDur = dur
 	}
@@ -365,7 +371,7 @@ func parseAlarmAbsolute(raw string, defaultTZ string) (time.Time, error) {
 func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(errEmptyDuration)
 	}
 
 	sign := 0
@@ -398,13 +404,13 @@ func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration
 func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(errEmptyDuration)
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf("duration must be positive")
+		return 0, fmt.Errorf(errDurationMustBePos)
 	}
 
 	if d, err := ParseHumanDuration(val); err == nil {
@@ -412,7 +418,7 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	}
 	if d, err := time.ParseDuration(val); err == nil {
 		if d < 0 {
-			return 0, fmt.Errorf("duration must be positive")
+			return 0, fmt.Errorf(errDurationMustBePos)
 		}
 		return d, nil
 	}
@@ -425,21 +431,21 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 func parseICSDuration(raw string) (time.Duration, error) {
 	val := strings.ToUpper(strings.TrimSpace(raw))
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(errEmptyDuration)
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf("duration must be positive")
+		return 0, fmt.Errorf(errDurationMustBePos)
 	}
 	if !strings.HasPrefix(val, "P") {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(errInvalidICSDuration, raw)
 	}
 
 	matches := icsDurationRe.FindStringSubmatch(val)
 	if matches == nil {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(errInvalidICSDuration, raw)
 	}
 
 	var total time.Duration
@@ -460,7 +466,7 @@ func parseICSDuration(raw string) (time.Duration, error) {
 	}
 
 	if total == 0 {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(errInvalidICSDuration, raw)
 	}
 	return total, nil
 }
