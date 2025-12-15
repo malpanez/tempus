@@ -1964,7 +1964,6 @@ func TestCleanDisplay(t *testing.T) {
 	}
 }
 
-
 func TestMergeTemplateValues(t *testing.T) {
 	// This requires internal template structures
 	t.Skip("requires internal template structures")
