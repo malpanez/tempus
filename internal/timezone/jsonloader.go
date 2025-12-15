@@ -77,44 +77,51 @@ func (tm *TimezoneManager) loadJSONFile(path string) error {
 		return fmt.Errorf("parse error: %w", err)
 	}
 
-	// Zones
-	for _, z := range jf.Zones {
+	tm.processZones(jf.Zones)
+	tm.processGlobalAliases(jf.Aliases)
+	return nil
+}
+
+func (tm *TimezoneManager) processZones(zones []jsonZone) {
+	for _, z := range zones {
 		if strings.TrimSpace(z.IANA) == "" {
 			continue
 		}
-		offset := getTimezoneOffset(z.IANA)
-		dst := false
-		if z.DST != nil {
-			dst = *z.DST
-		} else {
-			dst = hasDST(z.IANA)
-		}
-		ti := &TimezoneInfo{
-			IANA:        z.IANA,
-			DisplayName: valueOr(z.DisplayName, z.IANA),
-			Country:     valueOr(z.Country, "Unknown"),
-			Offset:      offset,
-			DST:         dst,
-		}
-		// Add/overwrite canonical IANA entry
+		ti := tm.createTimezoneInfo(z)
 		tm.zones[z.IANA] = ti
-
-		// Per-zone aliases
-		for _, a := range z.Aliases {
-			if strings.TrimSpace(a) == "" {
-				continue
-			}
-			tm.zones[strings.ToLower(a)] = ti
-		}
+		tm.processZoneAliases(z.Aliases, ti)
 	}
+}
 
-	// Global aliases
-	for alias, iana := range jf.Aliases {
+func (tm *TimezoneManager) createTimezoneInfo(z jsonZone) *TimezoneInfo {
+	dst := hasDST(z.IANA)
+	if z.DST != nil {
+		dst = *z.DST
+	}
+	return &TimezoneInfo{
+		IANA:        z.IANA,
+		DisplayName: valueOr(z.DisplayName, z.IANA),
+		Country:     valueOr(z.Country, "Unknown"),
+		Offset:      getTimezoneOffset(z.IANA),
+		DST:         dst,
+	}
+}
+
+func (tm *TimezoneManager) processZoneAliases(aliases []string, ti *TimezoneInfo) {
+	for _, a := range aliases {
+		if strings.TrimSpace(a) == "" {
+			continue
+		}
+		tm.zones[strings.ToLower(a)] = ti
+	}
+}
+
+func (tm *TimezoneManager) processGlobalAliases(aliases map[string]string) {
+	for alias, iana := range aliases {
 		if zi, ok := tm.zones[iana]; ok {
 			tm.zones[strings.ToLower(alias)] = zi
 		}
 	}
-	return nil
 }
 
 func valueOr(s, fallback string) string {

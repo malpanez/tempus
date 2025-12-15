@@ -13,10 +13,10 @@ const (
 	defaultDescText = "Reminder"
 
 	// Error messages
-	errEmptyDuration       = "empty duration"
-	errDurationMustBePos   = "duration must be positive"
-	errInvalidICSDuration  = "invalid ICS duration %q"
-	errRepeatDurationPos   = "repeat duration must be positive in alarm %q"
+	errEmptyDuration      = "empty duration"
+	errDurationMustBePos  = "duration must be positive"
+	errInvalidICSDuration = "invalid ICS duration %q"
+	errRepeatDurationPos  = "repeat duration must be positive in alarm %q"
 )
 
 var (
