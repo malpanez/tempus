@@ -1964,15 +1964,6 @@ func TestCleanDisplay(t *testing.T) {
 	}
 }
 
-func TestDefaultGoogleTokenPath(t *testing.T) {
-	path := defaultGoogleTokenPath()
-	if path == "" {
-		t.Error("defaultGoogleTokenPath() returned empty string")
-	}
-	if !strings.Contains(path, "google-token.json") {
-		t.Errorf("expected path to contain 'google-token.json', got %q", path)
-	}
-}
 
 func TestMergeTemplateValues(t *testing.T) {
 	// This requires internal template structures

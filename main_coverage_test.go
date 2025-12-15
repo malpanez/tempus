@@ -369,17 +369,6 @@ func TestDetectOverwhelmDaysMultipleDays(t *testing.T) {
 	}
 }
 
-func TestDefaultGoogleTokenPathExtended(t *testing.T) {
-	path := defaultGoogleTokenPath()
-
-	if !filepath.IsAbs(path) {
-		t.Errorf("defaultGoogleTokenPath() = %q, should be absolute path", path)
-	}
-
-	if !contains(path, "google-token.json") {
-		t.Errorf("defaultGoogleTokenPath() = %q, should contain 'google-token.json'", path)
-	}
-}
 
 func TestEnsureUniquePathEdgeCases(t *testing.T) {
 	tmpDir := t.TempDir()

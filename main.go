@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -20,7 +19,6 @@ import (
 	"tempus/internal/i18n"
 	"tempus/internal/normalizer"
 	"tempus/internal/prompts"
-	gsync "tempus/internal/sync/google"
 	tpl "tempus/internal/templates"
 	tzpkg "tempus/internal/timezone"
 	"tempus/internal/utils"
@@ -70,7 +68,6 @@ func newRootCmd() *cobra.Command {
 		newTemplateCmd(),
 		newLocaleCmd(),
 		newTimezoneCmd(),
-		newGoogleCmd(),
 		newRRuleHelperCmd(),
 	)
 
@@ -3354,44 +3351,6 @@ func newTimezoneCmd() *cobra.Command {
 	return root
 }
 
-// ------------------------------
-// Google sync commands
-// ------------------------------
-
-func newGoogleCmd() *cobra.Command {
-	root := &cobra.Command{
-		Use:   "google",
-		Short: "Google Calendar utilities",
-	}
-
-	importCmd := &cobra.Command{
-		Use:   "import",
-		Short: "Import an ICS file into Google Calendar (device OAuth flow)",
-		RunE:  runGoogleImport,
-	}
-	importCmd.Flags().String("input", "", "Path to the ICS file to import")
-	importCmd.Flags().String("calendar", "primary", "Target Google Calendar ID (e.g. primary)")
-	importCmd.Flags().String("client-id", "", "OAuth Client ID (Desktop app)")
-	importCmd.Flags().String("client-secret", "", "OAuth Client Secret")
-	importCmd.Flags().String("token-file", defaultGoogleTokenPath(), "File used to cache OAuth tokens")
-	importCmd.Flags().String("device-endpoint", "", "Device authorization endpoint override (for testing)")
-	importCmd.Flags().String("token-endpoint", "", "Token endpoint override (for testing)")
-	importCmd.Flags().String("api-base", "", "Google Calendar API base URL override (for testing)")
-	_ = importCmd.Flags().MarkHidden("device-endpoint")
-	_ = importCmd.Flags().MarkHidden("token-endpoint")
-	_ = importCmd.Flags().MarkHidden("api-base")
-
-	root.AddCommand(importCmd)
-	return root
-}
-
-func defaultGoogleTokenPath() string {
-	if dir, err := config.ConfigDir(); err == nil && strings.TrimSpace(dir) != "" {
-		return filepath.Join(dir, "google-token.json")
-	}
-	return "google-token.json"
-}
-
 var reParen = regexp.MustCompile(`\s*\([^(]*\)\s*$`)
 
 // cleanDisplay removes a trailing " (…)" from DisplayName if present.
@@ -3599,73 +3558,4 @@ func atoiSafe(s string) int {
 		n = n*10 + int(r-'0')
 	}
 	return n
-}
-
-func runGoogleImport(cmd *cobra.Command, _ []string) error {
-	inputPath, _ := cmd.Flags().GetString("input")
-	calendarID, _ := cmd.Flags().GetString("calendar")
-	clientID, _ := cmd.Flags().GetString("client-id")
-	clientSecret, _ := cmd.Flags().GetString("client-secret")
-	tokenFile, _ := cmd.Flags().GetString("token-file")
-	deviceEndpoint, _ := cmd.Flags().GetString("device-endpoint")
-	tokenEndpoint, _ := cmd.Flags().GetString("token-endpoint")
-	apiBase, _ := cmd.Flags().GetString("api-base")
-
-	inputPath = strings.TrimSpace(inputPath)
-	calendarID = strings.TrimSpace(calendarID)
-	tokenFile = strings.TrimSpace(tokenFile)
-
-	// Support environment variables for secrets to avoid exposing them in process list
-	if clientID == "" {
-		clientID = os.Getenv("TEMPUS_CLIENT_ID")
-	}
-	clientID = strings.TrimSpace(clientID)
-
-	if clientSecret == "" {
-		clientSecret = os.Getenv("TEMPUS_CLIENT_SECRET")
-	}
-	clientSecret = strings.TrimSpace(clientSecret)
-
-	if inputPath == "" {
-		return fmt.Errorf("--input is required")
-	}
-	if calendarID == "" {
-		return fmt.Errorf("--calendar is required")
-	}
-	if clientID == "" || clientSecret == "" {
-		return fmt.Errorf("--client-id and --client-secret are required (via flags or TEMPUS_CLIENT_ID/TEMPUS_CLIENT_SECRET env vars). Create a Desktop OAuth client in Google Cloud Console")
-	}
-	if tokenFile == "" {
-		return fmt.Errorf("--token-file cannot be empty")
-	}
-
-	data, err := os.ReadFile(inputPath)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", inputPath, err)
-	}
-	if len(strings.TrimSpace(string(data))) == 0 {
-		return fmt.Errorf("ICS file %s is empty", inputPath)
-	}
-
-	opts := gsync.Options{
-		ClientID:        clientID,
-		ClientSecret:    clientSecret,
-		TokenFile:       tokenFile,
-		DeviceEndpoint:  deviceEndpoint,
-		TokenEndpoint:   tokenEndpoint,
-		CalendarBaseURL: apiBase,
-	}
-
-	ctx := context.Background()
-	client, err := gsync.NewClient(ctx, opts)
-	if err != nil {
-		return err
-	}
-
-	if err := client.ImportICS(ctx, calendarID, string(data)); err != nil {
-		return err
-	}
-
-	printOK("Imported ICS into Google Calendar %s\n", calendarID)
-	return nil
 }
