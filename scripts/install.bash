@@ -27,7 +27,7 @@ case $ARCH in
 esac
 
 # Download URL
-if [ "$VERSION" = "latest" ]; then
+if [[ "$VERSION" = "latest" ]]; then
     DOWNLOAD_URL="https://github.com/malpanez/tempus/releases/latest/download/tempus-${OS}-${ARCH}"
 else
     DOWNLOAD_URL="https://github.com/malpanez/tempus/releases/download/${VERSION}/tempus-${OS}-${ARCH}"
