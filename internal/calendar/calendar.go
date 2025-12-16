@@ -13,6 +13,10 @@ const (
 	// VTIMEZONE block delimiters
 	vtzBegin = "BEGIN:VTIMEZONE\r\n"
 	vtzEnd   = "END:VTIMEZONE\r\n"
+
+	// ICS datetime formats
+	layoutUTC   = "20060102T150405Z"
+	layoutLocal = "20060102T150405"
 )
 
 //
@@ -209,8 +213,6 @@ func (e *Event) ToICS() string {
 }
 
 func (e *Event) writeBasicProperties(b *strings.Builder) {
-	const layoutUTC = "20060102T150405Z"
-
 	writeProp(b, "UID", e.UID)
 
 	// DTSTAMP (UTC); use Created if available, else now
@@ -234,9 +236,6 @@ func (e *Event) writeBasicProperties(b *strings.Builder) {
 }
 
 func (e *Event) writeDateTimeProperties(b *strings.Builder) {
-	const layoutUTC = "20060102T150405Z"
-	const layoutLocal = "20060102T150405"
-
 	if e.AllDay {
 		writeProp(b, "DTSTART;VALUE=DATE", e.StartTime.Format("20060102"))
 		writeProp(b, "DTEND;VALUE=DATE", e.EndTime.Format("20060102"))
@@ -267,9 +266,6 @@ func (e *Event) writeRecurrenceProperties(b *strings.Builder) {
 }
 
 func (e *Event) writeExDates(b *strings.Builder) {
-	const layoutUTC = "20060102T150405Z"
-	const layoutLocal = "20060102T150405"
-
 	if e.AllDay {
 		var parts []string
 		for _, x := range e.ExDates {
@@ -323,8 +319,6 @@ func (e *Event) writeOptionalProperties(b *strings.Builder) {
 }
 
 func (e *Event) writeAlarms(b *strings.Builder) {
-	const layoutUTC = "20060102T150405Z"
-
 	for _, al := range e.Alarms {
 		writeLine(b, "BEGIN:VALARM")
 
@@ -334,14 +328,14 @@ func (e *Event) writeAlarms(b *strings.Builder) {
 		}
 		writeProp(b, "ACTION", action)
 
-		e.writeAlarmTrigger(b, al, layoutUTC)
+		e.writeAlarmTrigger(b, al)
 		e.writeAlarmDetails(b, al, action)
 
 		writeLine(b, "END:VALARM")
 	}
 }
 
-func (e *Event) writeAlarmTrigger(b *strings.Builder, al Alarm, layoutUTC string) {
+func (e *Event) writeAlarmTrigger(b *strings.Builder, al Alarm) {
 	if al.TriggerIsRelative {
 		writeProp(b, "TRIGGER", formatICSDuration(al.TriggerDuration))
 	} else {
