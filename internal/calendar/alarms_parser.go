@@ -33,12 +33,28 @@ func ParseHumanDuration(s string) (time.Duration, error) {
 		return 0, fmt.Errorf(errEmptyDuration)
 	}
 
+	if dur, ok := tryParseDaysOrWeeks(x); ok {
+		return dur, nil
+	}
+
+	if dur, ok := tryParseTimeFormat(x); ok {
+		return dur, nil
+	}
+
+	if dur, ok := tryParseMinutes(x); ok {
+		return dur, nil
+	}
+
+	return 0, fmt.Errorf("unrecognized duration format: %q", s)
+}
+
+func tryParseDaysOrWeeks(x string) (time.Duration, bool) {
 	// Try parsing days (1d, 2d, etc.)
 	if strings.HasSuffix(x, "d") && len(x) > 1 {
 		daysStr := strings.TrimSuffix(x, "d")
 		days := atoiSafe(daysStr)
 		if days > 0 {
-			return time.Duration(days) * 24 * time.Hour, nil
+			return time.Duration(days) * 24 * time.Hour, true
 		}
 	}
 
@@ -47,34 +63,43 @@ func ParseHumanDuration(s string) (time.Duration, error) {
 		weeksStr := strings.TrimSuffix(x, "w")
 		weeks := atoiSafe(weeksStr)
 		if weeks > 0 {
-			return time.Duration(weeks) * 7 * 24 * time.Hour, nil
+			return time.Duration(weeks) * 7 * 24 * time.Hour, true
 		}
 	}
 
+	return 0, false
+}
+
+func tryParseTimeFormat(x string) (time.Duration, bool) {
+	// Try HH:MM format
 	if m := alarmHHMMRe.FindStringSubmatch(x); m != nil {
 		hh := atoiSafe(m[1])
 		mm := atoiSafe(m[2])
-		return time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute, nil
+		return time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute, true
 	}
 
+	// Try HhMm format (e.g., "1h30m")
 	if m := alarmHMRe.FindStringSubmatch(x); m != nil {
 		hh := atoiSafe(m[1])
 		mm := atoiSafe(m[2])
 		if hh == 0 && mm == 0 {
-			return 0, fmt.Errorf("invalid duration")
+			return 0, false
 		}
-		return time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute, nil
+		return time.Duration(hh)*time.Hour + time.Duration(mm)*time.Minute, true
 	}
 
+	return 0, false
+}
+
+func tryParseMinutes(x string) (time.Duration, bool) {
 	if alarmMinutesRe.MatchString(x) {
 		mins := atoiSafe(x)
 		if mins <= 0 {
-			return 0, fmt.Errorf("invalid minutes")
+			return 0, false
 		}
-		return time.Duration(mins) * time.Minute, nil
+		return time.Duration(mins) * time.Minute, true
 	}
-
-	return 0, fmt.Errorf("unrecognized duration format: %q", s)
+	return 0, false
 }
 
 // SplitAlarmInput tokenizes alarm strings separated by newlines, double pipes, or commas/semicolons.
@@ -84,9 +109,7 @@ func SplitAlarmInput(raw string) []string {
 		return nil
 	}
 
-	normalized := strings.ReplaceAll(s, "\r\n", "\n")
-	normalized = strings.ReplaceAll(normalized, "\r", "\n")
-
+	normalized := normalizeNewlines(s)
 	lines := strings.Split(normalized, "\n")
 	out := make([]string, 0, len(lines))
 
@@ -95,30 +118,45 @@ func SplitAlarmInput(raw string) []string {
 		if line == "" {
 			continue
 		}
-		if strings.Contains(line, "||") {
-			for _, part := range strings.Split(line, "||") {
-				out = append(out, SplitAlarmInput(part)...)
-			}
-			continue
-		}
-		if strings.Contains(line, "=") {
-			out = append(out, line)
-			continue
-		}
-		parts := strings.FieldsFunc(line, func(r rune) bool {
-			return r == ',' || r == ';' || r == '|'
-		})
-		if len(parts) == 0 {
-			continue
-		}
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if part != "" {
-				out = append(out, part)
-			}
-		}
+		processAlarmLine(line, &out)
 	}
 	return out
+}
+
+func normalizeNewlines(s string) string {
+	normalized := strings.ReplaceAll(s, "\r\n", "\n")
+	return strings.ReplaceAll(normalized, "\r", "\n")
+}
+
+func processAlarmLine(line string, out *[]string) {
+	if strings.Contains(line, "||") {
+		for _, part := range strings.Split(line, "||") {
+			*out = append(*out, SplitAlarmInput(part)...)
+		}
+		return
+	}
+
+	if strings.Contains(line, "=") {
+		*out = append(*out, line)
+		return
+	}
+
+	splitAndAppendParts(line, out)
+}
+
+func splitAndAppendParts(line string, out *[]string) {
+	parts := strings.FieldsFunc(line, func(r rune) bool {
+		return r == ',' || r == ';' || r == '|'
+	})
+	if len(parts) == 0 {
+		return
+	}
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			*out = append(*out, part)
+		}
+	}
 }
 
 // ParseAlarmsFromString parses a single raw string into alarms.
@@ -370,16 +408,39 @@ func parseAlarmAbsolute(raw string, defaultTZ string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("empty absolute trigger")
 	}
 
-	if t, err := time.Parse(time.RFC3339, val); err == nil {
+	if t, ok := tryParseRFC3339(val); ok {
 		return t, nil
 	}
 
+	loc := loadTimezoneLocation(defaultTZ)
+	return tryParseCommonLayouts(val, loc, raw)
+}
+
+func tryParseRFC3339(val string) (time.Time, bool) {
+	if t, err := time.Parse(time.RFC3339, val); err == nil {
+		return t, true
+	}
+
+	// Try RFC3339 with space instead of T
 	if strings.Count(val, " ") == 1 && strings.HasSuffix(strings.ToUpper(val), "Z") {
 		if t, err := time.Parse(time.RFC3339, strings.Replace(val, " ", "T", 1)); err == nil {
-			return t, nil
+			return t, true
 		}
 	}
 
+	return time.Time{}, false
+}
+
+func loadTimezoneLocation(defaultTZ string) *time.Location {
+	if tz := strings.TrimSpace(defaultTZ); tz != "" {
+		if l, err := time.LoadLocation(tz); err == nil {
+			return l
+		}
+	}
+	return nil
+}
+
+func tryParseCommonLayouts(val string, loc *time.Location, raw string) (time.Time, error) {
 	layouts := []string{
 		"2006-01-02 15:04:05",
 		"2006-01-02 15:04",
@@ -387,25 +448,25 @@ func parseAlarmAbsolute(raw string, defaultTZ string) (time.Time, error) {
 		"2006-01-02T15:04",
 	}
 
-	var loc *time.Location
-	if tz := strings.TrimSpace(defaultTZ); tz != "" {
-		if l, err := time.LoadLocation(tz); err == nil {
-			loc = l
-		}
-	}
-
 	for _, layout := range layouts {
-		if loc != nil {
-			if t, err := time.ParseInLocation(layout, val, loc); err == nil {
-				return t.In(time.UTC), nil
-			}
-		}
-		if t, err := time.Parse(layout, val); err == nil {
-			return t.In(time.UTC), nil
+		if t, ok := tryParseWithLayout(val, layout, loc); ok {
+			return t, nil
 		}
 	}
 
 	return time.Time{}, fmt.Errorf("unrecognized absolute date/time %q", raw)
+}
+
+func tryParseWithLayout(val string, layout string, loc *time.Location) (time.Time, bool) {
+	if loc != nil {
+		if t, err := time.ParseInLocation(layout, val, loc); err == nil {
+			return t.In(time.UTC), true
+		}
+	}
+	if t, err := time.Parse(layout, val); err == nil {
+		return t.In(time.UTC), true
+	}
+	return time.Time{}, false
 }
 
 func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration, error) {
