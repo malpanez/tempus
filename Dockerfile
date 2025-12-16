@@ -21,23 +21,19 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
 # Final stage
 FROM alpine:3.21
 
-# Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata
-
-# Create non-root user
-RUN addgroup -g 1000 tempus && \
+# Install dependencies, create user, and set up directories in one layer
+RUN apk --no-cache add ca-certificates tzdata && \
+    addgroup -g 1000 tempus && \
     adduser -D -u 1000 -G tempus tempus
 
 WORKDIR /home/tempus
 
-# Copy binary from builder
+# Copy all files from builder in one layer
 COPY --from=builder /build/tempus /usr/local/bin/tempus
-
-# Copy timezone data and other resources
 COPY --from=builder /build/timezones /home/tempus/timezones
 COPY --from=builder /build/locales /home/tempus/locales
 
-# Set ownership
+# Set ownership after all copies
 RUN chown -R tempus:tempus /home/tempus
 
 # Switch to non-root user
