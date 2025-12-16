@@ -26,12 +26,8 @@ func Slugify(s string) string {
 		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
 			b.WriteRune(r)
 			prevHyphen = false
-		case r == '-' || r == '_' || r == ' ' || r == '.' || r == '/' || r == '\\':
-			if !prevHyphen && b.Len() > 0 {
-				b.WriteRune('-')
-				prevHyphen = true
-			}
 		default:
+			// Replace all special characters (including -, _, space, ., /, \) with hyphens
 			if !prevHyphen && b.Len() > 0 {
 				b.WriteRune('-')
 				prevHyphen = true

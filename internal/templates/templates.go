@@ -471,7 +471,7 @@ func splitAndTrim(s, sep string) []string {
 
 // ----- ADHD-friendly template generators -----
 
-func generateFocusBlockEvent(data map[string]string, translator *i18n.Translator) (*calendar.Event, error) {
+func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	task := data["task"]
 
 	// Parse start time
