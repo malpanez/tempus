@@ -137,34 +137,49 @@ func SupportedLanguages() []string {
 func Locales() []LocaleInfo {
 	ensureEmbeddedLocales()
 
+	infoByCode := buildEmbeddedLocaleInfoMap()
+	scanDiskLocales(infoByCode)
+	return sortedLocaleInfoList(infoByCode)
+}
+
+func buildEmbeddedLocaleInfoMap() map[string]*LocaleInfo {
 	infoByCode := make(map[string]*LocaleInfo, len(embeddedData))
 	for code := range embeddedData {
 		infoByCode[code] = &LocaleInfo{Code: code, Embedded: true}
 	}
+	return infoByCode
+}
 
+func scanDiskLocales(infoByCode map[string]*LocaleInfo) {
 	for _, dir := range localeSearchPaths() {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			ext := strings.ToLower(filepath.Ext(entry.Name()))
-			if !isSupportedLocaleExt(ext) {
-				continue
-			}
-			code := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			info, ok := infoByCode[code]
-			if !ok {
-				info = &LocaleInfo{Code: code}
-				infoByCode[code] = info
-			}
-			info.DiskPaths = append(info.DiskPaths, filepath.Join(dir, entry.Name()))
-		}
+		processDiskLocaleEntries(infoByCode, dir, entries)
 	}
+}
 
+func processDiskLocaleEntries(infoByCode map[string]*LocaleInfo, dir string, entries []os.DirEntry) {
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(entry.Name()))
+		if !isSupportedLocaleExt(ext) {
+			continue
+		}
+		code := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		info, ok := infoByCode[code]
+		if !ok {
+			info = &LocaleInfo{Code: code}
+			infoByCode[code] = info
+		}
+		info.DiskPaths = append(info.DiskPaths, filepath.Join(dir, entry.Name()))
+	}
+}
+
+func sortedLocaleInfoList(infoByCode map[string]*LocaleInfo) []LocaleInfo {
 	keys := make([]string, 0, len(infoByCode))
 	for code := range infoByCode {
 		keys = append(keys, code)
@@ -254,31 +269,39 @@ func ensureEmbeddedLocales() {
 		if err != nil {
 			return
 		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			name := entry.Name()
-			ext := strings.ToLower(filepath.Ext(name))
-			if !isSupportedLocaleExt(ext) {
-				continue
-			}
-			lang := strings.TrimSuffix(name, filepath.Ext(name))
-			// Do not overwrite when multiple files refer to same language.
-			if _, exists := embeddedData[lang]; exists {
-				continue
-			}
-			data, err := embeddedLocales.ReadFile(path.Join(embeddedLocalesRoot, name))
-			if err != nil {
-				continue
-			}
-			m, err := decodeLocaleBytes(data, ext)
-			if err != nil {
-				continue
-			}
-			embeddedData[lang] = m
-		}
+		loadEmbeddedLocaleEntries(entries)
 	})
+}
+
+func loadEmbeddedLocaleEntries(entries []fs.DirEntry) {
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+		if !isSupportedLocaleExt(ext) {
+			continue
+		}
+		lang := strings.TrimSuffix(name, filepath.Ext(name))
+		// Do not overwrite when multiple files refer to same language.
+		if _, exists := embeddedData[lang]; exists {
+			continue
+		}
+		loadSingleEmbeddedLocale(name, lang, ext)
+	}
+}
+
+func loadSingleEmbeddedLocale(name, lang, ext string) {
+	data, err := embeddedLocales.ReadFile(path.Join(embeddedLocalesRoot, name))
+	if err != nil {
+		return
+	}
+	m, err := decodeLocaleBytes(data, ext)
+	if err != nil {
+		return
+	}
+	embeddedData[lang] = m
 }
 
 func isSupportedLocaleExt(ext string) bool {
