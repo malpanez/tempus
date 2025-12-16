@@ -160,7 +160,7 @@ func splitAndAppendParts(line string, out *[]string) {
 }
 
 // ParseAlarmsFromString parses a single raw string into alarms.
-func ParseAlarmsFromString(raw string, defaultTZ string) ([]Alarm, error) {
+func ParseAlarmsFromString(raw, defaultTZ string) ([]Alarm, error) {
 	specs := SplitAlarmInput(raw)
 	if len(specs) == 0 {
 		return nil, nil
@@ -185,14 +185,14 @@ func ParseAlarmSpecs(values []string, defaultTZ string) ([]Alarm, error) {
 	return out, nil
 }
 
-func parseAlarmSpec(raw string, defaultTZ string) (Alarm, error) {
+func parseAlarmSpec(raw, defaultTZ string) (Alarm, error) {
 	if strings.Contains(raw, "=") {
 		return parseKeyValueAlarmSpec(raw, defaultTZ)
 	}
 	return parseSimpleAlarmSpec(raw, defaultTZ)
 }
 
-func parseSimpleAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
+func parseSimpleAlarmSpec(spec, defaultTZ string) (Alarm, error) {
 	trigger := strings.TrimSpace(spec)
 	if trigger == "" {
 		return Alarm{}, fmt.Errorf("alarm trigger cannot be empty")
@@ -219,7 +219,7 @@ func parseSimpleAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 	}, nil
 }
 
-func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
+func parseKeyValueAlarmSpec(spec, defaultTZ string) (Alarm, error) {
 	params, err := parseAlarmKeyValueParams(spec)
 	if err != nil {
 		return Alarm{}, err
@@ -370,7 +370,7 @@ func parseAlarmRepeatParams(params map[string]string, spec string) (int, time.Du
 	return repeat, repeatDur, nil
 }
 
-func setAlarmTrigger(al *Alarm, trigger string, mode alarmTriggerMode, defaultTZ string, spec string) error {
+func setAlarmTrigger(al *Alarm, trigger string, mode alarmTriggerMode, defaultTZ, spec string) error {
 	var relDur time.Duration
 	var relErr error
 
@@ -402,7 +402,7 @@ func setAlarmTrigger(al *Alarm, trigger string, mode alarmTriggerMode, defaultTZ
 	return nil
 }
 
-func parseAlarmAbsolute(raw string, defaultTZ string) (time.Time, error) {
+func parseAlarmAbsolute(raw, defaultTZ string) (time.Time, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
 		return time.Time{}, fmt.Errorf("empty absolute trigger")
@@ -457,7 +457,7 @@ func tryParseCommonLayouts(val string, loc *time.Location, raw string) (time.Tim
 	return time.Time{}, fmt.Errorf("unrecognized absolute date/time %q", raw)
 }
 
-func tryParseWithLayout(val string, layout string, loc *time.Location) (time.Time, bool) {
+func tryParseWithLayout(val, layout string, loc *time.Location) (time.Time, bool) {
 	if loc != nil {
 		if t, err := time.ParseInLocation(layout, val, loc); err == nil {
 			return t.In(time.UTC), true
