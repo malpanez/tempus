@@ -2057,7 +2057,7 @@ func newConfigCmd() *cobra.Command {
 	return cmd
 }
 
-func runConfigSet(cmd *cobra.Command, args []string) error {
+func runConfigSet(_ *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -2077,7 +2077,7 @@ func runConfigList(cmd *cobra.Command, args []string) error {
 	return cfg.List()
 }
 
-func runConfigAlarmProfiles(cmd *cobra.Command, args []string) error {
+func runConfigAlarmProfiles(_ *cobra.Command, _ []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -2429,7 +2429,13 @@ func runTemplateCreate(cmd *cobra.Command, args []string) error {
 	dd, _ := tm.DataTemplate(name)
 
 	if strings.TrimSpace(inputPath) != "" {
-		return runTemplateCreateFromFile(tm, tr, tmpl, dd, name, inputPath, formatFlag, outputDir)
+		params := templateCreateParams{
+			templateName: name,
+			inputPath:    inputPath,
+			formatFlag:   formatFlag,
+			outputDir:    outputDir,
+		}
+		return runTemplateCreateFromFile(tm, tr, tmpl, dd, params)
 	}
 
 	values := map[string]string{}
@@ -2478,36 +2484,43 @@ func runTemplateCreate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmpl *tpl.Template, dd tpl.DataDrivenTemplate, templateName, inputPath, formatFlag, outputDir string) error {
-	format, err := detectTemplateInputFormat(formatFlag, inputPath)
+type templateCreateParams struct {
+	templateName string
+	inputPath    string
+	formatFlag   string
+	outputDir    string
+}
+
+func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmpl *tpl.Template, dd tpl.DataDrivenTemplate, params templateCreateParams) error {
+	format, err := detectTemplateInputFormat(params.formatFlag, params.inputPath)
 	if err != nil {
 		return err
 	}
 
-	records, err := loadTemplateRecords(inputPath, format)
+	records, err := loadTemplateRecords(params.inputPath, format)
 	if err != nil {
 		return err
 	}
 	if len(records) == 0 {
-		return fmt.Errorf("no data found in %s", inputPath)
+		return fmt.Errorf("no data found in %s", params.inputPath)
 	}
 
-	outputDir = strings.TrimSpace(outputDir)
+	params.outputDir = strings.TrimSpace(params.outputDir)
 	for idx, record := range records {
 		values := mergeTemplateValues(tmpl, record)
 		normalizeValuesForTemplate(values, tmpl, dd)
 
-		ev, err := tm.GenerateEvent(templateName, values, tr)
+		ev, err := tm.GenerateEvent(params.templateName, values, tr)
 		if err != nil {
 			return fmt.Errorf("row %d: %w", idx+1, err)
 		}
 
 		cal := buildTemplateCalendar(ev)
 		augmented := augmentValuesForFilename(values, ev)
-		filename := deriveTemplateFilename(tm, templateName, augmented, ev, tr)
+		filename := deriveTemplateFilename(tm, params.templateName, augmented, ev, tr)
 		filename = ensureICSExtension(filename)
-		if outputDir != "" && !filepath.IsAbs(filename) {
-			filename = filepath.Join(outputDir, filename)
+		if params.outputDir != "" && !filepath.IsAbs(filename) {
+			filename = filepath.Join(params.outputDir, filename)
 		}
 		filename = ensureUniquePath(filename)
 
