@@ -182,23 +182,9 @@ func parseSimpleAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 }
 
 func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
-	parts := strings.FieldsFunc(spec, func(r rune) bool {
-		return r == ',' || r == ';'
-	})
-	params := make(map[string]string, len(parts))
-	for _, part := range parts {
-		if strings.TrimSpace(part) == "" {
-			continue
-		}
-		kv := strings.SplitN(part, "=", 2)
-		if len(kv) != 2 {
-			return Alarm{}, fmt.Errorf("invalid alarm segment %q", part)
-		}
-		key := strings.ToLower(strings.TrimSpace(kv[0]))
-		val := strings.TrimSpace(kv[1])
-		if key != "" {
-			params[key] = val
-		}
+	params, err := parseAlarmKeyValueParams(spec)
+	if err != nil {
+		return Alarm{}, err
 	}
 
 	trigger := strings.TrimSpace(firstNonEmpty(params["trigger"], params["offset"]))
@@ -206,108 +192,16 @@ func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 		return Alarm{}, fmt.Errorf("alarm %q is missing trigger= value", spec)
 	}
 
-	action := strings.ToUpper(strings.TrimSpace(firstNonEmpty(params["action"], "")))
-	if action == "" {
-		action = actionDisplay
+	al := createAlarmFromParams(params)
+	triggerMode := determineAlarmTriggerMode(params)
+
+	repeat, repeatDur, err := parseAlarmRepeatParams(params, spec)
+	if err != nil {
+		return Alarm{}, err
 	}
 
-	description := strings.TrimSpace(firstNonEmpty(params["description"], params["message"], params["text"]))
-	summary := strings.TrimSpace(firstNonEmpty(params["summary"], params["title"]))
-
-	dirHint := strings.ToLower(strings.TrimSpace(firstNonEmpty(params["direction"], params["when"])))
-	defaultDirection := -1
-	switch dirHint {
-	case "after", "post", "later", "follow", "following", "plus":
-		defaultDirection = 1
-	case "before", "prior", "pre", "minus":
-		defaultDirection = -1
-	}
-
-	kind := strings.ToLower(strings.TrimSpace(params["kind"]))
-	relativeHint := strings.TrimSpace(firstNonEmpty(params["relative"], params["is_relative"]))
-	forceRelative := false
-	forceAbsolute := false
-
-	switch kind {
-	case "relative":
-		forceRelative = true
-	case "before":
-		forceRelative = true
-		defaultDirection = -1
-	case "after":
-		forceRelative = true
-		defaultDirection = 1
-	case "absolute", "at", "on":
-		forceAbsolute = true
-	}
-
-	if relativeHint != "" {
-		if parseBoolish(relativeHint) {
-			forceRelative = true
-			forceAbsolute = false
-		} else {
-			forceAbsolute = true
-			forceRelative = false
-		}
-	}
-
-	repeatStr := strings.TrimSpace(firstNonEmpty(params["repeat"], params["repetitions"]))
-	repeat := 0
-	if repeatStr != "" {
-		val, err := strconv.Atoi(repeatStr)
-		if err != nil || val <= 0 {
-			return Alarm{}, fmt.Errorf("invalid repeat count %q in alarm %q", repeatStr, spec)
-		}
-		repeat = val
-	}
-
-	repeatDurStr := strings.TrimSpace(firstNonEmpty(params["repeat_duration"], params["repeat_interval"]))
-	var repeatDur time.Duration
-	if repeatDurStr != "" {
-		dur, err := parseAlarmDurationValue(repeatDurStr)
-		if err != nil {
-			return Alarm{}, fmt.Errorf("invalid repeat duration %q in alarm %q: %v", repeatDurStr, spec, err)
-		}
-		if dur <= 0 {
-			return Alarm{}, fmt.Errorf(errRepeatDurationPos, spec)
-		}
-		repeatDur = dur
-	}
-
-	al := Alarm{
-		Action:      action,
-		Summary:     summary,
-		Description: description,
-	}
-	if strings.TrimSpace(al.Description) == "" && al.Action == actionDisplay {
-		al.Description = defaultDescText
-	}
-
-	var relDur time.Duration
-	var relErr error
-	if !forceAbsolute {
-		relDur, relErr = parseRelativeAlarmDuration(trigger, defaultDirection)
-		if relErr == nil {
-			al.TriggerIsRelative = true
-			al.TriggerDuration = relDur
-		}
-	}
-
-	if !al.TriggerIsRelative {
-		if forceRelative {
-			if relErr != nil {
-				return Alarm{}, fmt.Errorf("invalid relative trigger %q in alarm %q: %v", trigger, spec, relErr)
-			}
-		}
-		ts, err := parseAlarmAbsolute(trigger, defaultTZ)
-		if err != nil {
-			if relErr != nil && !forceAbsolute {
-				return Alarm{}, fmt.Errorf("invalid alarm %q: %v; also failed to parse relative offset (%v)", spec, err, relErr)
-			}
-			return Alarm{}, fmt.Errorf("invalid alarm %q: %v", spec, err)
-		}
-		al.TriggerIsRelative = false
-		al.TriggerTime = ts.UTC()
+	if err := setAlarmTrigger(&al, trigger, triggerMode, defaultTZ, spec); err != nil {
+		return Alarm{}, err
 	}
 
 	if repeat > 0 || repeatDur > 0 {
@@ -322,6 +216,152 @@ func parseKeyValueAlarmSpec(spec string, defaultTZ string) (Alarm, error) {
 		return Alarm{}, fmt.Errorf("alarm %q has zero relative duration", spec)
 	}
 	return al, nil
+}
+
+func parseAlarmKeyValueParams(spec string) (map[string]string, error) {
+	parts := strings.FieldsFunc(spec, func(r rune) bool {
+		return r == ',' || r == ';'
+	})
+	params := make(map[string]string, len(parts))
+	for _, part := range parts {
+		if strings.TrimSpace(part) == "" {
+			continue
+		}
+		kv := strings.SplitN(part, "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid alarm segment %q", part)
+		}
+		key := strings.ToLower(strings.TrimSpace(kv[0]))
+		val := strings.TrimSpace(kv[1])
+		if key != "" {
+			params[key] = val
+		}
+	}
+	return params, nil
+}
+
+func createAlarmFromParams(params map[string]string) Alarm {
+	action := strings.ToUpper(strings.TrimSpace(firstNonEmpty(params["action"], "")))
+	if action == "" {
+		action = actionDisplay
+	}
+
+	description := strings.TrimSpace(firstNonEmpty(params["description"], params["message"], params["text"]))
+	summary := strings.TrimSpace(firstNonEmpty(params["summary"], params["title"]))
+
+	al := Alarm{
+		Action:      action,
+		Summary:     summary,
+		Description: description,
+	}
+	if strings.TrimSpace(al.Description) == "" && al.Action == actionDisplay {
+		al.Description = defaultDescText
+	}
+	return al
+}
+
+type alarmTriggerMode struct {
+	forceRelative    bool
+	forceAbsolute    bool
+	defaultDirection int
+}
+
+func determineAlarmTriggerMode(params map[string]string) alarmTriggerMode {
+	mode := alarmTriggerMode{defaultDirection: -1}
+
+	dirHint := strings.ToLower(strings.TrimSpace(firstNonEmpty(params["direction"], params["when"])))
+	switch dirHint {
+	case "after", "post", "later", "follow", "following", "plus":
+		mode.defaultDirection = 1
+	case "before", "prior", "pre", "minus":
+		mode.defaultDirection = -1
+	}
+
+	kind := strings.ToLower(strings.TrimSpace(params["kind"]))
+	switch kind {
+	case "relative":
+		mode.forceRelative = true
+	case "before":
+		mode.forceRelative = true
+		mode.defaultDirection = -1
+	case "after":
+		mode.forceRelative = true
+		mode.defaultDirection = 1
+	case "absolute", "at", "on":
+		mode.forceAbsolute = true
+	}
+
+	relativeHint := strings.TrimSpace(firstNonEmpty(params["relative"], params["is_relative"]))
+	if relativeHint != "" {
+		if parseBoolish(relativeHint) {
+			mode.forceRelative = true
+			mode.forceAbsolute = false
+		} else {
+			mode.forceAbsolute = true
+			mode.forceRelative = false
+		}
+	}
+
+	return mode
+}
+
+func parseAlarmRepeatParams(params map[string]string, spec string) (int, time.Duration, error) {
+	repeatStr := strings.TrimSpace(firstNonEmpty(params["repeat"], params["repetitions"]))
+	repeat := 0
+	if repeatStr != "" {
+		val, err := strconv.Atoi(repeatStr)
+		if err != nil || val <= 0 {
+			return 0, 0, fmt.Errorf("invalid repeat count %q in alarm %q", repeatStr, spec)
+		}
+		repeat = val
+	}
+
+	repeatDurStr := strings.TrimSpace(firstNonEmpty(params["repeat_duration"], params["repeat_interval"]))
+	var repeatDur time.Duration
+	if repeatDurStr != "" {
+		dur, err := parseAlarmDurationValue(repeatDurStr)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid repeat duration %q in alarm %q: %v", repeatDurStr, spec, err)
+		}
+		if dur <= 0 {
+			return 0, 0, fmt.Errorf(errRepeatDurationPos, spec)
+		}
+		repeatDur = dur
+	}
+
+	return repeat, repeatDur, nil
+}
+
+func setAlarmTrigger(al *Alarm, trigger string, mode alarmTriggerMode, defaultTZ string, spec string) error {
+	var relDur time.Duration
+	var relErr error
+
+	if !mode.forceAbsolute {
+		relDur, relErr = parseRelativeAlarmDuration(trigger, mode.defaultDirection)
+		if relErr == nil {
+			al.TriggerIsRelative = true
+			al.TriggerDuration = relDur
+			return nil
+		}
+	}
+
+	if mode.forceRelative {
+		if relErr != nil {
+			return fmt.Errorf("invalid relative trigger %q in alarm %q: %v", trigger, spec, relErr)
+		}
+		return nil
+	}
+
+	ts, err := parseAlarmAbsolute(trigger, defaultTZ)
+	if err != nil {
+		if relErr != nil && !mode.forceAbsolute {
+			return fmt.Errorf("invalid alarm %q: %v; also failed to parse relative offset (%v)", spec, err, relErr)
+		}
+		return fmt.Errorf("invalid alarm %q: %v", spec, err)
+	}
+	al.TriggerIsRelative = false
+	al.TriggerTime = ts.UTC()
+	return nil
 }
 
 func parseAlarmAbsolute(raw string, defaultTZ string) (time.Time, error) {
