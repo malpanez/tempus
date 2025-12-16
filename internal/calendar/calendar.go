@@ -9,6 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// VTIMEZONE block delimiters
+	vtzBegin = "BEGIN:VTIMEZONE\r\n"
+	vtzEnd   = "END:VTIMEZONE\r\n"
+)
+
 //
 // Calendar & Event model
 //
@@ -188,150 +194,186 @@ func (c *Calendar) ToICS() string {
 //
 
 func (e *Event) ToICS() string {
-	const layoutUTC = "20060102T150405Z"
-	const layoutLocal = "20060102T150405"
-
 	var b strings.Builder
-
 	writeLine(&b, "BEGIN:VEVENT")
-	writeProp(&b, "UID", e.UID)
+
+	e.writeBasicProperties(&b)
+	e.writeDateTimeProperties(&b)
+	e.writeRecurrenceProperties(&b)
+	e.writeOptionalProperties(&b)
+	e.writeAlarms(&b)
+	e.writeTimestamps(&b)
+
+	writeLine(&b, "END:VEVENT")
+	return b.String()
+}
+
+func (e *Event) writeBasicProperties(b *strings.Builder) {
+	const layoutUTC = "20060102T150405Z"
+
+	writeProp(b, "UID", e.UID)
 
 	// DTSTAMP (UTC); use Created if available, else now
 	dtstamp := e.Created
 	if dtstamp.IsZero() {
 		dtstamp = time.Now().UTC()
 	}
-	writeProp(&b, "DTSTAMP", dtstamp.UTC().Format(layoutUTC))
+	writeProp(b, "DTSTAMP", dtstamp.UTC().Format(layoutUTC))
 
 	if s := strings.TrimSpace(e.Summary); s != "" {
-		writeProp(&b, "SUMMARY", escapeText(s))
+		writeProp(b, "SUMMARY", escapeText(s))
 	}
 
 	if d := strings.TrimSpace(e.Description); d != "" {
-		// Normalize \n typed by users to real newlines, then escape for ICS
-		writeProp(&b, "DESCRIPTION", escapeText(normalizeUserNewlines(d)))
+		writeProp(b, "DESCRIPTION", escapeText(normalizeUserNewlines(d)))
 	}
 
 	if l := strings.TrimSpace(e.Location); l != "" {
-		writeProp(&b, "LOCATION", escapeText(normalizeUserNewlines(l)))
+		writeProp(b, "LOCATION", escapeText(normalizeUserNewlines(l)))
 	}
+}
 
-	// DTSTART / DTEND with or without TZID
+func (e *Event) writeDateTimeProperties(b *strings.Builder) {
+	const layoutUTC = "20060102T150405Z"
+	const layoutLocal = "20060102T150405"
+
 	if e.AllDay {
-		writeProp(&b, "DTSTART;VALUE=DATE", e.StartTime.Format("20060102"))
-		writeProp(&b, "DTEND;VALUE=DATE", e.EndTime.Format("20060102"))
+		writeProp(b, "DTSTART;VALUE=DATE", e.StartTime.Format("20060102"))
+		writeProp(b, "DTEND;VALUE=DATE", e.EndTime.Format("20060102"))
+		return
+	}
+
+	if tz := strings.TrimSpace(e.StartTZ); tz != "" {
+		writeProp(b, "DTSTART;TZID="+tz, e.StartTime.Format(layoutLocal))
 	} else {
-		if tz := strings.TrimSpace(e.StartTZ); tz != "" {
-			writeProp(&b, "DTSTART;TZID="+tz, e.StartTime.Format(layoutLocal))
-		} else {
-			writeProp(&b, "DTSTART", e.StartTime.UTC().Format(layoutUTC))
-		}
-		if tz := strings.TrimSpace(e.EndTZ); tz != "" {
-			writeProp(&b, "DTEND;TZID="+tz, e.EndTime.Format(layoutLocal))
-		} else {
-			writeProp(&b, "DTEND", e.EndTime.UTC().Format(layoutUTC))
-		}
+		writeProp(b, "DTSTART", e.StartTime.UTC().Format(layoutUTC))
 	}
 
-	// RRULE (if present)
+	if tz := strings.TrimSpace(e.EndTZ); tz != "" {
+		writeProp(b, "DTEND;TZID="+tz, e.EndTime.Format(layoutLocal))
+	} else {
+		writeProp(b, "DTEND", e.EndTime.UTC().Format(layoutUTC))
+	}
+}
+
+func (e *Event) writeRecurrenceProperties(b *strings.Builder) {
 	if strings.TrimSpace(e.RRule) != "" {
-		writeProp(&b, "RRULE", e.RRule)
+		writeProp(b, "RRULE", e.RRule)
 	}
 
-	// EXDATEs must match DTSTART type & TZ handling
 	if len(e.ExDates) > 0 {
-		if e.AllDay {
-			var parts []string
-			for _, x := range e.ExDates {
-				parts = append(parts, x.Format("20060102"))
-			}
-			writeProp(&b, "EXDATE;VALUE=DATE", strings.Join(parts, ","))
-		} else if strings.TrimSpace(e.StartTZ) != "" {
-			var parts []string
-			for _, x := range e.ExDates {
-				parts = append(parts, x.Format(layoutLocal))
-			}
-			writeProp(&b, "EXDATE;TZID="+e.StartTZ, strings.Join(parts, ","))
-		} else {
-			var parts []string
-			for _, x := range e.ExDates {
-				parts = append(parts, x.UTC().Format(layoutUTC))
-			}
-			writeProp(&b, "EXDATE", strings.Join(parts, ","))
+		e.writeExDates(b)
+	}
+}
+
+func (e *Event) writeExDates(b *strings.Builder) {
+	const layoutUTC = "20060102T150405Z"
+	const layoutLocal = "20060102T150405"
+
+	if e.AllDay {
+		var parts []string
+		for _, x := range e.ExDates {
+			parts = append(parts, x.Format("20060102"))
 		}
+		writeProp(b, "EXDATE;VALUE=DATE", strings.Join(parts, ","))
+		return
 	}
 
-	// Optional fields
+	if strings.TrimSpace(e.StartTZ) != "" {
+		var parts []string
+		for _, x := range e.ExDates {
+			parts = append(parts, x.Format(layoutLocal))
+		}
+		writeProp(b, "EXDATE;TZID="+e.StartTZ, strings.Join(parts, ","))
+		return
+	}
+
+	var parts []string
+	for _, x := range e.ExDates {
+		parts = append(parts, x.UTC().Format(layoutUTC))
+	}
+	writeProp(b, "EXDATE", strings.Join(parts, ","))
+}
+
+func (e *Event) writeOptionalProperties(b *strings.Builder) {
 	if len(e.Attendees) > 0 {
 		for _, a := range e.Attendees {
 			a = strings.TrimSpace(a)
 			if a == "" {
 				continue
 			}
-			writeProp(&b, "ATTENDEE", "mailto:"+a)
+			writeProp(b, "ATTENDEE", "mailto:"+a)
 		}
 	}
 
 	if len(e.Categories) > 0 {
-		writeProp(&b, "CATEGORIES", strings.Join(e.Categories, ","))
+		writeProp(b, "CATEGORIES", strings.Join(e.Categories, ","))
 	}
 
 	if e.Priority > 0 {
-		writeProp(&b, "PRIORITY", fmt.Sprintf("%d", e.Priority))
+		writeProp(b, "PRIORITY", fmt.Sprintf("%d", e.Priority))
 	}
 
 	// STATUS (default to CONFIRMED if empty for consistency)
 	if s := strings.TrimSpace(e.Status); s == "" {
-		writeProp(&b, "STATUS", "CONFIRMED")
+		writeProp(b, "STATUS", "CONFIRMED")
 	} else {
-		writeProp(&b, "STATUS", s)
+		writeProp(b, "STATUS", s)
 	}
+}
 
-	// VALARM blocks (portable DISPLAY reminders)
+func (e *Event) writeAlarms(b *strings.Builder) {
+	const layoutUTC = "20060102T150405Z"
+
 	for _, al := range e.Alarms {
-		writeLine(&b, "BEGIN:VALARM")
+		writeLine(b, "BEGIN:VALARM")
 
 		action := strings.ToUpper(strings.TrimSpace(al.Action))
 		if action == "" {
 			action = "DISPLAY"
 		}
-		writeProp(&b, "ACTION", action)
+		writeProp(b, "ACTION", action)
 
-		// TRIGGER
-		if al.TriggerIsRelative {
-			writeProp(&b, "TRIGGER", formatICSDuration(al.TriggerDuration))
-		} else {
-			writeProp(&b, "TRIGGER;VALUE=DATE-TIME", time.Time(al.TriggerTime.UTC()).Format(layoutUTC))
-		}
+		e.writeAlarmTrigger(b, al, layoutUTC)
+		e.writeAlarmDetails(b, al, action)
 
-		// Outlook likes DESCRIPTION on DISPLAY alarms
-		if action == "DISPLAY" {
-			desc := strings.TrimSpace(al.Description)
-			if desc == "" {
-				desc = "Reminder"
-			}
-			writeProp(&b, "DESCRIPTION", escapeText(desc))
-		}
-		if strings.TrimSpace(al.Summary) != "" {
-			writeProp(&b, "SUMMARY", escapeText(al.Summary))
-		}
-		if al.Repeat > 0 && al.RepeatDuration > 0 {
-			writeProp(&b, "REPEAT", fmt.Sprintf("%d", al.Repeat))
-			writeProp(&b, "DURATION", formatICSDuration(al.RepeatDuration))
-		}
+		writeLine(b, "END:VALARM")
+	}
+}
 
-		writeLine(&b, "END:VALARM")
+func (e *Event) writeAlarmTrigger(b *strings.Builder, al Alarm, layoutUTC string) {
+	if al.TriggerIsRelative {
+		writeProp(b, "TRIGGER", formatICSDuration(al.TriggerDuration))
+	} else {
+		writeProp(b, "TRIGGER;VALUE=DATE-TIME", time.Time(al.TriggerTime.UTC()).Format(layoutUTC))
+	}
+}
+
+func (e *Event) writeAlarmDetails(b *strings.Builder, al Alarm, action string) {
+	if action == "DISPLAY" {
+		desc := strings.TrimSpace(al.Description)
+		if desc == "" {
+			desc = "Reminder"
+		}
+		writeProp(b, "DESCRIPTION", escapeText(desc))
 	}
 
-	// SEQUENCE & timestamps
+	if strings.TrimSpace(al.Summary) != "" {
+		writeProp(b, "SUMMARY", escapeText(al.Summary))
+	}
+
+	if al.Repeat > 0 && al.RepeatDuration > 0 {
+		writeProp(b, "REPEAT", fmt.Sprintf("%d", al.Repeat))
+		writeProp(b, "DURATION", formatICSDuration(al.RepeatDuration))
+	}
+}
+
+func (e *Event) writeTimestamps(b *strings.Builder) {
 	if e.Sequence > 0 {
-		writeProp(&b, "SEQUENCE", fmt.Sprintf("%d", e.Sequence))
+		writeProp(b, "SEQUENCE", fmt.Sprintf("%d", e.Sequence))
 	}
-	writeProp(&b, "CREATED", e.Created.UTC().Format("20060102T150405Z"))
-	writeProp(&b, "LAST-MODIFIED", e.LastMod.UTC().Format("20060102T150405Z"))
-
-	writeLine(&b, "END:VEVENT")
-	return b.String()
+	writeProp(b, "CREATED", e.Created.UTC().Format("20060102T150405Z"))
+	writeProp(b, "LAST-MODIFIED", e.LastMod.UTC().Format("20060102T150405Z"))
 }
 
 //
@@ -542,8 +584,7 @@ func uniqueTZIDs(events []Event) []string {
 func knownVTZ(tzid string) string {
 	switch tzid {
 	case "Europe/Madrid":
-		return "" +
-			"BEGIN:VTIMEZONE\r\n" +
+		return vtzBegin +
 			"TZID:Europe/Madrid\r\n" +
 			"X-LIC-LOCATION:Europe/Madrid\r\n" +
 			"BEGIN:DAYLIGHT\r\n" +
@@ -560,10 +601,9 @@ func knownVTZ(tzid string) string {
 			"DTSTART:19701025T030000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
 			"END:STANDARD\r\n" +
-			"END:VTIMEZONE\r\n"
+			vtzEnd
 	case "Europe/Dublin":
-		return "" +
-			"BEGIN:VTIMEZONE\r\n" +
+		return vtzBegin +
 			"TZID:Europe/Dublin\r\n" +
 			"X-LIC-LOCATION:Europe/Dublin\r\n" +
 			"BEGIN:DAYLIGHT\r\n" +
@@ -580,10 +620,9 @@ func knownVTZ(tzid string) string {
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
 			"END:STANDARD\r\n" +
-			"END:VTIMEZONE\r\n"
+			vtzEnd
 	case "Europe/London":
-		return "" +
-			"BEGIN:VTIMEZONE\r\n" +
+		return vtzBegin +
 			"TZID:Europe/London\r\n" +
 			"X-LIC-LOCATION:Europe/London\r\n" +
 			"BEGIN:DAYLIGHT\r\n" +
@@ -600,10 +639,9 @@ func knownVTZ(tzid string) string {
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
 			"END:STANDARD\r\n" +
-			"END:VTIMEZONE\r\n"
+			vtzEnd
 	case "America/Sao_Paulo":
-		return "" +
-			"BEGIN:VTIMEZONE\r\n" +
+		return vtzBegin +
 			"TZID:America/Sao_Paulo\r\n" +
 			"X-LIC-LOCATION:America/Sao_Paulo\r\n" +
 			"BEGIN:STANDARD\r\n" +
@@ -612,10 +650,9 @@ func knownVTZ(tzid string) string {
 			"TZNAME:BRT\r\n" +
 			"DTSTART:19700101T000000\r\n" +
 			"END:STANDARD\r\n" +
-			"END:VTIMEZONE\r\n"
+			vtzEnd
 	case "Atlantic/Canary":
-		return "" +
-			"BEGIN:VTIMEZONE\r\n" +
+		return vtzBegin +
 			"TZID:Atlantic/Canary\r\n" +
 			"X-LIC-LOCATION:Atlantic/Canary\r\n" +
 			"BEGIN:DAYLIGHT\r\n" +
@@ -632,7 +669,7 @@ func knownVTZ(tzid string) string {
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
 			"END:STANDARD\r\n" +
-			"END:VTIMEZONE\r\n"
+			vtzEnd
 	default:
 		return ""
 	}
