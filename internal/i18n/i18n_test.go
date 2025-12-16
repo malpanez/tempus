@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+const (
+	testErrCreateLocalesDir = "failed to create locales directory: %v"
+	testErrNewTranslator    = "NewTranslator() error = %v"
+	testDate                = "15/03/2024"
+	testDateTime            = "15/03/2024 14:30"
+	testDateFormatDDMMYYYY  = "DD/MM/YYYY"
+)
+
 func TestSupportedLanguagesIncludesEmbedded(t *testing.T) {
 	langs := SupportedLanguages()
 	required := []string{"en", "es", "ga", "pt"}
@@ -20,7 +28,7 @@ func TestSupportedLanguagesIncludesEmbedded(t *testing.T) {
 func TestIsSupportedLanguageDetectsDiskOverride(t *testing.T) {
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	path := filepath.Join(dir, "test-precommit.yaml")
@@ -135,7 +143,7 @@ func TestNewTranslatorWithInvalidLanguage(t *testing.T) {
 func TestTranslatorT(t *testing.T) {
 	tr, err := NewTranslator("en")
 	if err != nil {
-		t.Fatalf("NewTranslator() error = %v", err)
+		t.Fatalf(testErrNewTranslator, err)
 	}
 
 	tests := []struct {
@@ -185,7 +193,7 @@ func TestTranslatorTFallback(t *testing.T) {
 	// Create a custom locale file with missing keys
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	path := filepath.Join(dir, "partial.json")
@@ -200,7 +208,7 @@ func TestTranslatorTFallback(t *testing.T) {
 
 	tr, err := NewTranslator("partial")
 	if err != nil {
-		t.Fatalf("NewTranslator() error = %v", err)
+		t.Fatalf(testErrNewTranslator, err)
 	}
 
 	// Test that existing key uses the partial translation
@@ -232,7 +240,7 @@ func TestGetLanguage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tr, err := NewTranslator(tt.language)
 			if err != nil {
-				t.Fatalf("NewTranslator() error = %v", err)
+				t.Fatalf(testErrNewTranslator, err)
 			}
 			if got := tr.GetLanguage(); got != tt.language {
 				t.Errorf("GetLanguage() = %v, want %v", got, tt.language)
@@ -267,37 +275,37 @@ func TestFormatDateTime(t *testing.T) {
 			name:     "SpanishDateOnly",
 			language: "es",
 			dateOnly: true,
-			want:     "15/03/2024",
+			want:     testDate,
 		},
 		{
 			name:     "SpanishDateTime",
 			language: "es",
 			dateOnly: false,
-			want:     "15/03/2024 14:30",
+			want:     testDateTime,
 		},
 		{
 			name:     "IrishDateOnly",
 			language: "ga",
 			dateOnly: true,
-			want:     "15/03/2024",
+			want:     testDate,
 		},
 		{
 			name:     "IrishDateTime",
 			language: "ga",
 			dateOnly: false,
-			want:     "15/03/2024 14:30",
+			want:     testDateTime,
 		},
 		{
 			name:     "PortugueseDateOnly",
 			language: "pt",
 			dateOnly: true,
-			want:     "15/03/2024",
+			want:     testDate,
 		},
 		{
 			name:     "PortugueseDateTime",
 			language: "pt",
 			dateOnly: false,
-			want:     "15/03/2024 14:30",
+			want:     testDateTime,
 		},
 	}
 
@@ -305,7 +313,7 @@ func TestFormatDateTime(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tr, err := NewTranslator(tt.language)
 			if err != nil {
-				t.Fatalf("NewTranslator() error = %v", err)
+				t.Fatalf(testErrNewTranslator, err)
 			}
 			got := tr.FormatDateTime(testTime, tt.dateOnly)
 			if got != tt.want {
@@ -330,17 +338,17 @@ func TestGetDateFormat(t *testing.T) {
 		{
 			name:     "Spanish",
 			language: "es",
-			want:     "DD/MM/YYYY",
+			want:     testDateFormatDDMMYYYY,
 		},
 		{
 			name:     "Irish",
 			language: "ga",
-			want:     "DD/MM/YYYY",
+			want:     testDateFormatDDMMYYYY,
 		},
 		{
 			name:     "Portuguese",
 			language: "pt",
-			want:     "DD/MM/YYYY",
+			want:     testDateFormatDDMMYYYY,
 		},
 		{
 			name:     "Unknown",
@@ -353,7 +361,7 @@ func TestGetDateFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tr, err := NewTranslator(tt.language)
 			if err != nil {
-				t.Fatalf("NewTranslator() error = %v", err)
+				t.Fatalf(testErrNewTranslator, err)
 			}
 			got := tr.GetDateFormat()
 			if got != tt.want {
@@ -367,7 +375,7 @@ func TestGetDateFormat(t *testing.T) {
 func TestGetTimeFormat(t *testing.T) {
 	tr, err := NewTranslator("en")
 	if err != nil {
-		t.Fatalf("NewTranslator() error = %v", err)
+		t.Fatalf(testErrNewTranslator, err)
 	}
 
 	want := "HH:MM"
@@ -379,7 +387,7 @@ func TestGetTimeFormat(t *testing.T) {
 	// Test for other languages - should all return the same
 	tr2, err := NewTranslator("es")
 	if err != nil {
-		t.Fatalf("NewTranslator() error = %v", err)
+		t.Fatalf(testErrNewTranslator, err)
 	}
 	got2 := tr2.GetTimeFormat()
 	if got2 != want {
@@ -648,7 +656,7 @@ func TestDecodeLocaleBytes(t *testing.T) {
 func TestLoadFromDiskWithDifferentFormats(t *testing.T) {
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	tests := []struct {
@@ -704,7 +712,7 @@ func TestLoadFromDiskWithDifferentFormats(t *testing.T) {
 func TestLoadFromDiskWithInvalidContent(t *testing.T) {
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	tests := []struct {
@@ -747,7 +755,7 @@ func TestLoadFromDiskWithInvalidContent(t *testing.T) {
 func TestLoadTranslationsPrefersDisk(t *testing.T) {
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	// Use a custom language name to avoid interfering with en.json
@@ -819,7 +827,7 @@ func TestIsSupportedLanguageWithEmptyString(t *testing.T) {
 func TestLocalesWithMultipleDiskPaths(t *testing.T) {
 	dir := "locales"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("failed to create locales directory: %v", err)
+		t.Fatalf(testErrCreateLocalesDir, err)
 	}
 
 	// Create the same locale in multiple formats
@@ -903,7 +911,7 @@ func TestLocalesReturnsAllSources(t *testing.T) {
 func TestTranslatorWithEmptyArgs(t *testing.T) {
 	tr, err := NewTranslator("en")
 	if err != nil {
-		t.Fatalf("NewTranslator() error = %v", err)
+		t.Fatalf(testErrNewTranslator, err)
 	}
 
 	// Test key with format string but no args
@@ -960,7 +968,7 @@ func TestFormatDateTimeEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tr, err := NewTranslator(tt.language)
 			if err != nil {
-				t.Fatalf("NewTranslator() error = %v", err)
+				t.Fatalf(testErrNewTranslator, err)
 			}
 			result := tr.FormatDateTime(tt.time, tt.dateOnly)
 			if result == "" {

@@ -9,11 +9,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	testConfigDir        = ".config"
+	testTimezoneEuMadrid = "Europe/Madrid"
+)
+
 func TestLoad_Defaults(t *testing.T) {
 	// Create a temporary directory for config
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	// Reset viper between tests
 	viper.Reset()
@@ -46,13 +51,13 @@ func TestLoad_Defaults(t *testing.T) {
 
 func TestLoad_FromFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, ".config", "tempus")
+	configDir := filepath.Join(tmpDir, testConfigDir, "tempus")
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	// Write a config file
 	configFile := filepath.Join(configDir, "config.yaml")
@@ -76,8 +81,8 @@ default_title: "Mi Evento"
 	if cfg.Language != "es" {
 		t.Errorf("expected language 'es', got %q", cfg.Language)
 	}
-	if cfg.Timezone != "Europe/Madrid" {
-		t.Errorf("expected timezone 'Europe/Madrid', got %q", cfg.Timezone)
+	if cfg.Timezone != testTimezoneEuMadrid {
+		t.Errorf("expected timezone %q, got %q", testTimezoneEuMadrid, cfg.Timezone)
 	}
 	if cfg.DateFormat != "02/01/2006" {
 		t.Errorf("expected date_format '02/01/2006', got %q", cfg.DateFormat)
@@ -93,7 +98,7 @@ default_title: "Mi Evento"
 func TestSet_ValidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -124,7 +129,7 @@ func TestSet_ValidKey(t *testing.T) {
 func TestSet_InvalidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -145,7 +150,7 @@ func TestSet_InvalidKey(t *testing.T) {
 func TestGet_AllKeys(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -165,7 +170,7 @@ func TestGet_AllKeys(t *testing.T) {
 func TestGet_InvalidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -185,7 +190,7 @@ func TestGet_InvalidKey(t *testing.T) {
 func TestGetOrDefault(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -208,9 +213,9 @@ func TestGetOrDefault(t *testing.T) {
 
 func TestSave(t *testing.T) {
 	tmpDir := t.TempDir()
-	configDir := filepath.Join(tmpDir, ".config", "tempus")
+	configDir := filepath.Join(tmpDir, testConfigDir, "tempus")
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -255,7 +260,7 @@ func TestValidateTimezone(t *testing.T) {
 	}{
 		{"valid UTC", "UTC", false},
 		{"valid America/New_York", "America/New_York", false},
-		{"valid Europe/Madrid", "Europe/Madrid", false},
+		{"valid Europe/Madrid", testTimezoneEuMadrid, false},
 		{"invalid timezone", "Invalid/Timezone", true},
 		{"empty timezone", "", true},
 		{"whitespace only", "   ", true},
@@ -300,7 +305,7 @@ func TestValidateLanguage(t *testing.T) {
 func TestGetConfigDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	dir, err := getConfigDir()
 	if err != nil {
@@ -320,7 +325,7 @@ func TestGetConfigDir(t *testing.T) {
 func TestConfigDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	dir, err := ConfigDir()
 	if err != nil {
@@ -341,7 +346,7 @@ func TestConfigDir(t *testing.T) {
 func TestList(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -358,7 +363,7 @@ func TestList(t *testing.T) {
 func TestSet_AllFields(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
-	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, ".config"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
 
 	viper.Reset()
 	cfg, err := Load()
@@ -372,7 +377,7 @@ func TestSet_AllFields(t *testing.T) {
 		check func(*Config) string
 	}{
 		{"language", "es", func(c *Config) string { return c.Language }},
-		{"timezone", "Europe/Madrid", func(c *Config) string { return c.Timezone }},
+		{"timezone", testTimezoneEuMadrid, func(c *Config) string { return c.Timezone }},
 		{"date_format", "02/01/2006", func(c *Config) string { return c.DateFormat }},
 		{"time_format", "15:04:05", func(c *Config) string { return c.TimeFormat }},
 		{"output_dir", "/tmp", func(c *Config) string { return c.OutputDir }},
