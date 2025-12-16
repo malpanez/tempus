@@ -11,8 +11,12 @@ import (
 
 const (
 	// VTIMEZONE block delimiters
-	vtzBegin = "BEGIN:VTIMEZONE\r\n"
-	vtzEnd   = "END:VTIMEZONE\r\n"
+	vtzBegin        = "BEGIN:VTIMEZONE\r\n"
+	vtzEnd          = "END:VTIMEZONE\r\n"
+	vtzBeginDaylight = "BEGIN:DAYLIGHT\r\n"
+	vtzEndDaylight   = "END:DAYLIGHT\r\n"
+	vtzBeginStandard = "BEGIN:STANDARD\r\n"
+	vtzEndStandard   = "END:STANDARD\r\n"
 
 	// ICS datetime formats
 	layoutUTC   = "20060102T150405Z"
@@ -581,88 +585,88 @@ func knownVTZ(tzid string) string {
 		return vtzBegin +
 			"TZID:Europe/Madrid\r\n" +
 			"X-LIC-LOCATION:Europe/Madrid\r\n" +
-			"BEGIN:DAYLIGHT\r\n" +
+			vtzBeginDaylight +
 			"TZOFFSETFROM:+0100\r\n" +
 			"TZOFFSETTO:+0200\r\n" +
 			"TZNAME:CEST\r\n" +
 			"DTSTART:19700329T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
-			"END:DAYLIGHT\r\n" +
-			"BEGIN:STANDARD\r\n" +
+			vtzEndDaylight +
+			vtzBeginStandard +
 			"TZOFFSETFROM:+0200\r\n" +
 			"TZOFFSETTO:+0100\r\n" +
 			"TZNAME:CET\r\n" +
 			"DTSTART:19701025T030000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
-			"END:STANDARD\r\n" +
+			vtzEndStandard +
 			vtzEnd
 	case "Europe/Dublin":
 		return vtzBegin +
 			"TZID:Europe/Dublin\r\n" +
 			"X-LIC-LOCATION:Europe/Dublin\r\n" +
-			"BEGIN:DAYLIGHT\r\n" +
+			vtzBeginDaylight +
 			"TZOFFSETFROM:+0000\r\n" +
 			"TZOFFSETTO:+0100\r\n" +
 			"TZNAME:IST\r\n" +
 			"DTSTART:19700329T010000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
-			"END:DAYLIGHT\r\n" +
-			"BEGIN:STANDARD\r\n" +
+			vtzEndDaylight +
+			vtzBeginStandard +
 			"TZOFFSETFROM:+0100\r\n" +
 			"TZOFFSETTO:+0000\r\n" +
 			"TZNAME:GMT\r\n" +
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
-			"END:STANDARD\r\n" +
+			vtzEndStandard +
 			vtzEnd
 	case "Europe/London":
 		return vtzBegin +
 			"TZID:Europe/London\r\n" +
 			"X-LIC-LOCATION:Europe/London\r\n" +
-			"BEGIN:DAYLIGHT\r\n" +
+			vtzBeginDaylight +
 			"TZOFFSETFROM:+0000\r\n" +
 			"TZOFFSETTO:+0100\r\n" +
 			"TZNAME:BST\r\n" +
 			"DTSTART:19700329T010000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
-			"END:DAYLIGHT\r\n" +
-			"BEGIN:STANDARD\r\n" +
+			vtzEndDaylight +
+			vtzBeginStandard +
 			"TZOFFSETFROM:+0100\r\n" +
 			"TZOFFSETTO:+0000\r\n" +
 			"TZNAME:GMT\r\n" +
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
-			"END:STANDARD\r\n" +
+			vtzEndStandard +
 			vtzEnd
 	case "America/Sao_Paulo":
 		return vtzBegin +
 			"TZID:America/Sao_Paulo\r\n" +
 			"X-LIC-LOCATION:America/Sao_Paulo\r\n" +
-			"BEGIN:STANDARD\r\n" +
+			vtzBeginStandard +
 			"TZOFFSETFROM:-0300\r\n" +
 			"TZOFFSETTO:-0300\r\n" +
 			"TZNAME:BRT\r\n" +
 			"DTSTART:19700101T000000\r\n" +
-			"END:STANDARD\r\n" +
+			vtzEndStandard +
 			vtzEnd
 	case "Atlantic/Canary":
 		return vtzBegin +
 			"TZID:Atlantic/Canary\r\n" +
 			"X-LIC-LOCATION:Atlantic/Canary\r\n" +
-			"BEGIN:DAYLIGHT\r\n" +
+			vtzBeginDaylight +
 			"TZOFFSETFROM:+0000\r\n" +
 			"TZOFFSETTO:+0100\r\n" +
 			"TZNAME:WEST\r\n" +
 			"DTSTART:19700329T010000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
-			"END:DAYLIGHT\r\n" +
-			"BEGIN:STANDARD\r\n" +
+			vtzEndDaylight +
+			vtzBeginStandard +
 			"TZOFFSETFROM:+0100\r\n" +
 			"TZOFFSETTO:+0000\r\n" +
 			"TZNAME:WET\r\n" +
 			"DTSTART:19701025T020000\r\n" +
 			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
-			"END:STANDARD\r\n" +
+			vtzEndStandard +
 			vtzEnd
 	default:
 		return ""
