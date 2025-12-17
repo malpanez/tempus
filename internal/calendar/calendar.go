@@ -3,6 +3,7 @@ package calendar
 import (
 	"fmt"
 	"strings"
+	"tempus/internal/constants"
 	"time"
 	"unicode/utf8"
 
@@ -31,10 +32,6 @@ const (
 	// Common VTIMEZONE start dates
 	vtzDTStart329  = "DTSTART:19700329T010000\r\n"
 	vtzDTStart1025 = "DTSTART:19701025T020000\r\n"
-
-	// ICS datetime formats
-	layoutUTC   = "20060102T150405Z"
-	layoutLocal = "20060102T150405"
 )
 
 //
@@ -238,7 +235,7 @@ func (e *Event) writeBasicProperties(b *strings.Builder) {
 	if dtstamp.IsZero() {
 		dtstamp = time.Now().UTC()
 	}
-	writeProp(b, "DTSTAMP", dtstamp.UTC().Format(layoutUTC))
+	writeProp(b, "DTSTAMP", dtstamp.UTC().Format(constants.ICSFormatUTC))
 
 	if s := strings.TrimSpace(e.Summary); s != "" {
 		writeProp(b, "SUMMARY", escapeText(s))
@@ -261,15 +258,15 @@ func (e *Event) writeDateTimeProperties(b *strings.Builder) {
 	}
 
 	if tz := strings.TrimSpace(e.StartTZ); tz != "" {
-		writeProp(b, "DTSTART;TZID="+tz, e.StartTime.Format(layoutLocal))
+		writeProp(b, "DTSTART;TZID="+tz, e.StartTime.Format(constants.ICSFormatLocal))
 	} else {
-		writeProp(b, "DTSTART", e.StartTime.UTC().Format(layoutUTC))
+		writeProp(b, "DTSTART", e.StartTime.UTC().Format(constants.ICSFormatUTC))
 	}
 
 	if tz := strings.TrimSpace(e.EndTZ); tz != "" {
-		writeProp(b, "DTEND;TZID="+tz, e.EndTime.Format(layoutLocal))
+		writeProp(b, "DTEND;TZID="+tz, e.EndTime.Format(constants.ICSFormatLocal))
 	} else {
-		writeProp(b, "DTEND", e.EndTime.UTC().Format(layoutUTC))
+		writeProp(b, "DTEND", e.EndTime.UTC().Format(constants.ICSFormatUTC))
 	}
 }
 
@@ -296,7 +293,7 @@ func (e *Event) writeExDates(b *strings.Builder) {
 	if strings.TrimSpace(e.StartTZ) != "" {
 		var parts []string
 		for _, x := range e.ExDates {
-			parts = append(parts, x.Format(layoutLocal))
+			parts = append(parts, x.Format(constants.ICSFormatLocal))
 		}
 		writeProp(b, "EXDATE;TZID="+e.StartTZ, strings.Join(parts, ","))
 		return
@@ -304,7 +301,7 @@ func (e *Event) writeExDates(b *strings.Builder) {
 
 	var parts []string
 	for _, x := range e.ExDates {
-		parts = append(parts, x.UTC().Format(layoutUTC))
+		parts = append(parts, x.UTC().Format(constants.ICSFormatUTC))
 	}
 	writeProp(b, "EXDATE", strings.Join(parts, ","))
 }
@@ -357,7 +354,7 @@ func (e *Event) writeAlarmTrigger(b *strings.Builder, al Alarm) {
 	if al.TriggerIsRelative {
 		writeProp(b, "TRIGGER", formatICSDuration(al.TriggerDuration))
 	} else {
-		writeProp(b, "TRIGGER;VALUE=DATE-TIME", time.Time(al.TriggerTime.UTC()).Format(layoutUTC))
+		writeProp(b, "TRIGGER;VALUE=DATE-TIME", time.Time(al.TriggerTime.UTC()).Format(constants.ICSFormatUTC))
 	}
 }
 
