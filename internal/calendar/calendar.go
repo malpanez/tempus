@@ -18,6 +18,20 @@ const (
 	vtzBeginStandard = "BEGIN:STANDARD\r\n"
 	vtzEndStandard   = "END:STANDARD\r\n"
 
+	// Common VTIMEZONE offset values
+	vtzOffsetTo0100   = "TZOFFSETTO:+0100\r\n"
+	vtzOffsetFrom0100 = "TZOFFSETFROM:+0100\r\n"
+	vtzOffsetTo0000   = "TZOFFSETTO:+0000\r\n"
+	vtzOffsetFrom0000 = "TZOFFSETFROM:+0000\r\n"
+
+	// Common VTIMEZONE recurrence rules
+	vtzRRuleMarch = "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n"
+	vtzRRuleOct   = "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n"
+
+	// Common VTIMEZONE start dates
+	vtzDTStart329  = "DTSTART:19700329T010000\r\n"
+	vtzDTStart1025 = "DTSTART:19701025T020000\r\n"
+
 	// ICS datetime formats
 	layoutUTC   = "20060102T150405Z"
 	layoutLocal = "20060102T150405"
@@ -605,18 +619,18 @@ func knownVTZ(tzid string) string {
 			"TZID:Europe/Dublin\r\n" +
 			"X-LIC-LOCATION:Europe/Dublin\r\n" +
 			vtzBeginDaylight +
-			"TZOFFSETFROM:+0000\r\n" +
-			"TZOFFSETTO:+0100\r\n" +
+			vtzOffsetFrom0000 +
+			vtzOffsetTo0100 +
 			"TZNAME:IST\r\n" +
-			"DTSTART:19700329T010000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
+			vtzDTStart329 +
+			vtzRRuleMarch +
 			vtzEndDaylight +
 			vtzBeginStandard +
-			"TZOFFSETFROM:+0100\r\n" +
-			"TZOFFSETTO:+0000\r\n" +
+			vtzOffsetFrom0100 +
+			vtzOffsetTo0000 +
 			"TZNAME:GMT\r\n" +
-			"DTSTART:19701025T020000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
+			vtzDTStart1025 +
+			vtzRRuleOct +
 			vtzEndStandard +
 			vtzEnd
 	case "Europe/London":
@@ -624,18 +638,18 @@ func knownVTZ(tzid string) string {
 			"TZID:Europe/London\r\n" +
 			"X-LIC-LOCATION:Europe/London\r\n" +
 			vtzBeginDaylight +
-			"TZOFFSETFROM:+0000\r\n" +
-			"TZOFFSETTO:+0100\r\n" +
+			vtzOffsetFrom0000 +
+			vtzOffsetTo0100 +
 			"TZNAME:BST\r\n" +
-			"DTSTART:19700329T010000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
+			vtzDTStart329 +
+			vtzRRuleMarch +
 			vtzEndDaylight +
 			vtzBeginStandard +
-			"TZOFFSETFROM:+0100\r\n" +
-			"TZOFFSETTO:+0000\r\n" +
+			vtzOffsetFrom0100 +
+			vtzOffsetTo0000 +
 			"TZNAME:GMT\r\n" +
-			"DTSTART:19701025T020000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
+			vtzDTStart1025 +
+			vtzRRuleOct +
 			vtzEndStandard +
 			vtzEnd
 	case "America/Sao_Paulo":
@@ -654,18 +668,18 @@ func knownVTZ(tzid string) string {
 			"TZID:Atlantic/Canary\r\n" +
 			"X-LIC-LOCATION:Atlantic/Canary\r\n" +
 			vtzBeginDaylight +
-			"TZOFFSETFROM:+0000\r\n" +
-			"TZOFFSETTO:+0100\r\n" +
+			vtzOffsetFrom0000 +
+			vtzOffsetTo0100 +
 			"TZNAME:WEST\r\n" +
-			"DTSTART:19700329T010000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\n" +
+			vtzDTStart329 +
+			vtzRRuleMarch +
 			vtzEndDaylight +
 			vtzBeginStandard +
-			"TZOFFSETFROM:+0100\r\n" +
-			"TZOFFSETTO:+0000\r\n" +
+			vtzOffsetFrom0100 +
+			vtzOffsetTo0000 +
 			"TZNAME:WET\r\n" +
-			"DTSTART:19701025T020000\r\n" +
-			"RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\n" +
+			vtzDTStart1025 +
+			vtzRRuleOct +
 			vtzEndStandard +
 			vtzEnd
 	default:
