@@ -1792,7 +1792,7 @@ func TestAlarmTriggerZeroDuration(t *testing.T) {
 // Test ParseHumanDuration function
 // ========================================
 
-func TestAlarmsParser_ParseHumanDuration(t *testing.T) {
+func TestAlarmsParserParseHumanDuration(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -1851,7 +1851,7 @@ func TestAlarmsParser_ParseHumanDuration(t *testing.T) {
 // Test SplitAlarmInput function
 // ========================================
 
-func TestAlarmsParser_SplitAlarmInput(t *testing.T) {
+func TestAlarmsParserSplitAlarmInput(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -1964,7 +1964,7 @@ func TestAlarmsParser_SplitAlarmInput(t *testing.T) {
 // Test ParseAlarmsFromString function
 // ========================================
 
-func TestAlarmsParser_ParseAlarmsFromString(t *testing.T) {
+func TestAlarmsParserParseAlarmsFromString(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
@@ -2034,7 +2034,7 @@ func TestAlarmsParser_ParseAlarmsFromString(t *testing.T) {
 // Test ParseAlarmSpecs function
 // ========================================
 
-func TestAlarmsParser_ParseAlarmSpecs(t *testing.T) {
+func TestAlarmsParserParseAlarmSpecs(t *testing.T) {
 	tests := []struct {
 		name      string
 		specs     []string
@@ -2097,7 +2097,7 @@ func TestAlarmsParser_ParseAlarmSpecs(t *testing.T) {
 // Test parseSimpleAlarmSpec function
 // ========================================
 
-func TestAlarmsParser_parseSimpleAlarmSpec(t *testing.T) {
+func TestAlarmsParserParseSimpleAlarmSpec(t *testing.T) {
 	tests := []struct {
 		name       string
 		spec       string
@@ -2180,7 +2180,7 @@ func TestAlarmsParser_parseSimpleAlarmSpec(t *testing.T) {
 // Test parseKeyValueAlarmSpec function
 // ========================================
 
-func TestAlarmsParser_parseKeyValueAlarmSpec(t *testing.T) {
+func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 	tests := []struct {
 		name    string
 		spec    string
@@ -2369,7 +2369,7 @@ func TestAlarmsParser_parseKeyValueAlarmSpec(t *testing.T) {
 // Test parseAlarmAbsolute function
 // ========================================
 
-func TestAlarmsParser_parseAlarmAbsolute(t *testing.T) {
+func TestAlarmsParserParseAlarmAbsolute(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
@@ -2456,7 +2456,7 @@ func TestAlarmsParser_parseAlarmAbsolute(t *testing.T) {
 // Test parseRelativeAlarmDuration function
 // ========================================
 
-func TestAlarmsParser_parseRelativeAlarmDuration(t *testing.T) {
+func TestAlarmsParserParseRelativeAlarmDuration(t *testing.T) {
 	tests := []struct {
 		name             string
 		input            string
@@ -2533,7 +2533,7 @@ func TestAlarmsParser_parseRelativeAlarmDuration(t *testing.T) {
 // Test parseAlarmDurationValue function
 // ========================================
 
-func TestAlarmsParser_parseAlarmDurationValue(t *testing.T) {
+func TestAlarmsParserParseAlarmDurationValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -2586,7 +2586,7 @@ func TestAlarmsParser_parseAlarmDurationValue(t *testing.T) {
 // Test parseICSDuration function
 // ========================================
 
-func TestAlarmsParser_parseICSDuration(t *testing.T) {
+func TestAlarmsParserParseICSDuration(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -2635,7 +2635,7 @@ func TestAlarmsParser_parseICSDuration(t *testing.T) {
 // Test parseBoolish function
 // ========================================
 
-func TestAlarmsParser_parseBoolish(t *testing.T) {
+func TestAlarmsParserParseBoolish(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -2677,7 +2677,7 @@ func TestAlarmsParser_parseBoolish(t *testing.T) {
 // Test firstNonEmpty function
 // ========================================
 
-func TestAlarmsParser_firstNonEmpty(t *testing.T) {
+func TestAlarmsParserFirstNonEmpty(t *testing.T) {
 	tests := []struct {
 		name     string
 		inputs   []string
@@ -2734,7 +2734,7 @@ func TestAlarmsParser_firstNonEmpty(t *testing.T) {
 // Test atoiSafe function
 // ========================================
 
-func TestAlarmsParser_atoiSafe(t *testing.T) {
+func TestAlarmsParserAtoiSafe(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -2768,7 +2768,7 @@ func TestAlarmsParser_atoiSafe(t *testing.T) {
 // Integration tests for alarm parsing
 // ========================================
 
-func TestAlarmsParser_Integration_RelativeAlarms(t *testing.T) {
+func TestAlarmsParserIntegrationRelativeAlarms(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        string
@@ -2807,7 +2807,7 @@ func TestAlarmsParser_Integration_RelativeAlarms(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_Integration_AbsoluteAlarms(t *testing.T) {
+func TestAlarmsParserIntegrationAbsoluteAlarms(t *testing.T) {
 	input := "2025-11-15T10:00:00Z"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
@@ -2828,7 +2828,7 @@ func TestAlarmsParser_Integration_AbsoluteAlarms(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_Integration_ComplexKeyValue(t *testing.T) {
+func TestAlarmsParserIntegrationComplexKeyValue(t *testing.T) {
 	input := "trigger=15m,action=EMAIL,description=Meeting reminder,summary=Important Meeting,repeat=3,repeat_duration=5m"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
@@ -2859,7 +2859,7 @@ func TestAlarmsParser_Integration_ComplexKeyValue(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_Integration_MultipleAlarms(t *testing.T) {
+func TestAlarmsParserIntegrationMultipleAlarms(t *testing.T) {
 	input := "15m,30m,1h,2h"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
@@ -2877,7 +2877,7 @@ func TestAlarmsParser_Integration_MultipleAlarms(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_Integration_AlternativeKeys(t *testing.T) {
+func TestAlarmsParserIntegrationAlternativeKeys(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -2906,7 +2906,7 @@ func TestAlarmsParser_Integration_AlternativeKeys(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ZeroRelativeDuration(t *testing.T) {
+func TestAlarmsParserEdgeCaseZeroRelativeDuration(t *testing.T) {
 	input := "trigger=0m"
 	_, err := ParseAlarmsFromString(input, "UTC")
 	if err == nil {
@@ -2914,7 +2914,7 @@ func TestAlarmsParser_EdgeCase_ZeroRelativeDuration(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_DirectionHints(t *testing.T) {
+func TestAlarmsParserEdgeCaseDirectionHints(t *testing.T) {
 	tests := []struct {
 		direction string
 		wantSign  int // 1 for positive, -1 for negative
@@ -2954,7 +2954,7 @@ func TestAlarmsParser_EdgeCase_DirectionHints(t *testing.T) {
 // Additional edge case tests for higher coverage
 // ========================================
 
-func TestAlarmsParser_EdgeCase_SplitAlarmInput_Recursive(t *testing.T) {
+func TestAlarmsParserEdgeCaseSplitAlarmInputRecursive(t *testing.T) {
 	// Test recursive splitting with double pipe containing another double pipe
 	input := "15m||30m||trigger=1h"
 	result := SplitAlarmInput(input)
@@ -2963,7 +2963,7 @@ func TestAlarmsParser_EdgeCase_SplitAlarmInput_Recursive(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ForceRelativeWithError(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecForceRelativeWithError(t *testing.T) {
 	// Force relative but trigger is absolute
 	input := "trigger=2025-11-15T10:00:00Z,kind=relative"
 	_, err := ParseAlarmsFromString(input, "UTC")
@@ -2972,7 +2972,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ForceRelativeWithError(t *testi
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ForceAbsoluteWithError(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecForceAbsoluteWithError(t *testing.T) {
 	// Force absolute but trigger is relative and invalid as absolute
 	input := "trigger=15m,kind=absolute"
 	_, err := ParseAlarmsFromString(input, "UTC")
@@ -2981,7 +2981,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ForceAbsoluteWithError(t *testi
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_NegativeRepeatDuration(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecNegativeRepeatDuration(t *testing.T) {
 	// Negative repeat duration should fail
 	input := "trigger=15m,repeat=3,repeat_duration=-5m"
 	_, err := ParseAlarmsFromString(input, "UTC")
@@ -2990,7 +2990,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_NegativeRepeatDuration(t *testi
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ZeroRepeatDuration(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecZeroRepeatDuration(t *testing.T) {
 	// Zero repeat duration should fail
 	input := "trigger=15m,repeat=3,repeat_duration=0m"
 	_, err := ParseAlarmsFromString(input, "UTC")
@@ -2999,7 +2999,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_ZeroRepeatDuration(t *testing.T
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_DurationOnly(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecDurationOnly(t *testing.T) {
 	// Duration without repeat count should fail
 	input := "trigger=15m,repeat_duration=5m"
 	_, err := ParseAlarmsFromString(input, "UTC")
@@ -3008,7 +3008,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_DurationOnly(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_RelativeFalse(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecRelativeFalse(t *testing.T) {
 	// relative=false should force absolute
 	input := "trigger=2025-11-15T10:00:00Z,relative=no"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
@@ -3023,7 +3023,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_RelativeFalse(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_EmptyKeySegment(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyKeySegment(t *testing.T) {
 	// Empty segment with just spaces should be ignored
 	input := "trigger=15m;   ;action=DISPLAY"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
@@ -3035,7 +3035,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_EmptyKeySegment(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseAlarmAbsolute_InvalidTimezone(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseAlarmAbsoluteInvalidTimezone(t *testing.T) {
 	// Invalid timezone should still work by falling back to UTC
 	_, err := parseAlarmAbsolute("2025-11-15 10:00:00", "Invalid/Timezone")
 	if err != nil {
@@ -3043,7 +3043,7 @@ func TestAlarmsParser_EdgeCase_ParseAlarmAbsolute_InvalidTimezone(t *testing.T) 
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseAlarmDurationValue_NegativeGoDuration(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseAlarmDurationValueNegativeGoDuration(t *testing.T) {
 	// Go duration that parses as negative should be rejected
 	_, err := parseAlarmDurationValue("-1h30m")
 	if err == nil {
@@ -3051,7 +3051,7 @@ func TestAlarmsParser_EdgeCase_ParseAlarmDurationValue_NegativeGoDuration(t *tes
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyWeeks(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseICSDurationOnlyWeeks(t *testing.T) {
 	// Test week-only duration
 	result, err := parseICSDuration("P2W")
 	if err != nil {
@@ -3063,7 +3063,7 @@ func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyWeeks(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyDays(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseICSDurationOnlyDays(t *testing.T) {
 	// Test day-only duration
 	result, err := parseICSDuration("P5D")
 	if err != nil {
@@ -3075,7 +3075,7 @@ func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyDays(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyHours(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseICSDurationOnlyHours(t *testing.T) {
 	// Test hour-only duration
 	result, err := parseICSDuration("PT3H")
 	if err != nil {
@@ -3087,7 +3087,7 @@ func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlyHours(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlySeconds(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseICSDurationOnlySeconds(t *testing.T) {
 	// Test second-only duration
 	result, err := parseICSDuration("PT30S")
 	if err != nil {
@@ -3099,7 +3099,7 @@ func TestAlarmsParser_EdgeCase_ParseICSDuration_OnlySeconds(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_EmptyDescription(t *testing.T) {
+func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyDescription(t *testing.T) {
 	// Empty description should default to "Reminder" for DISPLAY action
 	input := "trigger=15m,action=DISPLAY,description="
 	alarms, err := ParseAlarmsFromString(input, "UTC")
@@ -3114,7 +3114,7 @@ func TestAlarmsParser_EdgeCase_KeyValueAlarmSpec_EmptyDescription(t *testing.T) 
 	}
 }
 
-func TestAlarmsParser_EdgeCase_ParseAlarmAbsolute_WithLocalTimezone(t *testing.T) {
+func TestAlarmsParserEdgeCaseParseAlarmAbsoluteWithLocalTimezone(t *testing.T) {
 	// Test with a specific timezone
 	result, err := parseAlarmAbsolute("2025-11-15 10:00:00", "Europe/Madrid")
 	if err != nil {
@@ -3125,7 +3125,7 @@ func TestAlarmsParser_EdgeCase_ParseAlarmAbsolute_WithLocalTimezone(t *testing.T
 	}
 }
 
-func TestAlarmsParser_EdgeCase_SplitAlarmInput_OnlyPipes(t *testing.T) {
+func TestAlarmsParserEdgeCaseSplitAlarmInputOnlyPipes(t *testing.T) {
 	// Only separators should return empty
 	input := "|||"
 	result := SplitAlarmInput(input)
@@ -3134,7 +3134,7 @@ func TestAlarmsParser_EdgeCase_SplitAlarmInput_OnlyPipes(t *testing.T) {
 	}
 }
 
-func TestAlarmsParser_EdgeCase_SplitAlarmInput_ComplexNested(t *testing.T) {
+func TestAlarmsParserEdgeCaseSplitAlarmInputComplexNested(t *testing.T) {
 	// Complex nested with key-value and double pipe
 	input := "trigger=15m,action=DISPLAY||30m||trigger=1h,action=EMAIL"
 	result := SplitAlarmInput(input)
