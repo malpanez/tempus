@@ -525,7 +525,7 @@ func formatICSDuration(d time.Duration) string {
 
 // ParseDateTime parses datetime strings in various formats.
 // If timeStr is empty, parse date-only. If timezone is empty, interpret in local.
-func ParseDateTime(dateStr, timeStr string, timezone string) (time.Time, error) {
+func ParseDateTime(dateStr, timeStr, timezone string) (time.Time, error) {
 	var layout string
 	var fullStr string
 

@@ -40,7 +40,7 @@ func TestSlugify(t *testing.T) {
 	}
 }
 
-func TestSlugify_EdgeCases(t *testing.T) {
+func TestSlugifyEdgeCases(t *testing.T) {
 	// Test that single characters work
 	if result := Slugify("a"); result != "a" {
 		t.Errorf("Slugify('a') = %q, want 'a'", result)

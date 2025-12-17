@@ -672,7 +672,7 @@ type batchRecord struct {
 
 var icsDurationRegex = regexp.MustCompile(`(?i)^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$`)
 
-func detectBatchFormat(flag string, path string) (batchFormat, error) {
+func detectBatchFormat(flag, path string) (batchFormat, error) {
 	switch strings.ToLower(strings.TrimSpace(flag)) {
 	case "auto", "":
 		ext := strings.ToLower(filepath.Ext(path))
@@ -3156,7 +3156,7 @@ func looksLikeClock(s string) bool {
 	return clockOnlyRe.MatchString(strings.TrimSpace(s))
 }
 
-func prependToday(clock string, tz string) string {
+func prependToday(clock, tz string) string {
 	return normalizer.PrependToday(clock, tz)
 }
 

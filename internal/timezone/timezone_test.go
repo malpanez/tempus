@@ -839,7 +839,7 @@ func TestLoadJSONFile(t *testing.T) {
 
 // Additional edge case tests for partially covered functions
 
-func TestGetTimezone_SystemFallback(t *testing.T) {
+func TestGetTimezoneSystemFallback(t *testing.T) {
 	tm := NewTimezoneManager()
 
 	// Test a valid timezone that might not be in the pre-loaded list
@@ -860,7 +860,7 @@ func TestGetTimezone_SystemFallback(t *testing.T) {
 	}
 }
 
-func TestListTimezones_NilZone(t *testing.T) {
+func TestListTimezonesNilZone(t *testing.T) {
 	tm := &TimezoneManager{
 		zones: make(map[string]*TimezoneInfo),
 	}
@@ -878,7 +878,7 @@ func TestListTimezones_NilZone(t *testing.T) {
 	}
 }
 
-func TestListTimezones_EmptyIANA(t *testing.T) {
+func TestListTimezonesEmptyIANA(t *testing.T) {
 	tm := &TimezoneManager{
 		zones: make(map[string]*TimezoneInfo),
 	}
@@ -900,7 +900,7 @@ func TestListTimezones_EmptyIANA(t *testing.T) {
 	}
 }
 
-func TestSuggestTimezone_EmptyInput(t *testing.T) {
+func TestSuggestTimezoneEmptyInput(t *testing.T) {
 	tm := NewTimezoneManager()
 
 	tests := []struct {
@@ -924,7 +924,7 @@ func TestSuggestTimezone_EmptyInput(t *testing.T) {
 	}
 }
 
-func TestSuggestTimezone_NilZone(t *testing.T) {
+func TestSuggestTimezoneNilZone(t *testing.T) {
 	tm := &TimezoneManager{
 		zones: make(map[string]*TimezoneInfo),
 	}
@@ -942,7 +942,7 @@ func TestSuggestTimezone_NilZone(t *testing.T) {
 	}
 }
 
-func TestSuggestTimezone_LimitResults(t *testing.T) {
+func TestSuggestTimezoneLimitResults(t *testing.T) {
 	tm := NewTimezoneManager()
 
 	// Search for a common term that should match many zones
@@ -954,7 +954,7 @@ func TestSuggestTimezone_LimitResults(t *testing.T) {
 	}
 }
 
-func TestGetTimezoneOffset_InvalidTimezone(t *testing.T) {
+func TestGetTimezoneOffsetInvalidTimezone(t *testing.T) {
 	result := getTimezoneOffset("Invalid/Timezone")
 
 	if result != "Unknown" {
@@ -962,7 +962,7 @@ func TestGetTimezoneOffset_InvalidTimezone(t *testing.T) {
 	}
 }
 
-func TestGetTimezoneOffset_NegativeOffset(t *testing.T) {
+func TestGetTimezoneOffsetNegativeOffset(t *testing.T) {
 	// Test a timezone with negative offset
 	result := getTimezoneOffset("America/New_York")
 
@@ -976,7 +976,7 @@ func TestGetTimezoneOffset_NegativeOffset(t *testing.T) {
 	}
 }
 
-func TestHasDST_InvalidTimezone(t *testing.T) {
+func TestHasDSTInvalidTimezone(t *testing.T) {
 	result := hasDST("Invalid/Timezone")
 
 	if result != false {
@@ -984,7 +984,7 @@ func TestHasDST_InvalidTimezone(t *testing.T) {
 	}
 }
 
-func TestLoadFromZoneTab_EmptyRows(t *testing.T) {
+func TestLoadFromZoneTabEmptyRows(t *testing.T) {
 	// Test with a fresh manager
 	tm := &TimezoneManager{
 		zones: make(map[string]*TimezoneInfo),
@@ -999,7 +999,7 @@ func TestLoadFromZoneTab_EmptyRows(t *testing.T) {
 	}
 }
 
-func TestLoadFromZoneTab_ExistingZone(t *testing.T) {
+func TestLoadFromZoneTabExistingZone(t *testing.T) {
 	tm := &TimezoneManager{
 		zones: make(map[string]*TimezoneInfo),
 	}

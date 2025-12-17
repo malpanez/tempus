@@ -14,7 +14,7 @@ const (
 	testTimezoneEuMadrid = "Europe/Madrid"
 )
 
-func TestLoad_Defaults(t *testing.T) {
+func TestLoadDefaults(t *testing.T) {
 	// Create a temporary directory for config
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
@@ -49,7 +49,7 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 }
 
-func TestLoad_FromFile(t *testing.T) {
+func TestLoadFromFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, testConfigDir, "tempus")
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
@@ -95,7 +95,7 @@ default_title: "Mi Evento"
 	}
 }
 
-func TestSet_ValidKey(t *testing.T) {
+func TestSetValidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
@@ -126,7 +126,7 @@ func TestSet_ValidKey(t *testing.T) {
 	}
 }
 
-func TestSet_InvalidKey(t *testing.T) {
+func TestSetInvalidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
@@ -147,7 +147,7 @@ func TestSet_InvalidKey(t *testing.T) {
 	}
 }
 
-func TestGet_AllKeys(t *testing.T) {
+func TestGetAllKeys(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
@@ -167,7 +167,7 @@ func TestGet_AllKeys(t *testing.T) {
 	}
 }
 
-func TestGet_InvalidKey(t *testing.T) {
+func TestGetInvalidKey(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
@@ -360,7 +360,7 @@ func TestList(t *testing.T) {
 	}
 }
 
-func TestSet_AllFields(t *testing.T) {
+func TestSetAllFields(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
