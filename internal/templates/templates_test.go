@@ -304,7 +304,7 @@ func TestGenerateMeetingEvent(t *testing.T) {
 				"start_time": "2025-12-01 10:00",
 				"duration":   "30m",
 				"timezone":   testutil.TZAmericaNewYork,
-				"location":   "Conference Room A",
+				"location":   testutil.StringConferenceRoomA,
 				"attendees":  "alice@example.com, bob@example.com",
 				"agenda":     "Sprint planning",
 			},

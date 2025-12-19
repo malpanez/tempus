@@ -36,7 +36,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Timezone != "UTC" {
 		t.Errorf("expected timezone 'UTC', got %q", cfg.Timezone)
 	}
-	if cfg.DateFormat != "2006-01-02" {
+	if cfg.DateFormat != testutil.TestDateFormatDate {
 		t.Errorf("expected date_format '2006-01-02', got %q", cfg.DateFormat)
 	}
 	if cfg.TimeFormat != "15:04" {

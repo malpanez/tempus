@@ -39,7 +39,7 @@ func TestRenderTmpl(t *testing.T) {
 		{
 			name:     "date helper",
 			tmpl:     "{{date start}}",
-			values:   map[string]string{"start": "2025-12-01 10:00"},
+			values:   map[string]string{"start": testutil.DateTime20251201_1000},
 			expected: testutil.Date20251201,
 		},
 		{
@@ -134,7 +134,7 @@ func TestSimpleReplace(t *testing.T) {
 		{
 			name:     "date with time",
 			input:    "{{date when}}",
-			values:   map[string]string{"when": "2025-12-01 14:30"},
+			values:   map[string]string{"when": testutil.DateTime20251201_1430},
 			expected: testutil.Date20251201,
 		},
 		{
@@ -169,7 +169,7 @@ func TestExtractDate(t *testing.T) {
 		},
 		{
 			name:     "datetime",
-			input:    "2025-12-01 14:30",
+			input:    testutil.DateTime20251201_1430,
 			expected: testutil.Date20251201,
 		},
 		{
@@ -222,7 +222,7 @@ func TestParseDateOrDateTimeInLocation(t *testing.T) {
 		},
 		{
 			name:         "date with time",
-			input:        "2025-12-01 14:30",
+			input:        testutil.DateTime20251201_1430,
 			tzName:       "",
 			wantDateOnly: false,
 			wantErr:      false,
@@ -236,7 +236,7 @@ func TestParseDateOrDateTimeInLocation(t *testing.T) {
 		},
 		{
 			name:         "datetime with timezone",
-			input:        "2025-12-01 14:30",
+			input:        testutil.DateTime20251201_1430,
 			tzName:       testutil.TZAmericaNewYork,
 			wantDateOnly: false,
 			wantErr:      false,
@@ -571,7 +571,7 @@ func TestRenderDDToEvent(t *testing.T) {
 			},
 			values: map[string]string{
 				"title": testutil.EventTitleTestEvent,
-				"start": "2025-12-01 10:00",
+				"start": testutil.DateTime20251201_1000,
 			},
 			wantErr: false,
 		},
@@ -612,7 +612,7 @@ func TestRenderDDToEvent(t *testing.T) {
 			},
 			values: map[string]string{
 				"title":    "Meeting",
-				"start":    "2025-12-01 10:00",
+				"start":    testutil.DateTime20251201_1000,
 				"duration": "1h30m",
 			},
 			wantErr: false,
@@ -634,8 +634,8 @@ func TestRenderDDToEvent(t *testing.T) {
 			},
 			values: map[string]string{
 				"title": "Meeting",
-				"start": "2025-12-01 10:00",
-				"end":   "2025-12-01 11:30",
+				"start": testutil.DateTime20251201_1000,
+				"end":   testutil.DateTime20251201_1130,
 			},
 			wantErr: false,
 		},
@@ -656,7 +656,7 @@ func TestRenderDDToEvent(t *testing.T) {
 			},
 			values: map[string]string{
 				"title": "Important Meeting",
-				"start": "2025-12-01 10:00",
+				"start": testutil.DateTime20251201_1000,
 			},
 			wantErr: false,
 		},
@@ -678,7 +678,7 @@ func TestRenderDDToEvent(t *testing.T) {
 			},
 			values: map[string]string{
 				"title": "Meeting",
-				"start": "2025-12-01 10:00",
+				"start": testutil.DateTime20251201_1000,
 				"tz":    testutil.TZAmericaNewYork,
 			},
 			wantErr: false,
@@ -720,7 +720,7 @@ func TestRenderDDToEvent(t *testing.T) {
 				},
 			},
 			values: map[string]string{
-				"start":    "2025-12-01 10:00",
+				"start":    testutil.DateTime20251201_1000,
 				"duration": "invalid",
 			},
 			wantErr: true,
@@ -736,7 +736,7 @@ func TestRenderDDToEvent(t *testing.T) {
 				},
 			},
 			values: map[string]string{
-				"start":    "2025-12-01 10:00",
+				"start":    testutil.DateTime20251201_1000,
 				"duration": "0",
 			},
 			wantErr: true,
@@ -803,7 +803,7 @@ func TestRenderDDToEventWithRecurrence(t *testing.T) {
 
 	values := map[string]string{
 		"title": "Weekly Meeting",
-		"start": "2025-12-01 10:00",
+		"start": testutil.DateTime20251201_1000,
 		"rrule": "FREQ=WEEKLY;BYDAY=MO",
 	}
 
@@ -935,7 +935,7 @@ func TestRenderDDToEventWithAlarms(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			values := map[string]string{
 				"title":  testutil.EventTitleTestEvent,
-				"start":  "2025-12-01 10:00",
+				"start":  testutil.DateTime20251201_1000,
 				"alarms": tt.alarms,
 			}
 
@@ -971,7 +971,7 @@ func TestRenderDDToEventWithExDates(t *testing.T) {
 
 	values := map[string]string{
 		"title":   "Weekly Event",
-		"start":   "2025-12-01 10:00",
+		"start":   testutil.DateTime20251201_1000,
 		"exdates": "2025-12-08, 2025-12-15",
 	}
 
@@ -1071,8 +1071,8 @@ func TestRenderDDToEventWithTemplatedFields(t *testing.T) {
 
 	values := map[string]string{
 		"name":     testutil.NameJohnDoe,
-		"location": "Conference Room A",
-		"start":    "2025-12-01 10:00",
+		"location": testutil.StringConferenceRoomA,
+		"start":    testutil.DateTime20251201_1000,
 	}
 
 	event, err := tm.renderDDToEvent(&dd, values, tr)
@@ -1083,8 +1083,8 @@ func TestRenderDDToEventWithTemplatedFields(t *testing.T) {
 	if !strings.Contains(event.Summary, testutil.NameJohnDoe) {
 		t.Error("summary should contain name")
 	}
-	if event.Location != "Conference Room A" {
-		t.Errorf("location = %q, want %q", event.Location, "Conference Room A")
+	if event.Location != testutil.StringConferenceRoomA {
+		t.Errorf("location = %q, want %q", event.Location, testutil.StringConferenceRoomA)
 	}
 	if !strings.Contains(event.Description, testutil.NameJohnDoe) {
 		t.Error("description should contain name")
