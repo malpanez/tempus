@@ -118,7 +118,8 @@ jobs:
     name: Functional Tests
     if: always()
     needs: [test, lint, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
