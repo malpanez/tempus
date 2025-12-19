@@ -97,20 +97,36 @@ type quickParsedEvent struct {
 }
 
 func runQuick(cmd *cobra.Command, args []string) error {
-	text := args[0]
+	details, err := parseQuickInput(args[0])
+	if err != nil {
+		return err
+	}
 
-	// Setup natural language parser
+	finalTZ := resolveQuickTimezone(cmd)
+	applyTimezoneToDetails(&details, finalTZ)
+
+	if !confirmQuickEvent(details, finalTZ) {
+		fmt.Println("Operation cancelled.")
+		return nil
+	}
+
+	output := getQuickOutput(cmd, details.Summary)
+	return writeQuickCalendar(details, finalTZ, output)
+}
+
+func parseQuickInput(text string) (quickParsedEvent, error) {
 	w := when.New(nil)
 	w.Add(en.All...)
 
 	res, err := w.Parse(text, time.Now())
 	if err != nil || res == nil {
-		return fmt.Errorf("could not understand the date/time in your request. Please be more specific, e.g., 'tomorrow at 3pm'")
+		return quickParsedEvent{}, fmt.Errorf("could not understand the date/time in your request. Please be more specific, e.g., 'tomorrow at 3pm'")
 	}
 
-	details := extractEventDetails(text, res)
+	return extractEventDetails(text, res), nil
+}
 
-	// Get timezone
+func resolveQuickTimezone(cmd *cobra.Command) string {
 	cfg, _ := config.Load()
 	defaultTZ := ""
 	if cfg != nil {
@@ -118,17 +134,24 @@ func runQuick(cmd *cobra.Command, args []string) error {
 			defaultTZ = v
 		}
 	}
+
 	flagTZ, _ := cmd.Flags().GetString("timezone")
-	finalTZ := firstNonEmpty(flagTZ, defaultTZ)
-	if finalTZ != "" {
-		loc, err := time.LoadLocation(finalTZ)
-		if err == nil {
-			details.StartTime = details.StartTime.In(loc)
-			details.EndTime = details.EndTime.In(loc)
-		}
+	return firstNonEmpty(flagTZ, defaultTZ)
+}
+
+func applyTimezoneToDetails(details *quickParsedEvent, tz string) {
+	if tz == "" {
+		return
 	}
 
-	// --- Confirmation Step ---
+	loc, err := time.LoadLocation(tz)
+	if err == nil {
+		details.StartTime = details.StartTime.In(loc)
+		details.EndTime = details.EndTime.In(loc)
+	}
+}
+
+func confirmQuickEvent(details quickParsedEvent, tz string) bool {
 	fmt.Println("I understood the following event:")
 	fmt.Printf("  Summary:   %s\n", details.Summary)
 	fmt.Printf("  Start:     %s\n", details.StartTime.Format("Mon, 02 Jan 2006 15:04 MST"))
@@ -136,8 +159,8 @@ func runQuick(cmd *cobra.Command, args []string) error {
 	if details.Location != "" {
 		fmt.Printf("  Location:  %s\n", details.Location)
 	}
-	if finalTZ != "" {
-		fmt.Printf("  Timezone:  %s\n", finalTZ)
+	if tz != "" {
+		fmt.Printf("  Timezone:  %s\n", tz)
 	}
 
 	confirmPrompt := &survey.Confirm{
@@ -146,38 +169,39 @@ func runQuick(cmd *cobra.Command, args []string) error {
 	}
 	var confirmed bool
 	if err := survey.AskOne(confirmPrompt, &confirmed); err != nil {
-		return err
+		return false
 	}
 
-	if !confirmed {
-		fmt.Println("Operation cancelled.")
-		return nil
-	}
-	// --- End Confirmation ---
+	return confirmed
+}
 
+func getQuickOutput(cmd *cobra.Command, summary string) string {
+	output, _ := cmd.Flags().GetString("output")
+	if output == "" {
+		output = fmt.Sprintf("%s.ics", slugify(summary))
+	}
+	return output
+}
+
+func writeQuickCalendar(details quickParsedEvent, tz, output string) error {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 	cal.Name = details.Summary
-	if finalTZ != "" {
-		cal.SetDefaultTimezone(finalTZ)
+	if tz != "" {
+		cal.SetDefaultTimezone(tz)
 	}
 
 	event := calendar.NewEvent(details.Summary, details.StartTime, details.EndTime)
 	if details.Location != "" {
 		event.Location = details.Location
 	}
-	if finalTZ != "" {
-		event.SetStartTimezone(finalTZ)
-		event.SetEndTimezone(finalTZ)
+	if tz != "" {
+		event.SetStartTimezone(tz)
+		event.SetEndTimezone(tz)
 	}
 
 	cal.AddEvent(event)
 	icsContent := cal.ToICS()
-
-	output, _ := cmd.Flags().GetString("output")
-	if output == "" {
-		output = fmt.Sprintf("%s.ics", slugify(details.Summary))
-	}
 
 	if err := os.WriteFile(output, []byte(icsContent), 0644); err != nil {
 		printErr("failed to write file: %v\n", err)
