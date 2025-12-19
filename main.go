@@ -565,67 +565,119 @@ func newBatchCmd() *cobra.Command {
 }
 
 func runBatch(cmd *cobra.Command, _ []string) error {
-	input, _ := cmd.Flags().GetString("input")
-	output, _ := cmd.Flags().GetString("output")
-	formatFlag, _ := cmd.Flags().GetString("format")
-	name, _ := cmd.Flags().GetString("name")
-	defaultTZ, _ := cmd.Flags().GetString("default-tz")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	checkConflicts, _ := cmd.Flags().GetBool("check-conflicts")
-	maxEventsPerDay, _ := cmd.Flags().GetInt("max-events-per-day")
-	addPrepTime, _ := cmd.Flags().GetBool("add-prep-time")
-
-	input = strings.TrimSpace(input)
-	if input == "" {
-		return fmt.Errorf("--input is required")
-	}
-	format, err := detectBatchFormat(formatFlag, input)
+	opts, err := parseBatchFlags(cmd)
 	if err != nil {
 		return err
 	}
 
-	records, err := loadBatchRecords(input, format)
+	records, _, err := loadBatchInput(opts)
 	if err != nil {
 		return err
 	}
+
+	cal, validationErrors, err := buildBatchCalendar(records, opts)
+	if err != nil {
+		return err
+	}
+
+	warnings := collectBatchWarnings(cal.Events, opts)
+
+	if opts.dryRun {
+		return handleDryRun(validationErrors, warnings, records, opts.input, opts.output)
+	}
+
+	return writeBatchOutput(cal, warnings, opts.output, len(records))
+}
+
+type batchOptions struct {
+	input           string
+	output          string
+	formatFlag      string
+	name            string
+	defaultTZ       string
+	dryRun          bool
+	checkConflicts  bool
+	maxEventsPerDay int
+	addPrepTime     bool
+}
+
+func parseBatchFlags(cmd *cobra.Command) (*batchOptions, error) {
+	opts := &batchOptions{}
+	opts.input, _ = cmd.Flags().GetString("input")
+	opts.output, _ = cmd.Flags().GetString("output")
+	opts.formatFlag, _ = cmd.Flags().GetString("format")
+	opts.name, _ = cmd.Flags().GetString("name")
+	opts.defaultTZ, _ = cmd.Flags().GetString("default-tz")
+	opts.dryRun, _ = cmd.Flags().GetBool("dry-run")
+	opts.checkConflicts, _ = cmd.Flags().GetBool("check-conflicts")
+	opts.maxEventsPerDay, _ = cmd.Flags().GetInt("max-events-per-day")
+	opts.addPrepTime, _ = cmd.Flags().GetBool("add-prep-time")
+
+	opts.input = strings.TrimSpace(opts.input)
+	if opts.input == "" {
+		return nil, fmt.Errorf("--input is required")
+	}
+
+	return opts, nil
+}
+
+func loadBatchInput(opts *batchOptions) ([]batchRecord, batchFormat, error) {
+	format, err := detectBatchFormat(opts.formatFlag, opts.input)
+	if err != nil {
+		return nil, "", err
+	}
+
+	records, err := loadBatchRecords(opts.input, format)
+	if err != nil {
+		return nil, "", err
+	}
+
 	if len(records) == 0 {
-		return fmt.Errorf("no events found in %s", input)
+		return nil, "", fmt.Errorf("no events found in %s", opts.input)
 	}
 
+	return records, format, nil
+}
+
+func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Calendar, []string, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
-	if strings.TrimSpace(name) != "" {
-		cal.Name = name
+
+	if strings.TrimSpace(opts.name) != "" {
+		cal.Name = opts.name
 	}
-	if strings.TrimSpace(defaultTZ) != "" {
-		cal.SetDefaultTimezone(defaultTZ)
+	if strings.TrimSpace(opts.defaultTZ) != "" {
+		cal.SetDefaultTimezone(opts.defaultTZ)
 	}
 
 	var validationErrors []string
 	for i, rec := range records {
-		ev, err := buildEventFromBatch(rec, defaultTZ)
+		ev, err := buildEventFromBatch(rec, opts.defaultTZ)
 		if err != nil {
-			if dryRun {
+			if opts.dryRun {
 				validationErrors = append(validationErrors, fmt.Sprintf("Row %d: %v", i+1, err))
 				continue
 			}
-			return fmt.Errorf("row %d: %w", i+1, err)
+			return nil, nil, fmt.Errorf("row %d: %w", i+1, err)
 		}
 		cal.AddEvent(ev)
 	}
 
-	// Add preparation/transition time buffers (ADHD time boxing)
-	if addPrepTime {
+	if opts.addPrepTime {
 		prepEvents := generatePrepTimeEvents(cal.Events)
 		for _, prepEv := range prepEvents {
 			cal.AddEvent(prepEv)
 		}
 	}
 
-	// Check for conflicts and overwhelm
+	return cal, validationErrors, nil
+}
+
+func collectBatchWarnings(events []calendar.Event, opts *batchOptions) []string {
 	var warnings []string
-	if checkConflicts || dryRun {
-		conflicts := detectEventConflicts(cal.Events)
+
+	if opts.checkConflicts || opts.dryRun {
+		conflicts := detectEventConflicts(events)
 		if len(conflicts) > 0 {
 			warnings = append(warnings, fmt.Sprintf("⚠️  Found %d time conflict(s):", len(conflicts)))
 			for _, conflict := range conflicts {
@@ -634,52 +686,59 @@ func runBatch(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	if maxEventsPerDay > 0 || dryRun {
-		overwhelmDays := detectOverwhelmDays(cal.Events, maxEventsPerDay)
+	if opts.maxEventsPerDay > 0 || opts.dryRun {
+		overwhelmDays := detectOverwhelmDays(events, opts.maxEventsPerDay)
 		if len(overwhelmDays) > 0 {
-			warnings = append(warnings, fmt.Sprintf("⚠️  Days with high event load:"))
+			warnings = append(warnings, "⚠️  Days with high event load:")
 			for _, day := range overwhelmDays {
 				warnings = append(warnings, fmt.Sprintf("  • %s", day))
 			}
 		}
 	}
 
-	// Dry-run mode: report validation results and exit
-	if dryRun {
-		if len(validationErrors) > 0 {
-			printErr("Validation failed with %d error(s):\n", len(validationErrors))
-			for _, errMsg := range validationErrors {
-				fmt.Printf("  ❌ %s\n", errMsg)
-			}
-			return fmt.Errorf("validation failed")
-		}
-		printOK("✓ Validation passed: %d events ready to create\n", len(records))
+	return warnings
+}
 
-		if len(warnings) > 0 {
-			fmt.Printf("\n")
-			for _, warning := range warnings {
-				fmt.Println(warning)
-			}
+func handleDryRun(validationErrors, warnings []string, records []batchRecord, input, output string) error {
+	if len(validationErrors) > 0 {
+		printErr("Validation failed with %d error(s):\n", len(validationErrors))
+		for _, errMsg := range validationErrors {
+			fmt.Printf("  ❌ %s\n", errMsg)
 		}
-
-		fmt.Printf("\nEvent summary:\n")
-		for i, rec := range records {
-			summary := rec.Summary
-			if summary == "" {
-				summary = "(no summary)"
-			}
-			start := rec.Start
-			if start == "" {
-				start = "(no start)"
-			}
-			fmt.Printf("  %d. %s - %s\n", i+1, summary, start)
-		}
-		fmt.Printf("\nTo create the calendar file, run:\n")
-		fmt.Printf("  tempus batch -i %s -o %s\n", input, output)
-		return nil
+		return fmt.Errorf("validation failed")
 	}
 
-	// Show warnings even in non-dry-run mode
+	printOK("✓ Validation passed: %d events ready to create\n", len(records))
+
+	if len(warnings) > 0 {
+		fmt.Printf("\n")
+		for _, warning := range warnings {
+			fmt.Println(warning)
+		}
+	}
+
+	printDryRunSummary(records, input, output)
+	return nil
+}
+
+func printDryRunSummary(records []batchRecord, input, output string) {
+	fmt.Printf("\nEvent summary:\n")
+	for i, rec := range records {
+		summary := rec.Summary
+		if summary == "" {
+			summary = "(no summary)"
+		}
+		start := rec.Start
+		if start == "" {
+			start = "(no start)"
+		}
+		fmt.Printf("  %d. %s - %s\n", i+1, summary, start)
+	}
+	fmt.Printf("\nTo create the calendar file, run:\n")
+	fmt.Printf("  tempus batch -i %s -o %s\n", input, output)
+}
+
+func writeBatchOutput(cal *calendar.Calendar, warnings []string, output string, eventCount int) error {
 	if len(warnings) > 0 {
 		fmt.Printf("\n")
 		for _, warning := range warnings {
@@ -691,11 +750,12 @@ func runBatch(cmd *cobra.Command, _ []string) error {
 	if err := ensureDirForFile(output); err != nil {
 		return err
 	}
+
 	if err := os.WriteFile(output, []byte(cal.ToICS()), 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", output, err)
 	}
 
-	printOK("Created: %s (%d events)\n", output, len(records))
+	printOK("Created: %s (%d events)\n", output, eventCount)
 	return nil
 }
 
