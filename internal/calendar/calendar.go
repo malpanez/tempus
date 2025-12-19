@@ -252,8 +252,8 @@ func (e *Event) writeBasicProperties(b *strings.Builder) {
 
 func (e *Event) writeDateTimeProperties(b *strings.Builder) {
 	if e.AllDay {
-		writeProp(b, "DTSTART;VALUE=DATE", e.StartTime.Format("20060102"))
-		writeProp(b, "DTEND;VALUE=DATE", e.EndTime.Format("20060102"))
+		writeProp(b, "DTSTART;VALUE=DATE", e.StartTime.Format(constants.ICSFormatDateOnly))
+		writeProp(b, "DTEND;VALUE=DATE", e.EndTime.Format(constants.ICSFormatDateOnly))
 		return
 	}
 
@@ -284,7 +284,7 @@ func (e *Event) writeExDates(b *strings.Builder) {
 	if e.AllDay {
 		var parts []string
 		for _, x := range e.ExDates {
-			parts = append(parts, x.Format("20060102"))
+			parts = append(parts, x.Format(constants.ICSFormatDateOnly))
 		}
 		writeProp(b, "EXDATE;VALUE=DATE", strings.Join(parts, ","))
 		return
@@ -381,8 +381,8 @@ func (e *Event) writeTimestamps(b *strings.Builder) {
 	if e.Sequence > 0 {
 		writeProp(b, "SEQUENCE", fmt.Sprintf("%d", e.Sequence))
 	}
-	writeProp(b, "CREATED", e.Created.UTC().Format("20060102T150405Z"))
-	writeProp(b, "LAST-MODIFIED", e.LastMod.UTC().Format("20060102T150405Z"))
+	writeProp(b, "CREATED", e.Created.UTC().Format(constants.ICSFormatUTC))
+	writeProp(b, "LAST-MODIFIED", e.LastMod.UTC().Format(constants.ICSFormatUTC))
 }
 
 //
