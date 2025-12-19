@@ -944,96 +944,145 @@ func loadBatchFromYAML(path string) ([]batchRecord, error) {
 }
 
 func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, error) {
-	// Normalize and spell-check input
-	summary := normalizeAndSpellCheck(strings.TrimSpace(rec.Summary))
+	summary, startStr, err := validateBatchRecord(rec)
+	if err != nil {
+		return nil, err
+	}
+
+	startTZ, endTZ := resolveBatchTimezones(rec, fallbackTZ)
+	startTime, endTime, err := parseBatchTimes(rec, startStr, startTZ, endTZ, summary)
+	if err != nil {
+		return nil, err
+	}
+
+	summaryWithEmoji := addEmojiToSummary(summary, rec.Categories)
+	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
+	configureBatchEvent(event, rec, startTZ, endTZ)
+
+	return event, nil
+}
+
+func validateBatchRecord(rec batchRecord) (summary, startStr string, err error) {
+	summary = normalizeAndSpellCheck(strings.TrimSpace(rec.Summary))
 	if summary == "" {
-		return nil, fmt.Errorf("summary is required")
+		return "", "", fmt.Errorf("summary is required")
 	}
 
-	startStr := normalizeDateTimeInput(strings.TrimSpace(rec.Start))
+	startStr = normalizeDateTimeInput(strings.TrimSpace(rec.Start))
 	if startStr == "" {
-		return nil, fmt.Errorf("start is required")
+		return "", "", fmt.Errorf("start is required")
 	}
 
-	startTZ := strings.TrimSpace(firstNonEmpty(rec.StartTZ, fallbackTZ))
-	endTZ := strings.TrimSpace(rec.EndTZ)
+	return summary, startStr, nil
+}
+
+func resolveBatchTimezones(rec batchRecord, fallbackTZ string) (startTZ, endTZ string) {
+	startTZ = strings.TrimSpace(firstNonEmpty(rec.StartTZ, fallbackTZ))
+	endTZ = strings.TrimSpace(rec.EndTZ)
 	if endTZ == "" {
 		endTZ = startTZ
 	}
+	return startTZ, endTZ
+}
 
-	allDay := rec.AllDay
-	var startTime, endTime time.Time
-	var err error
+func parseBatchTimes(rec batchRecord, startStr, startTZ, endTZ, summary string) (startTime, endTime time.Time, err error) {
+	if rec.AllDay {
+		return parseBatchAllDayTimes(startStr, rec.End)
+	}
+	return parseBatchTimedEventTimes(rec, startStr, startTZ, endTZ, summary)
+}
 
-	if allDay {
-		startDateStr := extractDate(startStr)
-		startTime, err = time.Parse("2006-01-02", startDateStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid start date %q: %w", startStr, err)
-		}
-		endStr := strings.TrimSpace(rec.End)
-		if endStr == "" {
-			endTime = startTime.AddDate(0, 0, 1)
-		} else {
-			endDateStr := extractDate(endStr)
-			endDate, parseErr := time.Parse("2006-01-02", endDateStr)
-			if parseErr != nil {
-				return nil, fmt.Errorf("invalid end date %q: %w", rec.End, parseErr)
-			}
-			if endDate.Before(startTime) {
-				return nil, fmt.Errorf("end date must be on or after start date")
-			}
-			endTime = endDate.AddDate(0, 0, 1)
-		}
-	} else {
-		if looksLikeClock(startStr) {
-			startStr = prependToday(startStr, startTZ)
-		}
-		startTime, err = time.Parse("2006-01-02 15:04", startStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid start time %q: %w", rec.Start, err)
-		}
-
-		endStr := strings.TrimSpace(rec.End)
-		switch {
-		case endStr != "":
-			if looksLikeClock(endStr) {
-				endStr = prependToday(endStr, endTZ)
-			}
-			if dur, derr := calendar.ParseHumanDuration(endStr); derr == nil {
-				if dur <= 0 {
-					return nil, fmt.Errorf("duration must be greater than zero")
-				}
-				endTime = startTime.Add(dur)
-			} else {
-				endTime, err = time.Parse("2006-01-02 15:04", endStr)
-				if err != nil {
-					return nil, fmt.Errorf("invalid end time %q: %w", rec.End, err)
-				}
-			}
-		case strings.TrimSpace(rec.Duration) != "":
-			dur, derr := calendar.ParseHumanDuration(rec.Duration)
-			if derr != nil {
-				return nil, fmt.Errorf("invalid duration %q: %v", rec.Duration, derr)
-			}
-			if dur <= 0 {
-				return nil, fmt.Errorf("duration must be greater than zero")
-			}
-			endTime = startTime.Add(dur)
-		default:
-			endTime = startTime.Add(getSmartDefaultDuration(summary, startTime))
-		}
-
-		if !endTime.After(startTime) {
-			return nil, fmt.Errorf("end time must be after start time")
-		}
+func parseBatchAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, err error) {
+	startDateStr := extractDate(startStr)
+	startTime, err = time.Parse("2006-01-02", startDateStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid start date %q: %w", startStr, err)
 	}
 
-	// Add emoji prefix based on categories (if not already present)
-	summaryWithEmoji := addEmojiToSummary(summary, rec.Categories)
+	if strings.TrimSpace(endStr) == "" {
+		endTime = startTime.AddDate(0, 0, 1)
+	} else {
+		endDateStr := extractDate(endStr)
+		endDate, parseErr := time.Parse("2006-01-02", endDateStr)
+		if parseErr != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date %q: %w", endStr, parseErr)
+		}
+		if endDate.Before(startTime) {
+			return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
+		}
+		endTime = endDate.AddDate(0, 0, 1)
+	}
 
-	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
-	event.AllDay = allDay
+	return startTime, endTime, nil
+}
+
+func parseBatchTimedEventTimes(rec batchRecord, startStr, startTZ, endTZ, summary string) (startTime, endTime time.Time, err error) {
+	if looksLikeClock(startStr) {
+		startStr = prependToday(startStr, startTZ)
+	}
+	startTime, err = time.Parse("2006-01-02 15:04", startStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time %q: %w", rec.Start, err)
+	}
+
+	endTime, err = parseBatchEndTime(rec, startTime, endTZ, summary)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	if !endTime.After(startTime) {
+		return time.Time{}, time.Time{}, fmt.Errorf("end time must be after start time")
+	}
+
+	return startTime, endTime, nil
+}
+
+func parseBatchEndTime(rec batchRecord, startTime time.Time, endTZ, summary string) (time.Time, error) {
+	endStr := strings.TrimSpace(rec.End)
+
+	switch {
+	case endStr != "":
+		return parseBatchExplicitEnd(endStr, startTime, endTZ, rec.End)
+	case strings.TrimSpace(rec.Duration) != "":
+		return parseBatchDurationEnd(rec.Duration, startTime)
+	default:
+		return startTime.Add(getSmartDefaultDuration(summary, startTime)), nil
+	}
+}
+
+func parseBatchExplicitEnd(endStr string, startTime time.Time, endTZ, originalEnd string) (time.Time, error) {
+	if looksLikeClock(endStr) {
+		endStr = prependToday(endStr, endTZ)
+	}
+
+	if dur, derr := calendar.ParseHumanDuration(endStr); derr == nil {
+		if dur <= 0 {
+			return time.Time{}, fmt.Errorf("duration must be greater than zero")
+		}
+		return startTime.Add(dur), nil
+	}
+
+	endTime, err := time.Parse("2006-01-02 15:04", endStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid end time %q: %w", originalEnd, err)
+	}
+	return endTime, nil
+}
+
+func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error) {
+	dur, err := calendar.ParseHumanDuration(durStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid duration %q: %v", durStr, err)
+	}
+	if dur <= 0 {
+		return time.Time{}, fmt.Errorf("duration must be greater than zero")
+	}
+	return startTime.Add(dur), nil
+}
+
+func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) {
+	event.AllDay = rec.AllDay
+
 	if startTZ != "" {
 		event.SetStartTimezone(startTZ)
 	}
@@ -1050,46 +1099,52 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, e
 		event.RRule = strings.TrimSpace(rec.RRule)
 	}
 
-	if len(rec.Categories) > 0 {
-		for _, cat := range rec.Categories {
-			cat = strings.TrimSpace(cat)
-			if cat != "" {
-				// Validate and suggest corrections for common categories
-				validated := validateCategoryWithSuggestion(cat)
-				event.AddCategory(validated)
-			}
+	addBatchCategories(event, rec.Categories)
+	addBatchExDates(event, rec.ExDates, startTZ, rec.AllDay)
+	addBatchAlarms(event, rec.Alarms, startTZ)
+}
+
+func addBatchCategories(event *calendar.Event, categories []string) {
+	for _, cat := range categories {
+		cat = strings.TrimSpace(cat)
+		if cat != "" {
+			validated := validateCategoryWithSuggestion(cat)
+			event.AddCategory(validated)
 		}
 	}
+}
 
-	if len(rec.ExDates) > 0 {
-		tzForEx := event.StartTZ
-		if tzForEx == "" {
-			tzForEx = startTZ
-		}
-		parsed, err := parseExDateValues(rec.ExDates, tzForEx, allDay)
-		if err != nil {
-			return nil, err
-		}
+func addBatchExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
+	if len(exdates) == 0 {
+		return
+	}
+
+	tzForEx := event.StartTZ
+	if tzForEx == "" {
+		tzForEx = startTZ
+	}
+
+	parsed, err := parseExDateValues(exdates, tzForEx, allDay)
+	if err == nil {
 		event.ExDates = append(event.ExDates, parsed...)
 	}
+}
 
-	if len(rec.Alarms) > 0 {
-		defaultAlarmTZ := event.StartTZ
-		if defaultAlarmTZ == "" {
-			defaultAlarmTZ = startTZ
-		}
-
-		// Expand alarm profiles from config
-		expandedAlarms := expandAlarmProfiles(rec.Alarms)
-
-		parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
-		if err != nil {
-			return nil, err
-		}
-		event.Alarms = append(event.Alarms, parsed...)
+func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
+	if len(alarms) == 0 {
+		return
 	}
 
-	return event, nil
+	defaultAlarmTZ := event.StartTZ
+	if defaultAlarmTZ == "" {
+		defaultAlarmTZ = startTZ
+	}
+
+	expandedAlarms := expandAlarmProfiles(alarms)
+	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
+	if err == nil {
+		event.Alarms = append(event.Alarms, parsed...)
+	}
 }
 
 // normalizeAndSpellCheck fixes common spelling errors and normalizes text in summaries.
