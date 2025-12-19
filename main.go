@@ -265,121 +265,209 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("interactive mode not yet implemented")
 	}
 
-	// If no summary and not interactive, show help.
 	if len(args) == 0 {
 		_ = cmd.Help()
 		return nil
 	}
 
-	summary := args[0]
-	startStr, _ := cmd.Flags().GetString("start")
-	endStr, _ := cmd.Flags().GetString("end")
-	durStr, _ := cmd.Flags().GetString("duration")
-	location, _ := cmd.Flags().GetString("location")
-	description, _ := cmd.Flags().GetString("description")
-	startTZ, _ := cmd.Flags().GetString("start-tz")
-	endTZ, _ := cmd.Flags().GetString("end-tz")
-	output, _ := cmd.Flags().GetString("output")
-	allDay, _ := cmd.Flags().GetBool("all-day")
-	rrule, _ := cmd.Flags().GetString("rrule")
-	exdates, _ := cmd.Flags().GetStringArray("exdate")
-	alarms, _ := cmd.Flags().GetStringArray("alarm")
-	categories, _ := cmd.Flags().GetStringArray("category")
-	attendees, _ := cmd.Flags().GetStringArray("attendee")
-	priority, _ := cmd.Flags().GetInt("priority")
-
-	if priority < 0 || priority > 9 {
-		return fmt.Errorf("priority must be between 0 and 9")
+	opts, err := parseCreateFlags(cmd, args)
+	if err != nil {
+		return err
 	}
 
-	if strings.TrimSpace(startStr) == "" {
-		return fmt.Errorf("start time is required (use --start)")
+	startTime, endTime, err := parseCreateTimes(opts)
+	if err != nil {
+		return err
 	}
 
-	// ND-friendly: allow HH:MM only; prepend today's date using the best TZ.
-	if looksLikeClock(startStr) {
-		startStr = prependToday(startStr, firstNonEmpty(startTZ, endTZ, ""))
-	}
-	if endStr != "" && looksLikeClock(endStr) {
-		endStr = prependToday(endStr, firstNonEmpty(startTZ, endTZ, ""))
+	cal := createCalendarWithEvent(opts, startTime, endTime)
+	return writeCalendarOutput(cal, opts.output)
+}
+
+type createOptions struct {
+	summary     string
+	startStr    string
+	endStr      string
+	durStr      string
+	location    string
+	description string
+	startTZ     string
+	endTZ       string
+	output      string
+	allDay      bool
+	rrule       string
+	exdates     []string
+	alarms      []string
+	categories  []string
+	attendees   []string
+	priority    int
+}
+
+func parseCreateFlags(cmd *cobra.Command, args []string) (*createOptions, error) {
+	opts := &createOptions{summary: args[0]}
+	opts.startStr, _ = cmd.Flags().GetString("start")
+	opts.endStr, _ = cmd.Flags().GetString("end")
+	opts.durStr, _ = cmd.Flags().GetString("duration")
+	opts.location, _ = cmd.Flags().GetString("location")
+	opts.description, _ = cmd.Flags().GetString("description")
+	opts.startTZ, _ = cmd.Flags().GetString("start-tz")
+	opts.endTZ, _ = cmd.Flags().GetString("end-tz")
+	opts.output, _ = cmd.Flags().GetString("output")
+	opts.allDay, _ = cmd.Flags().GetBool("all-day")
+	opts.rrule, _ = cmd.Flags().GetString("rrule")
+	opts.exdates, _ = cmd.Flags().GetStringArray("exdate")
+	opts.alarms, _ = cmd.Flags().GetStringArray("alarm")
+	opts.categories, _ = cmd.Flags().GetStringArray("category")
+	opts.attendees, _ = cmd.Flags().GetStringArray("attendee")
+	opts.priority, _ = cmd.Flags().GetInt("priority")
+
+	if opts.priority < 0 || opts.priority > 9 {
+		return nil, fmt.Errorf("priority must be between 0 and 9")
 	}
 
-	var startTime, endTime time.Time
-	var err error
+	if strings.TrimSpace(opts.startStr) == "" {
+		return nil, fmt.Errorf("start time is required (use --start)")
+	}
 
-	if allDay {
-		startTime, err = time.Parse("2006-01-02", startStr)
-		if err != nil {
-			return fmt.Errorf("invalid start date: %w", err)
-		}
-		if strings.TrimSpace(endStr) == "" {
-			endTime = startTime.AddDate(0, 0, 1)
-		} else {
-			endDate, parseErr := time.Parse("2006-01-02", endStr)
-			if parseErr != nil {
-				return fmt.Errorf("invalid end date: %w", parseErr)
-			}
-			if endDate.Before(startTime) {
-				return fmt.Errorf("end date must be on or after start date")
-			}
-			endTime = endDate.AddDate(0, 0, 1)
-		}
-		if !endTime.After(startTime) {
-			return fmt.Errorf("end date must be on or after start date")
-		}
+	opts.startStr = normalizeTimeInput(opts.startStr, opts.startTZ, opts.endTZ)
+	opts.endStr = normalizeTimeInput(opts.endStr, opts.startTZ, opts.endTZ)
+
+	return opts, nil
+}
+
+func normalizeTimeInput(timeStr, startTZ, endTZ string) string {
+	if timeStr != "" && looksLikeClock(timeStr) {
+		return prependToday(timeStr, firstNonEmpty(startTZ, endTZ, ""))
+	}
+	return timeStr
+}
+
+func parseCreateTimes(opts *createOptions) (startTime, endTime time.Time, err error) {
+	if opts.allDay {
+		return parseAllDayTimes(opts.startStr, opts.endStr)
+	}
+	return parseTimedEventTimes(opts.startStr, opts.endStr, opts.durStr)
+}
+
+func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, err error) {
+	startTime, err = time.Parse("2006-01-02", startStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid start date: %w", err)
+	}
+
+	if strings.TrimSpace(endStr) == "" {
+		endTime = startTime.AddDate(0, 0, 1)
 	} else {
-		startTime, err = time.Parse("2006-01-02 15:04", startStr)
-		if err != nil {
-			return fmt.Errorf("invalid start time: %w", err)
+		endDate, parseErr := time.Parse("2006-01-02", endStr)
+		if parseErr != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date: %w", parseErr)
 		}
-
-		// Priority: explicit --end (duration or datetime) > --duration > default 1h
-		switch {
-		case strings.TrimSpace(endStr) != "":
-			if d, derr := calendar.ParseHumanDuration(endStr); derr == nil {
-				if d <= 0 {
-					return fmt.Errorf("duration must be greater than zero")
-				}
-				endTime = startTime.Add(d)
-			} else {
-				endTime, err = time.Parse("2006-01-02 15:04", endStr)
-				if err != nil {
-					return fmt.Errorf("invalid end time: %w", err)
-				}
-			}
-		case strings.TrimSpace(durStr) != "":
-			if d, derr := calendar.ParseHumanDuration(durStr); derr == nil {
-				if d <= 0 {
-					return fmt.Errorf("duration must be greater than zero")
-				}
-				endTime = startTime.Add(d)
-			} else {
-				return fmt.Errorf("invalid duration: %v", derr)
-			}
-		default:
-			endTime = startTime.Add(1 * time.Hour)
+		if endDate.Before(startTime) {
+			return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
 		}
-
-		if !endTime.After(startTime) {
-			return fmt.Errorf("end time must be after start time")
-		}
+		endTime = endDate.AddDate(0, 0, 1)
 	}
 
+	if !endTime.After(startTime) {
+		return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
+	}
+
+	return startTime, endTime, nil
+}
+
+func parseTimedEventTimes(startStr, endStr, durStr string) (startTime, endTime time.Time, err error) {
+	startTime, err = time.Parse("2006-01-02 15:04", startStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
+	}
+
+	switch {
+	case strings.TrimSpace(endStr) != "":
+		endTime, err = parseEndTime(startTime, endStr)
+	case strings.TrimSpace(durStr) != "":
+		endTime, err = parseDurationEnd(startTime, durStr)
+	default:
+		endTime = startTime.Add(1 * time.Hour)
+	}
+
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	if !endTime.After(startTime) {
+		return time.Time{}, time.Time{}, fmt.Errorf("end time must be after start time")
+	}
+
+	return startTime, endTime, nil
+}
+
+func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
+	if d, derr := calendar.ParseHumanDuration(endStr); derr == nil {
+		if d <= 0 {
+			return time.Time{}, fmt.Errorf("duration must be greater than zero")
+		}
+		return startTime.Add(d), nil
+	}
+
+	endTime, err := time.Parse("2006-01-02 15:04", endStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid end time: %w", err)
+	}
+	return endTime, nil
+}
+
+func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
+	d, err := calendar.ParseHumanDuration(durStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid duration: %v", err)
+	}
+	if d <= 0 {
+		return time.Time{}, fmt.Errorf("duration must be greater than zero")
+	}
+	return startTime.Add(d), nil
+}
+
+func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) *calendar.Calendar {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
-	cal.Name = summary
-	if tz := firstNonEmpty(startTZ, endTZ); strings.TrimSpace(tz) != "" {
+	cal.Name = opts.summary
+	if tz := firstNonEmpty(opts.startTZ, opts.endTZ); strings.TrimSpace(tz) != "" {
 		cal.SetDefaultTimezone(tz)
 	}
-	event := calendar.NewEvent(summary, startTime, endTime)
 
-	event.AllDay = allDay
-	if location != "" {
-		event.Location = location
+	event := calendar.NewEvent(opts.summary, startTime, endTime)
+	configureEvent(event, opts)
+	cal.AddEvent(event)
+
+	return cal
+}
+
+func configureEvent(event *calendar.Event, opts *createOptions) {
+	event.AllDay = opts.allDay
+	if opts.location != "" {
+		event.Location = opts.location
 	}
-	if description != "" {
-		event.Description = description
+	if opts.description != "" {
+		event.Description = opts.description
 	}
+
+	setEventTimezones(event, opts.startTZ, opts.endTZ)
+
+	if strings.TrimSpace(opts.rrule) != "" {
+		event.RRule = strings.TrimSpace(opts.rrule)
+	}
+
+	addEventExDates(event, opts.exdates, opts.startTZ, opts.allDay)
+	addEventAlarms(event, opts.alarms, opts.startTZ)
+	addEventCategories(event, opts.categories)
+	addEventAttendees(event, opts.attendees)
+
+	if opts.priority > 0 {
+		event.Priority = opts.priority
+	}
+}
+
+func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
 	if startTZ != "" {
 		event.SetStartTimezone(startTZ)
 	}
@@ -388,69 +476,69 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	} else if startTZ != "" {
 		event.SetEndTimezone(startTZ)
 	}
+}
 
-	if strings.TrimSpace(rrule) != "" {
-		event.RRule = strings.TrimSpace(rrule)
+func addEventExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
+	if len(exdates) == 0 {
+		return
 	}
 
-	if len(exdates) > 0 {
-		tzForExdate := strings.TrimSpace(event.StartTZ)
-		if tzForExdate == "" {
-			tzForExdate = strings.TrimSpace(startTZ)
-		}
-		parsed, err := parseExDateValues(exdates, tzForExdate, allDay)
-		if err != nil {
-			return err
-		}
-		if len(parsed) > 0 {
-			event.ExDates = append(event.ExDates, parsed...)
-		}
+	tzForExdate := strings.TrimSpace(event.StartTZ)
+	if tzForExdate == "" {
+		tzForExdate = strings.TrimSpace(startTZ)
 	}
 
-	if len(alarms) > 0 {
-		defaultAlarmTZ := strings.TrimSpace(event.StartTZ)
-		if defaultAlarmTZ == "" {
-			defaultAlarmTZ = strings.TrimSpace(startTZ)
-		}
-		parsed, err := calendar.ParseAlarmSpecs(alarms, defaultAlarmTZ)
-		if err != nil {
-			return err
-		}
-		if len(parsed) > 0 {
-			event.Alarms = append(event.Alarms, parsed...)
-		}
+	parsed, err := parseExDateValues(exdates, tzForExdate, allDay)
+	if err == nil && len(parsed) > 0 {
+		event.ExDates = append(event.ExDates, parsed...)
+	}
+}
+
+func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
+	if len(alarms) == 0 {
+		return
 	}
 
+	defaultAlarmTZ := strings.TrimSpace(event.StartTZ)
+	if defaultAlarmTZ == "" {
+		defaultAlarmTZ = strings.TrimSpace(startTZ)
+	}
+
+	parsed, err := calendar.ParseAlarmSpecs(alarms, defaultAlarmTZ)
+	if err == nil && len(parsed) > 0 {
+		event.Alarms = append(event.Alarms, parsed...)
+	}
+}
+
+func addEventCategories(event *calendar.Event, categories []string) {
 	for _, cat := range categories {
 		if c := strings.TrimSpace(cat); c != "" {
 			event.AddCategory(c)
 		}
 	}
+}
 
+func addEventAttendees(event *calendar.Event, attendees []string) {
 	for _, attendee := range attendees {
 		if a := strings.TrimSpace(attendee); a != "" {
 			event.AddAttendee(a)
 		}
 	}
+}
 
-	if priority > 0 {
-		event.Priority = priority
-	}
-
-	cal.AddEvent(event)
+func writeCalendarOutput(cal *calendar.Calendar, output string) error {
 	icsContent := cal.ToICS()
 
 	if output == "" {
-		// If no output path, print ICS to stdout (no icon).
 		fmt.Print(icsContent)
-	} else {
-		if err := os.WriteFile(output, []byte(icsContent), 0644); err != nil {
-			printErr("failed to write file: %v\n", err)
-			return err
-		}
-		printOK("Created: %s\n", output)
+		return nil
 	}
 
+	if err := os.WriteFile(output, []byte(icsContent), 0644); err != nil {
+		printErr("failed to write file: %v\n", err)
+		return err
+	}
+	printOK("Created: %s\n", output)
 	return nil
 }
 
