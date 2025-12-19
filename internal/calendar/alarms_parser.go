@@ -11,10 +11,6 @@ import (
 const (
 	actionDisplay   = "DISPLAY"
 	defaultDescText = "Reminder"
-
-	// Error messages
-	errEmptyDuration     = "empty duration"
-	errDurationMustBePos = "duration must be positive"
 )
 
 var (
@@ -28,7 +24,7 @@ var (
 func ParseHumanDuration(s string) (time.Duration, error) {
 	x := strings.ToLower(strings.TrimSpace(s))
 	if x == "" {
-		return 0, fmt.Errorf(errEmptyDuration)
+		return 0, fmt.Errorf("empty duration")
 	}
 
 	if dur, ok := tryParseDaysOrWeeks(x); ok {
@@ -470,7 +466,7 @@ func tryParseWithLayout(val, layout string, loc *time.Location) (time.Time, bool
 func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf(errEmptyDuration)
+		return 0, fmt.Errorf("empty duration")
 	}
 
 	sign := 0
@@ -503,13 +499,13 @@ func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration
 func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf(errEmptyDuration)
+		return 0, fmt.Errorf("empty duration")
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf(errDurationMustBePos)
+		return 0, fmt.Errorf("duration must be positive")
 	}
 
 	if d, err := ParseHumanDuration(val); err == nil {
@@ -517,7 +513,7 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	}
 	if d, err := time.ParseDuration(val); err == nil {
 		if d < 0 {
-			return 0, fmt.Errorf(errDurationMustBePos)
+			return 0, fmt.Errorf("duration must be positive")
 		}
 		return d, nil
 	}
@@ -530,13 +526,13 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 func parseICSDuration(raw string) (time.Duration, error) {
 	val := strings.ToUpper(strings.TrimSpace(raw))
 	if val == "" {
-		return 0, fmt.Errorf(errEmptyDuration)
+		return 0, fmt.Errorf("empty duration")
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf(errDurationMustBePos)
+		return 0, fmt.Errorf("duration must be positive")
 	}
 	if !strings.HasPrefix(val, "P") {
 		return 0, fmt.Errorf("invalid ICS duration %q", raw)
