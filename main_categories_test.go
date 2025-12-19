@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,12 +22,12 @@ func TestCreateSupportsCategoriesAttendeesAndPriority(t *testing.T) {
 
 	set("start", "2025-04-01 14:00")
 	set("end", "2025-04-01 15:00")
-	set("start-tz", "Europe/Madrid")
+	set("start-tz", testutil.TZEuropeMadrid)
 	set("output", outputPath)
 	set("category", "Focus")
 	set("category", "DeepWork")
-	set("attendee", "alice@example.com")
-	set("attendee", "bob@example.com")
+	set("attendee", testutil.EmailAlice)
+	set("attendee", testutil.EmailBob)
 	set("priority", "3")
 
 	if err := runCreate(cmd, []string{"Focus Session"}); err != nil {

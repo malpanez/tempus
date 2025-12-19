@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -87,7 +88,7 @@ func TestGetSmartDefaultDurationComprehensive(t *testing.T) {
 
 		// Focus blocks
 		{"focus", "focus time", time.Date(2025, 5, 1, 9, 0, 0, 0, time.UTC), 120},
-		{"deep work", "deep work session", time.Date(2025, 5, 1, 14, 0, 0, 0, time.UTC), 120},
+		{testutil.DescriptionDeepWork, "deep work session", time.Date(2025, 5, 1, 14, 0, 0, 0, time.UTC), 120},
 
 		// Time of day defaults
 		{"early morning", "event", time.Date(2025, 5, 1, 7, 0, 0, 0, time.UTC), 30},
@@ -121,8 +122,8 @@ func TestLoadBatchFromYAML(t *testing.T) {
 		{
 			name: "valid yaml",
 			content: `- summary: Event 1
-  start: "2025-05-01 10:00"
-  end: "2025-05-01 11:00"
+  start: testutil.DateTime20250501_1000
+  end: testutil.DateTime20250501_1100
 - summary: Event 2
   start: "2025-05-02 14:00"
   duration: 1h`,
@@ -130,7 +131,7 @@ func TestLoadBatchFromYAML(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty file",
+			name:    testutil.TestNameEmptyFile,
 			content: "",
 			want:    0,
 			wantErr: false,
@@ -144,8 +145,8 @@ func TestLoadBatchFromYAML(t *testing.T) {
 		{
 			name: "with all fields",
 			content: `- summary: Complete Event
-  start: "2025-05-01 10:00"
-  end: "2025-05-01 11:00"
+  start: testutil.DateTime20250501_1000
+  end: testutil.DateTime20250501_1100
   location: Office
   description: Meeting notes
   start_tz: Europe/Madrid
@@ -185,38 +186,38 @@ func TestCityToIANAComprehensive(t *testing.T) {
 		want string
 	}{
 		// Spain
-		{"Madrid", "Europe/Madrid"},
-		{"MADRID", "Europe/Madrid"},
-		{"madrid", "Europe/Madrid"},
-		{"Barcelona", "Europe/Madrid"},
-		{"Sevilla", "Europe/Madrid"},
-		{"Valencia", "Europe/Madrid"},
-		{"Melilla", "Africa/Ceuta"},
-		{"Ceuta", "Africa/Ceuta"},
-		{"Las Palmas", "Atlantic/Canary"},
-		{"Canarias", "Atlantic/Canary"},
-		{"Tenerife", "Atlantic/Canary"},
+		{"Madrid", testutil.TZEuropeMadrid},
+		{"MADRID", testutil.TZEuropeMadrid},
+		{"madrid", testutil.TZEuropeMadrid},
+		{"Barcelona", testutil.TZEuropeMadrid},
+		{"Sevilla", testutil.TZEuropeMadrid},
+		{"Valencia", testutil.TZEuropeMadrid},
+		{"Melilla", testutil.TZAfricaCeuta},
+		{"Ceuta", testutil.TZAfricaCeuta},
+		{"Las Palmas", testutil.TZAtlanticCanary},
+		{"Canarias", testutil.TZAtlanticCanary},
+		{"Tenerife", testutil.TZAtlanticCanary},
 
 		// Brazil
-		{"Pelotas", "America/Sao_Paulo"},
-		{"Porto Alegre", "America/Sao_Paulo"},
-		{"São Paulo", "America/Sao_Paulo"},
-		{"Rio de Janeiro", "America/Sao_Paulo"},
-		{"Sao Paulo", "America/Sao_Paulo"},
-		{"Rio", "America/Sao_Paulo"},
-		{"Campo Grande", "America/Campo_Grande"},
+		{"Pelotas", testutil.TZAmericaSaoPaulo},
+		{"Porto Alegre", testutil.TZAmericaSaoPaulo},
+		{"São Paulo", testutil.TZAmericaSaoPaulo},
+		{"Rio de Janeiro", testutil.TZAmericaSaoPaulo},
+		{"Sao Paulo", testutil.TZAmericaSaoPaulo},
+		{"Rio", testutil.TZAmericaSaoPaulo},
+		{"Campo Grande", testutil.TZAmericaCampoGrande},
 		{"Manaus", "America/Manaus"},
 		{"Cuiabá", "America/Cuiaba"},
 		{"Cuiaba", "America/Cuiaba"},
 
 		// Ireland/UK
-		{"Dublin", "Europe/Dublin"},
-		{"London", "Europe/London"},
+		{"Dublin", testutil.TZEuropeDublin},
+		{"London", testutil.TZEuropeLondon},
 
 		// Unknown
 		{"Unknown City", ""},
 		{"", ""},
-		{"New York", ""}, // Not in the mappings
+		{testutil.LocationNewYork, ""}, // Not in the mappings
 	}
 
 	for _, tt := range tests {
@@ -407,9 +408,9 @@ func TestBuildEventFromBatchEdgeCases(t *testing.T) {
 			name: "with rrule and exdates",
 			record: batchRecord{
 				Summary: "Recurring",
-				Start:   "2025-05-01 10:00",
-				End:     "2025-05-01 11:00",
-				RRule:   "FREQ=DAILY;COUNT=5",
+				Start:   testutil.DateTime20250501_1000,
+				End:     testutil.DateTime20250501_1100,
+				RRule:   testutil.RRuleDaily5Count,
 				ExDates: []string{"2025-05-03 10:00"},
 			},
 			wantErr: false,
@@ -418,9 +419,9 @@ func TestBuildEventFromBatchEdgeCases(t *testing.T) {
 			name: "different end timezone",
 			record: batchRecord{
 				Summary: "Multi-TZ",
-				Start:   "2025-05-01 10:00",
-				End:     "2025-05-01 11:00",
-				StartTZ: "America/New_York",
+				Start:   testutil.DateTime20250501_1000,
+				End:     testutil.DateTime20250501_1100,
+				StartTZ: testutil.TZAmericaNewYork,
 				EndTZ:   "America/Los_Angeles",
 			},
 			wantErr: false,
@@ -429,7 +430,7 @@ func TestBuildEventFromBatchEdgeCases(t *testing.T) {
 			name: "with description and location",
 			record: batchRecord{
 				Summary:     "Detailed",
-				Start:       "2025-05-01 10:00",
+				Start:       testutil.DateTime20250501_1000,
 				Duration:    "2h",
 				Location:    "Office",
 				Description: "Notes",
@@ -515,11 +516,11 @@ func TestNormalizeDateTimeInput(t *testing.T) {
 		want  string
 	}{
 		{"", ""},
-		{"2025-12-16 10:30", "2025-12-16 10:30"},
-		{"2025/12/16 10:30", "2025-12-16 10:30"},
+		{testutil.DateTime20251216_1030, testutil.DateTime20251216_1030},
+		{"2025/12/16 10:30", testutil.DateTime20251216_1030},
 		{"2025-1-5 9:00", "2025-01-05 09:00"},
 		{"2025-01-05 0900", "2025-01-05 09:00"},
-		{"  2025-12-16 10:30  ", "2025-12-16 10:30"},
+		{"  2025-12-16 10:30  ", testutil.DateTime20251216_1030},
 	}
 
 	for _, tt := range tests {

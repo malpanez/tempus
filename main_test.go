@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -43,7 +44,7 @@ func TestParseBoolish(t *testing.T) {
 		{"empty", "", false},
 		{"whitespace", "   ", false},
 		{"random", "random", false},
-		{"with spaces", " true ", true},
+		{testutil.TestNameWithSpaces, " true ", true},
 		{"with spaces no", " false ", false},
 	}
 
@@ -66,7 +67,7 @@ func TestValueAsString(t *testing.T) {
 		{"nil", nil, ""},
 		{"string", "hello", "hello"},
 		{"string with spaces", "  hello  ", "hello"},
-		{"empty string", "", ""},
+		{testutil.TestNameEmptyString, "", ""},
 		{"float64", 42.5, "42.5"},
 		{"float64 int", 42.0, "42"},
 		{"bool true", true, "true"},
@@ -122,7 +123,7 @@ func TestValueAsStringSlice(t *testing.T) {
 		want  []string
 	}{
 		{"nil", nil, nil},
-		{"empty slice", []interface{}{}, nil},
+		{testutil.TestNameEmptySlice, []interface{}{}, nil},
 		{"slice with strings", []interface{}{"a", "b", "c"}, []string{"a", "b", "c"}},
 		{"slice with spaces", []interface{}{"  a  ", "b", "  c  "}, []string{"a", "b", "c"}},
 		{"slice with empty", []interface{}{"a", "", "b"}, []string{"a", "b"}},
@@ -132,7 +133,7 @@ func TestValueAsStringSlice(t *testing.T) {
 		{"string pipe delimited", "a|b|c", []string{"a", "b", "c"}},
 		{"string newline delimited", "a\nb\nc", []string{"a", "b", "c"}},
 		{"string mixed delimiters", "a,b;c|d", []string{"a", "b", "c", "d"}},
-		{"empty string", "", nil},
+		{testutil.TestNameEmptyString, "", nil},
 	}
 
 	for _, tt := range tests {
@@ -152,11 +153,11 @@ func TestValueAsAlarmSlice(t *testing.T) {
 		want  []string
 	}{
 		{"nil", nil, nil},
-		{"empty slice", []interface{}{}, nil},
+		{testutil.TestNameEmptySlice, []interface{}{}, nil},
 		{"slice with strings", []interface{}{"15m", "30m"}, []string{"15m", "30m"}},
 		{"string slice", []string{"10m", "20m"}, []string{"10m", "20m"}},
 		{"string single", "15m", []string{"15m"}},
-		{"empty string", "", nil},
+		{testutil.TestNameEmptyString, "", nil},
 	}
 
 	for _, tt := range tests {
@@ -183,7 +184,7 @@ func TestSplitDelimited(t *testing.T) {
 		{"pipe", "a|b|c", []string{"a", "b", "c"}},
 		{"newline", "a\nb\nc", []string{"a", "b", "c"}},
 		{"mixed", "a,b;c|d\ne", []string{"a", "b", "c", "d", "e"}},
-		{"with spaces", " a , b , c ", []string{"a", "b", "c"}},
+		{testutil.TestNameWithSpaces, " a , b , c ", []string{"a", "b", "c"}},
 		{"with empty parts", "a,,b", []string{"a", "b"}},
 	}
 
@@ -203,11 +204,11 @@ func TestExtractDate(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"full datetime", "2025-05-01 12:00", "2025-05-01"},
-		{"date only", "2025-05-01", "2025-05-01"},
+		{testutil.TestNameFullDatetime, "2025-05-01 12:00", testutil.Date20250501},
+		{testutil.TestNameDateOnly, testutil.Date20250501, testutil.Date20250501},
 		{"short", "2025", "2025"},
 		{"empty", "", ""},
-		{"with spaces", "  2025-05-01 12:00  ", "2025-05-01"},
+		{testutil.TestNameWithSpaces, "  2025-05-01 12:00  ", testutil.Date20250501},
 	}
 
 	for _, tt := range tests {
@@ -226,14 +227,14 @@ func TestEnsureICSExtension(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"empty", "", "event.ics"},
-		{"whitespace", "   ", "event.ics"},
-		{"no extension", "event", "event.ics"},
-		{"with extension", "event.ics", "event.ics"},
+		{"empty", "", testutil.FilenameEventICS},
+		{"whitespace", "   ", testutil.FilenameEventICS},
+		{"no extension", "event", testutil.FilenameEventICS},
+		{"with extension", testutil.FilenameEventICS, testutil.FilenameEventICS},
 		{"uppercase extension", "event.ICS", "event.ICS"},
 		{"mixed case", "event.Ics", "event.Ics"},
 		{"other extension", "event.txt", "event.txt.ics"},
-		{"with spaces", "  my event  ", "my event.ics"},
+		{testutil.TestNameWithSpaces, "  my event  ", "my event.ics"},
 		{"with .ics already", "my-event.ics", "my-event.ics"},
 	}
 
@@ -253,10 +254,10 @@ func TestEnsureDirForFile(t *testing.T) {
 		path    string
 		wantErr bool
 	}{
-		{"no directory", "event.ics", false},
+		{"no directory", testutil.FilenameEventICS, false},
 		{"current directory", "./event.ics", false},
-		{"subdirectory", filepath.Join(t.TempDir(), "subdir", "event.ics"), false},
-		{"multiple levels", filepath.Join(t.TempDir(), "a", "b", "c", "event.ics"), false},
+		{"subdirectory", filepath.Join(t.TempDir(), "subdir", testutil.FilenameEventICS), false},
+		{"multiple levels", filepath.Join(t.TempDir(), "a", "b", "c", testutil.FilenameEventICS), false},
 	}
 
 	for _, tt := range tests {
@@ -329,16 +330,16 @@ func TestDetectBatchFormat(t *testing.T) {
 		want    batchFormat
 		wantErr bool
 	}{
-		{"auto csv", "auto", "events.csv", batchFormatCSV, false},
+		{"auto csv", "auto", testutil.FilenameEventsCSV, batchFormatCSV, false},
 		{"auto json", "auto", "events.json", batchFormatJSON, false},
-		{"empty auto csv", "", "events.csv", batchFormatCSV, false},
+		{"empty auto csv", "", testutil.FilenameEventsCSV, batchFormatCSV, false},
 		{"empty auto json", "", "events.json", batchFormatJSON, false},
-		{"explicit csv", "csv", "events.txt", batchFormatCSV, false},
-		{"explicit json", "json", "events.txt", batchFormatJSON, false},
-		{"CSV uppercase", "CSV", "events.txt", batchFormatCSV, false},
-		{"JSON uppercase", "JSON", "events.txt", batchFormatJSON, false},
-		{"auto unknown", "auto", "events.txt", "", true},
-		{"invalid format", "xml", "events.csv", "", true},
+		{"explicit csv", "csv", testutil.FilenameEventsTXT, batchFormatCSV, false},
+		{"explicit json", "json", testutil.FilenameEventsTXT, batchFormatJSON, false},
+		{"CSV uppercase", "CSV", testutil.FilenameEventsTXT, batchFormatCSV, false},
+		{"JSON uppercase", "JSON", testutil.FilenameEventsTXT, batchFormatJSON, false},
+		{"auto unknown", "auto", testutil.FilenameEventsTXT, "", true},
+		{"invalid format", "xml", testutil.FilenameEventsCSV, "", true},
 	}
 
 	for _, tt := range tests {
@@ -367,14 +368,14 @@ func TestDetectTemplateInputFormat(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{"auto csv", "auto", "data.csv", "csv", false},
+		{"auto csv", "auto", testutil.FilenameDataCSV, "csv", false},
 		{"auto json", "auto", "data.json", "json", false},
-		{"empty auto csv", "", "data.csv", "csv", false},
-		{"explicit csv", "csv", "data.txt", "csv", false},
-		{"explicit json", "json", "data.txt", "json", false},
-		{"CSV uppercase", "CSV", "data.txt", "csv", false},
-		{"auto unknown", "auto", "data.txt", "", true},
-		{"invalid format", "yaml", "data.csv", "", true},
+		{"empty auto csv", "", testutil.FilenameDataCSV, "csv", false},
+		{"explicit csv", "csv", testutil.FilenameDataTXT, "csv", false},
+		{"explicit json", "json", testutil.FilenameDataTXT, "json", false},
+		{"CSV uppercase", "CSV", testutil.FilenameDataTXT, "csv", false},
+		{"auto unknown", "auto", testutil.FilenameDataTXT, "", true},
+		{"invalid format", "yaml", testutil.FilenameDataCSV, "", true},
 	}
 
 	for _, tt := range tests {
@@ -409,7 +410,7 @@ func TestLoadBatchFromCSV(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty file",
+			name:    testutil.TestNameEmptyFile,
 			content: "",
 			want:    0,
 			wantErr: false,
@@ -431,7 +432,7 @@ func TestLoadBatchFromCSV(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			path := filepath.Join(tmpDir, "test.csv")
+			path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
 				t.Fatalf("failed to write test file: %v", err)
 			}
@@ -449,7 +450,7 @@ func TestLoadBatchFromCSV(t *testing.T) {
 
 	t.Run("validates all_day parsing", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		path := filepath.Join(tmpDir, "test.csv")
+		path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 		content := "summary,start,all_day\nEvent1,2025-05-01,true\nEvent2,2025-05-02,false\nEvent3,2025-05-03,1"
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			t.Fatalf("failed to write test file: %v", err)
@@ -494,7 +495,7 @@ func TestLoadBatchFromJSON(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty file",
+			name:    testutil.TestNameEmptyFile,
 			content: "",
 			want:    0,
 			wantErr: false,
@@ -522,7 +523,7 @@ func TestLoadBatchFromJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			path := filepath.Join(tmpDir, "test.json")
+			path := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
 				t.Fatalf("failed to write test file: %v", err)
 			}
@@ -542,13 +543,13 @@ func TestLoadBatchFromJSON(t *testing.T) {
 func TestLoadBatchRecords(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	csvPath := filepath.Join(tmpDir, "test.csv")
+	csvPath := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 	csvContent := "summary,start,end\nCSV Event,2025-05-01 10:00,2025-05-01 11:00"
 	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
 		t.Fatalf("failed to write CSV: %v", err)
 	}
 
-	jsonPath := filepath.Join(tmpDir, "test.json")
+	jsonPath := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 	jsonContent := `[{"summary":"JSON Event","start":"2025-05-01 10:00","end":"2025-05-01 11:00"}]`
 	if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
 		t.Fatalf("failed to write JSON: %v", err)
@@ -622,7 +623,7 @@ func TestLoadTemplateFromJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			path := filepath.Join(tmpDir, "test.json")
+			path := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
 				t.Fatalf("failed to write test file: %v", err)
 			}
@@ -717,13 +718,13 @@ func TestParseICSProperty(t *testing.T) {
 		wantValue string
 		wantOk    bool
 	}{
-		{"simple", "SUMMARY:Test Event", "SUMMARY", "Test Event", true},
+		{"simple", "SUMMARY:Test Event", "SUMMARY", testutil.EventTitleTestEvent, true},
 		{"with params", "DTSTART;TZID=Europe/Madrid:20250501T100000", "DTSTART", "20250501T100000", true},
 		{"no colon", "INVALID", "", "", false},
 		{"empty key", ":value", "", "", false},
 		{"empty value", "KEY:", "KEY", "", true},
 		{"lowercase", "summary:Test", "SUMMARY", "Test", true},
-		{"with spaces", "  SUMMARY  :  Test  ", "SUMMARY", "Test", true},
+		{testutil.TestNameWithSpaces, "  SUMMARY  :  Test  ", "SUMMARY", "Test", true},
 	}
 
 	for _, tt := range tests {
@@ -765,7 +766,7 @@ END:VCALENDAR`,
 			wantErr: false,
 		},
 		{
-			name:    "empty file",
+			name:    testutil.TestNameEmptyFile,
 			content: "",
 			wantErr: true,
 		},
@@ -880,23 +881,23 @@ func TestBuildEventFromBatch(t *testing.T) {
 		{
 			name: "basic event",
 			record: batchRecord{
-				Summary: "Test Event",
-				Start:   "2025-05-01 10:00",
-				End:     "2025-05-01 11:00",
-				StartTZ: "Europe/Madrid",
+				Summary: testutil.EventTitleTestEvent,
+				Start:   testutil.DateTime20250501_1000,
+				End:     testutil.DateTime20250501_1100,
+				StartTZ: testutil.TZEuropeMadrid,
 			},
 			fallbackTZ: "",
 			wantErr:    false,
 			checkFunc: func(t *testing.T, ev *calendar.Event) {
-				if ev.Summary != "Test Event" {
-					t.Errorf("Summary = %q, want %q", ev.Summary, "Test Event")
+				if ev.Summary != testutil.EventTitleTestEvent {
+					t.Errorf("Summary = %q, want %q", ev.Summary, testutil.EventTitleTestEvent)
 				}
 			},
 		},
 		{
 			name: "missing summary",
 			record: batchRecord{
-				Start: "2025-05-01 10:00",
+				Start: testutil.DateTime20250501_1000,
 			},
 			wantErr: true,
 		},
@@ -911,7 +912,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 			name: "all day event",
 			record: batchRecord{
 				Summary: "All Day",
-				Start:   "2025-05-01",
+				Start:   testutil.Date20250501,
 				AllDay:  true,
 			},
 			wantErr: false,
@@ -925,7 +926,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 			name: "with duration",
 			record: batchRecord{
 				Summary:  "Duration Event",
-				Start:    "2025-05-01 10:00",
+				Start:    testutil.DateTime20250501_1000,
 				Duration: "90m",
 				StartTZ:  "UTC",
 			},
@@ -942,18 +943,18 @@ func TestBuildEventFromBatch(t *testing.T) {
 			name: "with location and description",
 			record: batchRecord{
 				Summary:     "Detailed Event",
-				Start:       "2025-05-01 10:00",
-				End:         "2025-05-01 11:00",
+				Start:       testutil.DateTime20250501_1000,
+				End:         testutil.DateTime20250501_1100,
 				Location:    "Office",
-				Description: "Meeting notes",
+				Description: testutil.DescriptionMeetingNotes,
 			},
 			wantErr: false,
 			checkFunc: func(t *testing.T, ev *calendar.Event) {
 				if ev.Location != "Office" {
 					t.Errorf("Location = %q, want %q", ev.Location, "Office")
 				}
-				if ev.Description != "Meeting notes" {
-					t.Errorf("Description = %q, want %q", ev.Description, "Meeting notes")
+				if ev.Description != testutil.DescriptionMeetingNotes {
+					t.Errorf("Description = %q, want %q", ev.Description, testutil.DescriptionMeetingNotes)
 				}
 			},
 		},
@@ -961,7 +962,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 			name: "invalid duration",
 			record: batchRecord{
 				Summary:  "Bad Duration",
-				Start:    "2025-05-01 10:00",
+				Start:    testutil.DateTime20250501_1000,
 				Duration: "invalid",
 			},
 			wantErr: true,
@@ -970,7 +971,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 			name: "zero duration",
 			record: batchRecord{
 				Summary:  "Zero Duration",
-				Start:    "2025-05-01 10:00",
+				Start:    testutil.DateTime20250501_1000,
 				Duration: "0m",
 			},
 			wantErr: true,
@@ -1119,7 +1120,7 @@ func TestRunTemplateValidate(t *testing.T) {
 	// Test with no template directories
 	tmpDir := t.TempDir()
 	// Get parent command's flag
-	if err := cmd.PersistentFlags().Set("templates-dir", tmpDir); err != nil {
+	if err := cmd.PersistentFlags().Set(testutil.TemplatesDir, tmpDir); err != nil {
 		t.Fatalf("failed to set templates-dir flag: %v", err)
 	}
 
@@ -1154,11 +1155,11 @@ func TestLooksLikeClock(t *testing.T) {
 		{"valid 12h", "9:15", true},
 		{"valid single digit hour", "9:00", true},
 		{"with seconds", "14:30:45", false},
-		{"full datetime", "2025-05-01 14:30", false},
-		{"date only", "2025-05-01", false},
+		{testutil.TestNameFullDatetime, "2025-05-01 14:30", false},
+		{testutil.TestNameDateOnly, testutil.Date20250501, false},
 		{"empty", "", false},
 		{"just hour", "14", false},
-		{"with spaces", " 14:30 ", true},
+		{testutil.TestNameWithSpaces, " 14:30 ", true},
 	}
 
 	for _, tt := range tests {
@@ -1181,7 +1182,7 @@ func TestFirstNonEmpty(t *testing.T) {
 		{"all empty", []string{"", "  ", ""}, ""},
 		{"first is non-empty", []string{"a", "b", "c"}, "a"},
 		{"last is non-empty", []string{"", "", "c"}, "c"},
-		{"empty slice", []string{}, ""},
+		{testutil.TestNameEmptySlice, []string{}, ""},
 		{"with whitespace", []string{"  ", "b"}, "b"},
 	}
 
@@ -1226,10 +1227,10 @@ func TestSplitDateTime(t *testing.T) {
 		wantDate string
 		wantTime string
 	}{
-		{"full datetime", "2025-05-01 14:30", "2025-05-01", "14:30"},
-		{"date only", "2025-05-01", "2025-05-01", ""},
+		{testutil.TestNameFullDatetime, "2025-05-01 14:30", testutil.Date20250501, "14:30"},
+		{testutil.TestNameDateOnly, testutil.Date20250501, testutil.Date20250501, ""},
 		{"empty", "", "", ""},
-		{"with extra spaces", "2025-05-01  14:30", "2025-05-01", "14:30"},
+		{"with extra spaces", "2025-05-01  14:30", testutil.Date20250501, "14:30"},
 	}
 
 	for _, tt := range tests {
@@ -1274,7 +1275,7 @@ func findSubcommand(parent *cobra.Command, name string) *cobra.Command {
 
 func TestLoadBatchFromCSVWithDelimitedFields(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.csv")
+	path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 	content := `summary,start,end,exdate,categories,alarms
 Event,2025-05-01 10:00,2025-05-01 11:00,"2025-05-03,2025-05-04","work,urgent","15m,30m"`
 
@@ -1305,15 +1306,15 @@ Event,2025-05-01 10:00,2025-05-01 11:00,"2025-05-03,2025-05-04","work,urgent","1
 
 func TestLoadBatchFromJSONWithComplexTypes(t *testing.T) {
 	tmpDir := t.TempDir()
-	path := filepath.Join(tmpDir, "test.json")
+	path := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 
 	data := []map[string]interface{}{
 		{
-			"summary":    "Test Event",
-			"start":      "2025-05-01 10:00",
-			"end":        "2025-05-01 11:00",
+			"summary":    testutil.EventTitleTestEvent,
+			"start":      testutil.DateTime20250501_1000,
+			"end":        testutil.DateTime20250501_1100,
 			"all_day":    false,
-			"exdate":     []interface{}{"2025-05-03", "2025-05-04"},
+			"exdate":     []interface{}{testutil.Date20250503, "2025-05-04"},
 			"categories": []interface{}{"work", "urgent"},
 			"alarms":     []interface{}{"15m", "30m"},
 		},
@@ -1352,8 +1353,8 @@ func TestLoadBatchFromJSONWithComplexTypes(t *testing.T) {
 func TestBuildEventFromBatchWithCategories(t *testing.T) {
 	rec := batchRecord{
 		Summary:    "Categorized Event",
-		Start:      "2025-05-01 10:00",
-		End:        "2025-05-01 11:00",
+		Start:      testutil.DateTime20250501_1000,
+		End:        testutil.DateTime20250501_1100,
 		Categories: []string{"work", "urgent", "meeting"},
 	}
 
@@ -1370,9 +1371,9 @@ func TestBuildEventFromBatchWithCategories(t *testing.T) {
 func TestBuildEventFromBatchWithRRule(t *testing.T) {
 	rec := batchRecord{
 		Summary: "Recurring Event",
-		Start:   "2025-05-01 10:00",
-		End:     "2025-05-01 11:00",
-		RRule:   "FREQ=DAILY;COUNT=5",
+		Start:   testutil.DateTime20250501_1000,
+		End:     testutil.DateTime20250501_1100,
+		RRule:   testutil.RRuleDaily5Count,
 	}
 
 	ev, err := buildEventFromBatch(rec, "")
@@ -1380,8 +1381,8 @@ func TestBuildEventFromBatchWithRRule(t *testing.T) {
 		t.Fatalf("buildEventFromBatch() error = %v", err)
 	}
 
-	if ev.RRule != "FREQ=DAILY;COUNT=5" {
-		t.Errorf("RRule = %q, want %q", ev.RRule, "FREQ=DAILY;COUNT=5")
+	if ev.RRule != testutil.RRuleDaily5Count {
+		t.Errorf("RRule = %q, want %q", ev.RRule, testutil.RRuleDaily5Count)
 	}
 }
 
@@ -1422,7 +1423,7 @@ SUMMARY:Test Event`
 
 func TestEnsureUniquePathMultipleCollisions(t *testing.T) {
 	tmpDir := t.TempDir()
-	basePath := filepath.Join(tmpDir, "event.ics")
+	basePath := filepath.Join(tmpDir, testutil.FilenameEventICS)
 
 	// Create the base file
 	if err := os.WriteFile(basePath, []byte("test"), 0644); err != nil {
@@ -1467,7 +1468,7 @@ func TestLoadTemplateFromCSV(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty file",
+			name:    testutil.TestNameEmptyFile,
 			content: "",
 			want:    0,
 			wantErr: false,
@@ -1495,7 +1496,7 @@ func TestLoadTemplateFromCSV(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			path := filepath.Join(tmpDir, "test.csv")
+			path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
 				t.Fatalf("failed to write test file: %v", err)
 			}
@@ -1529,8 +1530,8 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			name: "all day with end date",
 			record: batchRecord{
 				Summary: "Multi-day Event",
-				Start:   "2025-05-01",
-				End:     "2025-05-03",
+				Start:   testutil.Date20250501,
+				End:     testutil.Date20250503,
 				AllDay:  true,
 			},
 			wantErr: false,
@@ -1539,8 +1540,8 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			name: "all day end before start",
 			record: batchRecord{
 				Summary: "Invalid Range",
-				Start:   "2025-05-03",
-				End:     "2025-05-01",
+				Start:   testutil.Date20250503,
+				End:     testutil.Date20250501,
 				AllDay:  true,
 			},
 			wantErr: true,
@@ -1549,7 +1550,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			name: "all day with time component in start",
 			record: batchRecord{
 				Summary: "All Day with Time",
-				Start:   "2025-05-01 10:00",
+				Start:   testutil.DateTime20250501_1000,
 				AllDay:  true,
 			},
 			wantErr: false,
@@ -1559,7 +1560,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			record: batchRecord{
 				Summary: "Clock Time",
 				Start:   "14:30",
-				StartTZ: "Europe/Madrid",
+				StartTZ: testutil.TZEuropeMadrid,
 			},
 			wantErr: false,
 		},
@@ -1567,7 +1568,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			name: "end time as duration string",
 			record: batchRecord{
 				Summary: "Duration in End",
-				Start:   "2025-05-01 10:00",
+				Start:   testutil.DateTime20250501_1000,
 				End:     "1h30m",
 			},
 			wantErr: false,
@@ -1576,8 +1577,8 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 			name: "end time before start time",
 			record: batchRecord{
 				Summary: "Invalid Time Range",
-				Start:   "2025-05-01 14:00",
-				End:     "2025-05-01 10:00",
+				Start:   testutil.DateTime20250501_1400,
+				End:     testutil.DateTime20250501_1000,
 			},
 			wantErr: true,
 		},
@@ -1596,10 +1597,10 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 func TestBuildEventFromBatchWithExDatesAndAlarms(t *testing.T) {
 	rec := batchRecord{
 		Summary: "Event with ExDates and Alarms",
-		Start:   "2025-05-01 10:00",
-		End:     "2025-05-01 11:00",
-		StartTZ: "Europe/Madrid",
-		RRule:   "FREQ=DAILY;COUNT=5",
+		Start:   testutil.DateTime20250501_1000,
+		End:     testutil.DateTime20250501_1100,
+		StartTZ: testutil.TZEuropeMadrid,
+		RRule:   testutil.RRuleDaily5Count,
 		ExDates: []string{"2025-05-03 10:00", "2025-05-04 10:00"},
 		Alarms:  []string{"15m", "30m"},
 	}
@@ -1671,10 +1672,10 @@ func TestParseDateTimeWithTZ(t *testing.T) {
 		tz      string
 		wantErr bool
 	}{
-		{"date only UTC", "2025-05-01", "", "", false},
-		{"datetime UTC", "2025-05-01", "14:30", "", false},
-		{"with timezone", "2025-05-01", "14:30", "Europe/Madrid", false},
-		{"invalid timezone", "2025-05-01", "14:30", "Invalid/Zone", true},
+		{"date only UTC", testutil.Date20250501, "", "", false},
+		{"datetime UTC", testutil.Date20250501, "14:30", "", false},
+		{testutil.TestNameWithTimezone, testutil.Date20250501, "14:30", testutil.TZEuropeMadrid, false},
+		{"invalid timezone", testutil.Date20250501, "14:30", "Invalid/Zone", true},
 		{"invalid date", "invalid", "14:30", "", true},
 	}
 
@@ -1697,8 +1698,8 @@ func TestAddDurationToStart(t *testing.T) {
 		duration  time.Duration
 		wantEmpty bool
 	}{
-		{"valid datetime", "2025-05-01 10:00", "", 30 * time.Minute, false},
-		{"with timezone", "2025-05-01 10:00", "Europe/Madrid", 1 * time.Hour, false},
+		{"valid datetime", testutil.DateTime20250501_1000, "", 30 * time.Minute, false},
+		{testutil.TestNameWithTimezone, testutil.DateTime20250501_1000, testutil.TZEuropeMadrid, 1 * time.Hour, false},
 		{"invalid datetime", "invalid", "", 30 * time.Minute, true},
 	}
 
@@ -1723,14 +1724,14 @@ func TestParseExDateValues(t *testing.T) {
 		wantLen int
 		wantErr bool
 	}{
-		{"single date", []string{"2025-05-01"}, "UTC", true, 1, false},
-		{"multiple dates", []string{"2025-05-01", "2025-05-02", "2025-05-03"}, "UTC", true, 3, false},
-		{"datetime values", []string{"2025-05-01 10:00", "2025-05-02 14:00"}, "Europe/Madrid", false, 2, false},
-		{"mixed date and datetime", []string{"2025-05-01", "2025-05-02 10:00"}, "UTC", false, 2, false},
+		{"single date", []string{testutil.Date20250501}, "UTC", true, 1, false},
+		{"multiple dates", []string{testutil.Date20250501, "2025-05-02", testutil.Date20250503}, "UTC", true, 3, false},
+		{"datetime values", []string{testutil.DateTime20250501_1000, "2025-05-02 14:00"}, testutil.TZEuropeMadrid, false, 2, false},
+		{"mixed date and datetime", []string{testutil.Date20250501, "2025-05-02 10:00"}, "UTC", false, 2, false},
 		{"with T separator", []string{"2025-05-01T10:00"}, "UTC", false, 1, false},
 		{"empty values", []string{"", "  "}, "UTC", true, 0, false},
 		{"invalid date", []string{"invalid"}, "UTC", true, 0, true},
-		{"with timezone", []string{"2025-05-01 10:00"}, "America/New_York", false, 1, false},
+		{testutil.TestNameWithTimezone, []string{testutil.DateTime20250501_1000}, testutil.TZAmericaNewYork, false, 1, false},
 	}
 
 	for _, tt := range tests {
@@ -1760,7 +1761,7 @@ func TestNormalizeClockOnlyDateTimes(t *testing.T) {
 			name: "clock only start",
 			values: map[string]string{
 				"start": "14:30",
-				"tz":    "Europe/Madrid",
+				"tz":    testutil.TZEuropeMadrid,
 			},
 			startKey: "start",
 			endKey:   "end",
@@ -1774,7 +1775,7 @@ func TestNormalizeClockOnlyDateTimes(t *testing.T) {
 		{
 			name: "clock only end but might be duration",
 			values: map[string]string{
-				"start": "2025-05-01 14:00",
+				"start": testutil.DateTime20250501_1400,
 				"end":   "15:30",
 				"tz":    "UTC",
 			},
@@ -1792,14 +1793,14 @@ func TestNormalizeClockOnlyDateTimes(t *testing.T) {
 		{
 			name: "no normalization needed",
 			values: map[string]string{
-				"start": "2025-05-01 14:00",
+				"start": testutil.DateTime20250501_1400,
 				"end":   "2025-05-01 15:00",
 			},
 			startKey: "start",
 			endKey:   "end",
 			tzKey:    "tz",
 			checkFunc: func(t *testing.T, m map[string]string) {
-				if m["start"] != "2025-05-01 14:00" {
+				if m["start"] != testutil.DateTime20250501_1400 {
 					t.Errorf("start should not be modified, got %q", m["start"])
 				}
 			},
@@ -1830,7 +1831,7 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 		{
 			name: "use duration field",
 			values: map[string]string{
-				"start":    "2025-05-01 10:00",
+				"start":    testutil.DateTime20250501_1000,
 				"duration": "90m",
 			},
 			startKey:        "start",
@@ -1847,7 +1848,7 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 		{
 			name: "use default duration",
 			values: map[string]string{
-				"start": "2025-05-01 10:00",
+				"start": testutil.DateTime20250501_1000,
 			},
 			startKey:        "start",
 			endKey:          "end",
@@ -1863,7 +1864,7 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 		{
 			name: "end as duration",
 			values: map[string]string{
-				"start": "2025-05-01 10:00",
+				"start": testutil.DateTime20250501_1000,
 				"end":   "45m",
 			},
 			startKey:        "start",
@@ -1872,7 +1873,7 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 			tzKey:           "tz",
 			defaultDuration: "30m",
 			checkFunc: func(t *testing.T, m map[string]string) {
-				if !strings.Contains(m["end"], "2025-05-01") {
+				if !strings.Contains(m["end"], testutil.Date20250501) {
 					t.Errorf("end should be converted to datetime, got %q", m["end"])
 				}
 				if m["duration"] == "" {
@@ -1898,24 +1899,24 @@ func TestCityToIANA(t *testing.T) {
 		want string
 	}{
 		// Spain
-		{"madrid", "Europe/Madrid"},
-		{"barcelona", "Europe/Madrid"},
-		{"melilla", "Africa/Ceuta"},
-		{"ceuta", "Africa/Ceuta"},
-		{"canarias", "Atlantic/Canary"},
-		{"tenerife", "Atlantic/Canary"},
+		{"madrid", testutil.TZEuropeMadrid},
+		{"barcelona", testutil.TZEuropeMadrid},
+		{"melilla", testutil.TZAfricaCeuta},
+		{"ceuta", testutil.TZAfricaCeuta},
+		{"canarias", testutil.TZAtlanticCanary},
+		{"tenerife", testutil.TZAtlanticCanary},
 
 		// Brazil
-		{"pelotas", "America/Sao_Paulo"},
-		{"porto alegre", "America/Sao_Paulo"},
-		{"campo grande", "America/Campo_Grande"},
+		{"pelotas", testutil.TZAmericaSaoPaulo},
+		{"porto alegre", testutil.TZAmericaSaoPaulo},
+		{"campo grande", testutil.TZAmericaCampoGrande},
 		{"manaus", "America/Manaus"},
-		{"rio", "America/Sao_Paulo"},
-		{"sao paulo", "America/Sao_Paulo"},
+		{"rio", testutil.TZAmericaSaoPaulo},
+		{"sao paulo", testutil.TZAmericaSaoPaulo},
 
 		// Ireland/UK
-		{"dublin", "Europe/Dublin"},
-		{"london", "Europe/London"},
+		{"dublin", testutil.TZEuropeDublin},
+		{"london", testutil.TZEuropeLondon},
 
 		// Unknown
 		{"unknown", ""},
@@ -1971,7 +1972,7 @@ func TestMergeTemplateValues(t *testing.T) {
 
 func TestAugmentValuesForFilename(t *testing.T) {
 	ev := &calendar.Event{
-		Summary:   "Test Event",
+		Summary:   testutil.EventTitleTestEvent,
 		StartTime: time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 11, 0, 0, 0, time.UTC),
 	}
@@ -1987,25 +1988,25 @@ func TestAugmentValuesForFilename(t *testing.T) {
 		t.Error("original values should be preserved")
 	}
 
-	if result["start_date"] != "2025-05-01" {
-		t.Errorf("start_date = %q, want %q", result["start_date"], "2025-05-01")
+	if result["start_date"] != testutil.Date20250501 {
+		t.Errorf("start_date = %q, want %q", result["start_date"], testutil.Date20250501)
 	}
 
-	if result["end_date"] != "2025-05-01" {
-		t.Errorf("end_date = %q, want %q", result["end_date"], "2025-05-01")
+	if result["end_date"] != testutil.Date20250501 {
+		t.Errorf("end_date = %q, want %q", result["end_date"], testutil.Date20250501)
 	}
 
-	if !strings.Contains(result["start_time_iso"], "2025-05-01 10:00") {
+	if !strings.Contains(result["start_time_iso"], testutil.DateTime20250501_1000) {
 		t.Errorf("start_time_iso should contain datetime, got %q", result["start_time_iso"])
 	}
 }
 
 func TestBuildTemplateCalendar(t *testing.T) {
 	ev := &calendar.Event{
-		Summary:   "Test Event",
+		Summary:   testutil.EventTitleTestEvent,
 		StartTime: time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 11, 0, 0, 0, time.UTC),
-		StartTZ:   "Europe/Madrid",
+		StartTZ:   testutil.TZEuropeMadrid,
 	}
 
 	cal := buildTemplateCalendar(ev)
@@ -2014,8 +2015,8 @@ func TestBuildTemplateCalendar(t *testing.T) {
 		t.Fatal("buildTemplateCalendar() returned nil")
 	}
 
-	if cal.Name != "Test Event" {
-		t.Errorf("calendar name = %q, want %q", cal.Name, "Test Event")
+	if cal.Name != testutil.EventTitleTestEvent {
+		t.Errorf("calendar name = %q, want %q", cal.Name, testutil.EventTitleTestEvent)
 	}
 
 	if !cal.IncludeVTZ {
@@ -2053,7 +2054,7 @@ func TestCSVValue(t *testing.T) {
 		{"second column", "col2", "value2"},
 		{"last column", "col3", "value3"},
 		{"missing key", "col4", ""},
-		{"empty string", "missing", ""},
+		{testutil.TestNameEmptyString, "missing", ""},
 	}
 
 	for _, tt := range tests {

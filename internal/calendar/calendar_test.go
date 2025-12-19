@@ -1,6 +1,7 @@
 package calendar
 
 import (
+	"tempus/internal/testutil"
 	"fmt"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ func TestNewCalendar(t *testing.T) {
 }
 
 func TestNewEvent(t *testing.T) {
-	summary := "Test Event"
+	summary := testutil.EventTitleTestEvent
 	start := time.Now()
 	end := start.Add(1 * time.Hour)
 
@@ -93,13 +94,13 @@ func TestAddEvent(t *testing.T) {
 func TestSetters(t *testing.T) {
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
 
-	event.SetStartTimezone("America/New_York")
-	if event.StartTZ != "America/New_York" {
+	event.SetStartTimezone(testutil.TZAmericaNewYork)
+	if event.StartTZ != testutil.TZAmericaNewYork {
 		t.Errorf("StartTZ = %s, want America/New_York", event.StartTZ)
 	}
 
-	event.SetEndTimezone("Europe/London")
-	if event.EndTZ != "Europe/London" {
+	event.SetEndTimezone(testutil.TZEuropeLondon)
+	if event.EndTZ != testutil.TZEuropeLondon {
 		t.Errorf("EndTZ = %s, want Europe/London", event.EndTZ)
 	}
 
@@ -118,14 +119,14 @@ func TestSetters(t *testing.T) {
 func TestAddAttendee(t *testing.T) {
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
 
-	event.AddAttendee("alice@example.com")
-	event.AddAttendee("bob@example.com")
+	event.AddAttendee(testutil.EmailAlice)
+	event.AddAttendee(testutil.EmailBob)
 
 	if len(event.Attendees) != 2 {
 		t.Errorf("Event has %d attendees, want 2", len(event.Attendees))
 	}
 
-	if event.Attendees[0] != "alice@example.com" {
+	if event.Attendees[0] != testutil.EmailAlice {
 		t.Errorf("Attendee[0] = %s, want alice@example.com", event.Attendees[0])
 	}
 }
@@ -202,14 +203,14 @@ func TestCalendarToICSBasic(t *testing.T) {
 func TestCalendarToICSIncludesGoogleFriendlyMetadata(t *testing.T) {
 	cal := NewCalendar()
 	cal.Name = "Consulta medica"
-	cal.DefaultTZ = "Europe/Madrid"
+	cal.DefaultTZ = testutil.TZEuropeMadrid
 
 	start := time.Date(2025, time.September, 10, 12, 0, 0, 0, time.FixedZone("CEST", 2*60*60))
 	end := start.Add(45 * time.Minute)
 
 	event := NewEvent("Consulta medica", start, end)
-	event.SetStartTimezone("Europe/Madrid")
-	event.SetEndTimezone("Europe/Madrid")
+	event.SetStartTimezone(testutil.TZEuropeMadrid)
+	event.SetEndTimezone(testutil.TZEuropeMadrid)
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -290,7 +291,7 @@ func TestEventWithPriority(t *testing.T) {
 func TestEventWithRecurrence(t *testing.T) {
 	cal := NewCalendar()
 	event := NewEvent("Recurring", time.Now(), time.Now().Add(1*time.Hour))
-	event.RRule = "FREQ=DAILY;COUNT=5"
+	event.RRule = testutil.RRuleDaily5Count
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -409,8 +410,8 @@ func TestCategories(t *testing.T) {
 func TestAttendees(t *testing.T) {
 	cal := NewCalendar()
 	event := NewEvent("Meeting", time.Now(), time.Now().Add(1*time.Hour))
-	event.AddAttendee("alice@example.com")
-	event.AddAttendee("bob@example.com")
+	event.AddAttendee(testutil.EmailAlice)
+	event.AddAttendee(testutil.EmailBob)
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -452,8 +453,8 @@ func TestEscapeText(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"empty string", "", ""},
-		{"no special chars", "Hello World", "Hello World"},
+		{testutil.TestNameEmptyString, "", ""},
+		{"no special chars", testutil.EventTitleHelloWorld, testutil.EventTitleHelloWorld},
 		{"comma", "Hello, World", "Hello\\, World"},
 		{"semicolon", "Time; Space", "Time\\; Space"},
 		{"backslash", "Path\\to\\file", "Path\\\\to\\\\file"},
@@ -485,8 +486,8 @@ func TestNormalizeUserNewlines(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"empty string", "", ""},
-		{"no newlines", "Hello World", "Hello World"},
+		{testutil.TestNameEmptyString, "", ""},
+		{"no newlines", testutil.EventTitleHelloWorld, testutil.EventTitleHelloWorld},
 		{"escaped newline", "Line1\\nLine2", "Line1\nLine2"},
 		{"multiple escaped newlines", "A\\nB\\nC", "A\nB\nC"},
 		{"real newline unchanged", "A\nB", "A\nB"},
@@ -514,7 +515,7 @@ func TestFoldICalLine(t *testing.T) {
 		limit    int
 		expected int // expected number of segments
 	}{
-		{"empty string", "", 75, 1},
+		{testutil.TestNameEmptyString, "", 75, 1},
 		{"short line", "SHORT", 75, 1},
 		{"exactly limit", strings.Repeat("A", 75), 75, 1},
 		{"one over limit", strings.Repeat("A", 76), 75, 2},
@@ -598,14 +599,14 @@ func TestParseDateTime(t *testing.T) {
 		timezone string
 		wantErr  bool
 	}{
-		{"date only", "2025-11-15", "", "", false},
+		{testutil.TestNameDateOnly, "2025-11-15", "", "", false},
 		{"date and time", "2025-11-15", "14:30", "", false},
-		{"with timezone", "2025-11-15", "14:30", "America/New_York", false},
+		{testutil.TestNameWithTimezone, "2025-11-15", "14:30", testutil.TZAmericaNewYork, false},
 		{"invalid timezone", "2025-11-15", "14:30", "Invalid/Zone", true},
 		{"invalid date", "2025-13-32", "", "", true},
 		{"invalid time", "2025-11-15", "25:99", "", true},
 		{"UTC timezone", "2025-11-15", "14:30", "UTC", false},
-		{"Europe/Madrid", "2025-11-15", "14:30", "Europe/Madrid", false},
+		{testutil.TZEuropeMadrid, "2025-11-15", "14:30", testutil.TZEuropeMadrid, false},
 	}
 
 	for _, tt := range tests {
@@ -635,10 +636,10 @@ func TestCommonTimezones(t *testing.T) {
 
 	// Check for expected timezones
 	expectedTZs := map[string]string{
-		"madrid":   "Europe/Madrid",
+		"madrid":   testutil.TZEuropeMadrid,
 		"utc":      "UTC",
-		"new_york": "America/New_York",
-		"tokyo":    "Asia/Tokyo",
+		"new_york": testutil.TZAmericaNewYork,
+		"tokyo":    testutil.TZAsiaTokyо,
 	}
 
 	for key, expected := range expectedTZs {
@@ -657,14 +658,14 @@ func TestCommonTimezones(t *testing.T) {
 func TestSetDefaultTimezone(t *testing.T) {
 	cal := NewCalendar()
 
-	cal.SetDefaultTimezone("Europe/Madrid")
-	if cal.DefaultTZ != "Europe/Madrid" {
-		t.Errorf("SetDefaultTimezone() = %q, want %q", cal.DefaultTZ, "Europe/Madrid")
+	cal.SetDefaultTimezone(testutil.TZEuropeMadrid)
+	if cal.DefaultTZ != testutil.TZEuropeMadrid {
+		t.Errorf("SetDefaultTimezone() = %q, want %q", cal.DefaultTZ, testutil.TZEuropeMadrid)
 	}
 
 	// Test trimming
 	cal.SetDefaultTimezone("  America/New_York  ")
-	if cal.DefaultTZ != "America/New_York" {
+	if cal.DefaultTZ != testutil.TZAmericaNewYork {
 		t.Errorf("SetDefaultTimezone() should trim spaces, got %q", cal.DefaultTZ)
 	}
 
@@ -682,13 +683,13 @@ func TestSetDefaultTimezone(t *testing.T) {
 func TestSetTimezone(t *testing.T) {
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
 
-	event.SetTimezone("Europe/Madrid")
+	event.SetTimezone(testutil.TZEuropeMadrid)
 
-	if event.StartTZ != "Europe/Madrid" {
-		t.Errorf("SetTimezone() StartTZ = %q, want %q", event.StartTZ, "Europe/Madrid")
+	if event.StartTZ != testutil.TZEuropeMadrid {
+		t.Errorf("SetTimezone() StartTZ = %q, want %q", event.StartTZ, testutil.TZEuropeMadrid)
 	}
-	if event.EndTZ != "Europe/Madrid" {
-		t.Errorf("SetTimezone() EndTZ = %q, want %q", event.EndTZ, "Europe/Madrid")
+	if event.EndTZ != testutil.TZEuropeMadrid {
+		t.Errorf("SetTimezone() EndTZ = %q, want %q", event.EndTZ, testutil.TZEuropeMadrid)
 	}
 }
 
@@ -699,20 +700,20 @@ func TestSetTimezone(t *testing.T) {
 func TestAddEventInfersDefaultTimezone(t *testing.T) {
 	cal := NewCalendar()
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
-	event.SetTimezone("Europe/Madrid")
+	event.SetTimezone(testutil.TZEuropeMadrid)
 
 	cal.AddEvent(event)
 
-	if cal.DefaultTZ != "Europe/Madrid" {
-		t.Errorf("AddEvent() should infer DefaultTZ = %q, got %q", "Europe/Madrid", cal.DefaultTZ)
+	if cal.DefaultTZ != testutil.TZEuropeMadrid {
+		t.Errorf("AddEvent() should infer DefaultTZ = %q, got %q", testutil.TZEuropeMadrid, cal.DefaultTZ)
 	}
 
 	// Second event with different TZ should not override
 	event2 := NewEvent("Test2", time.Now(), time.Now().Add(1*time.Hour))
-	event2.SetTimezone("America/New_York")
+	event2.SetTimezone(testutil.TZAmericaNewYork)
 	cal.AddEvent(event2)
 
-	if cal.DefaultTZ != "Europe/Madrid" {
+	if cal.DefaultTZ != testutil.TZEuropeMadrid {
 		t.Errorf("AddEvent() should keep first DefaultTZ, got %q", cal.DefaultTZ)
 	}
 }
@@ -720,8 +721,8 @@ func TestAddEventInfersDefaultTimezone(t *testing.T) {
 func TestAddEventDoesNotInferMismatchedTimezones(t *testing.T) {
 	cal := NewCalendar()
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
-	event.StartTZ = "Europe/Madrid"
-	event.EndTZ = "America/New_York" // Different
+	event.StartTZ = testutil.TZEuropeMadrid
+	event.EndTZ = testutil.TZAmericaNewYork // Different
 
 	cal.AddEvent(event)
 
@@ -933,10 +934,10 @@ func TestEventWithExDatesAllDay(t *testing.T) {
 
 func TestEventWithExDatesWithTimezone(t *testing.T) {
 	cal := NewCalendar()
-	loc, _ := time.LoadLocation("America/New_York")
+	loc, _ := time.LoadLocation(testutil.TZAmericaNewYork)
 	start := time.Date(2025, 11, 15, 10, 0, 0, 0, loc)
 	event := NewEvent("Recurring", start, start.Add(1*time.Hour))
-	event.SetTimezone("America/New_York")
+	event.SetTimezone(testutil.TZAmericaNewYork)
 	event.RRule = "FREQ=WEEKLY;BYDAY=MO"
 
 	exDate := time.Date(2025, 11, 22, 10, 0, 0, 0, loc)
@@ -977,15 +978,15 @@ func TestEventWithExDatesUTC(t *testing.T) {
 func TestEventWithDifferentStartEndTimezones(t *testing.T) {
 	cal := NewCalendar()
 
-	nyLoc, _ := time.LoadLocation("America/New_York")
-	londonLoc, _ := time.LoadLocation("Europe/London")
+	nyLoc, _ := time.LoadLocation(testutil.TZAmericaNewYork)
+	londonLoc, _ := time.LoadLocation(testutil.TZEuropeLondon)
 
 	start := time.Date(2025, 11, 15, 18, 0, 0, 0, nyLoc)
 	end := time.Date(2025, 11, 16, 6, 0, 0, 0, londonLoc)
 
 	event := NewEvent("Flight NYC to London", start, end)
-	event.SetStartTimezone("America/New_York")
-	event.SetEndTimezone("Europe/London")
+	event.SetStartTimezone(testutil.TZAmericaNewYork)
+	event.SetEndTimezone(testutil.TZEuropeLondon)
 
 	cal.AddEvent(event)
 	ics := cal.ToICS()
@@ -1093,7 +1094,7 @@ func TestEventDTSTAMPWithZeroCreated(t *testing.T) {
 func TestEventWithEmptyAttendees(t *testing.T) {
 	cal := NewCalendar()
 	event := NewEvent("Test", time.Now(), time.Now().Add(1*time.Hour))
-	event.Attendees = []string{"alice@example.com", "  ", "", "bob@example.com"}
+	event.Attendees = []string{testutil.EmailAlice, "  ", "", testutil.EmailBob}
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -1209,12 +1210,12 @@ func TestCalendarWithEmptyDefaultTZ(t *testing.T) {
 func TestCalendarWithIncludeVTZ(t *testing.T) {
 	cal := NewCalendar()
 	cal.IncludeVTZ = true
-	cal.DefaultTZ = "Europe/Madrid"
+	cal.DefaultTZ = testutil.TZEuropeMadrid
 
-	madridLoc, _ := time.LoadLocation("Europe/Madrid")
+	madridLoc, _ := time.LoadLocation(testutil.TZEuropeMadrid)
 	start := time.Date(2025, 11, 15, 10, 0, 0, 0, madridLoc)
 	event := NewEvent("Test", start, start.Add(1*time.Hour))
-	event.SetTimezone("Europe/Madrid")
+	event.SetTimezone(testutil.TZEuropeMadrid)
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -1235,16 +1236,16 @@ func TestCalendarWithIncludeVTZMultipleTimezones(t *testing.T) {
 	cal := NewCalendar()
 	cal.IncludeVTZ = true
 
-	dublinLoc, _ := time.LoadLocation("Europe/Dublin")
-	londonLoc, _ := time.LoadLocation("Europe/London")
+	dublinLoc, _ := time.LoadLocation(testutil.TZEuropeDublin)
+	londonLoc, _ := time.LoadLocation(testutil.TZEuropeLondon)
 
 	start1 := time.Date(2025, 11, 15, 10, 0, 0, 0, dublinLoc)
 	event1 := NewEvent("Dublin Event", start1, start1.Add(1*time.Hour))
-	event1.SetTimezone("Europe/Dublin")
+	event1.SetTimezone(testutil.TZEuropeDublin)
 
 	start2 := time.Date(2025, 11, 16, 14, 0, 0, 0, londonLoc)
 	event2 := NewEvent("London Event", start2, start2.Add(1*time.Hour))
-	event2.SetTimezone("Europe/London")
+	event2.SetTimezone(testutil.TZEuropeLondon)
 
 	cal.AddEvent(event1)
 	cal.AddEvent(event2)
@@ -1307,12 +1308,12 @@ func TestKnownVTZ(t *testing.T) {
 		tzid   string
 		hasVTZ bool
 	}{
-		{"Europe/Madrid", true},
-		{"Europe/Dublin", true},
-		{"Europe/London", true},
-		{"America/Sao_Paulo", true},
-		{"Atlantic/Canary", true},
-		{"America/New_York", false}, // Not in knownVTZ
+		{testutil.TZEuropeMadrid, true},
+		{testutil.TZEuropeDublin, true},
+		{testutil.TZEuropeLondon, true},
+		{testutil.TZAmericaSaoPaulo, true},
+		{testutil.TZAtlanticCanary, true},
+		{testutil.TZAmericaNewYork, false}, // Not in knownVTZ
 		{"Invalid/Zone", false},
 		{"", false},
 	}
@@ -1338,23 +1339,23 @@ func TestKnownVTZ(t *testing.T) {
 func TestUniqueTZIDs(t *testing.T) {
 	events := []Event{
 		{
-			StartTZ: "Europe/Madrid",
-			EndTZ:   "Europe/Madrid",
+			StartTZ: testutil.TZEuropeMadrid,
+			EndTZ:   testutil.TZEuropeMadrid,
 			AllDay:  false,
 		},
 		{
-			StartTZ: "America/New_York",
-			EndTZ:   "Europe/London",
+			StartTZ: testutil.TZAmericaNewYork,
+			EndTZ:   testutil.TZEuropeLondon,
 			AllDay:  false,
 		},
 		{
-			StartTZ: "Europe/Madrid", // Duplicate
-			EndTZ:   "Europe/Madrid",
+			StartTZ: testutil.TZEuropeMadrid, // Duplicate
+			EndTZ:   testutil.TZEuropeMadrid,
 			AllDay:  false,
 		},
 		{
-			StartTZ: "Europe/Madrid",
-			EndTZ:   "Europe/Madrid",
+			StartTZ: testutil.TZEuropeMadrid,
+			EndTZ:   testutil.TZEuropeMadrid,
 			AllDay:  true, // All-day should be ignored
 		},
 	}
@@ -1372,7 +1373,7 @@ func TestUniqueTZIDs(t *testing.T) {
 		tzMap[tz] = true
 	}
 
-	expected := []string{"Europe/Madrid", "America/New_York", "Europe/London"}
+	expected := []string{testutil.TZEuropeMadrid, testutil.TZAmericaNewYork, testutil.TZEuropeLondon}
 	for _, tz := range expected {
 		if !tzMap[tz] {
 			t.Errorf("uniqueTZIDs() missing expected TZID: %s", tz)
@@ -1720,12 +1721,12 @@ func TestEventUTCWithoutTimezone(t *testing.T) {
 
 func TestEventWithTimezoneUsesLocalFormat(t *testing.T) {
 	cal := NewCalendar()
-	loc, _ := time.LoadLocation("Europe/Madrid")
+	loc, _ := time.LoadLocation(testutil.TZEuropeMadrid)
 	start := time.Date(2025, 11, 15, 14, 30, 0, 0, loc)
 	end := start.Add(1 * time.Hour)
 
 	event := NewEvent("Madrid Event", start, end)
-	event.SetTimezone("Europe/Madrid")
+	event.SetTimezone(testutil.TZEuropeMadrid)
 	cal.AddEvent(event)
 
 	ics := cal.ToICS()
@@ -1804,7 +1805,7 @@ func TestAlarmsParserParseHumanDuration(t *testing.T) {
 		{"10:45 format", "10:45", 10*time.Hour + 45*time.Minute, false},
 		{"0:15 format", "0:15", 15 * time.Minute, false},
 		{"23:59 format", "23:59", 23*time.Hour + 59*time.Minute, false},
-		{"with spaces", "  2:30  ", 2*time.Hour + 30*time.Minute, false},
+		{testutil.TestNameWithSpaces, "  2:30  ", 2*time.Hour + 30*time.Minute, false},
 		{"single digit hour", "2:05", 2*time.Hour + 5*time.Minute, false},
 
 		// Valid h/m format
@@ -1814,16 +1815,16 @@ func TestAlarmsParserParseHumanDuration(t *testing.T) {
 		{"2h15m format", "2h15m", 2*time.Hour + 15*time.Minute, false},
 		{"just hours", "5h", 5 * time.Hour, false},
 		{"just minutes", "45m", 45 * time.Minute, false},
-		{"with spaces", " 1h 30m ", 1*time.Hour + 30*time.Minute, false},
+		{testutil.TestNameWithSpaces, " 1h 30m ", 1*time.Hour + 30*time.Minute, false},
 
 		// Valid plain minutes format
 		{"10 minutes", "10", 10 * time.Minute, false},
 		{"90 minutes", "90", 90 * time.Minute, false},
 		{"1 minute", "1", 1 * time.Minute, false},
-		{"with spaces", "  60  ", 60 * time.Minute, false},
+		{testutil.TestNameWithSpaces, "  60  ", 60 * time.Minute, false},
 
 		// Invalid cases
-		{"empty string", "", 0, true},
+		{testutil.TestNameEmptyString, "", 0, true},
 		{"only spaces", "   ", 0, true},
 		{"zero minutes", "0", 0, true},
 		{"negative minutes", "-10", 0, true},
@@ -1858,7 +1859,7 @@ func TestAlarmsParserSplitAlarmInput(t *testing.T) {
 		expected []string
 	}{
 		{
-			name:     "empty string",
+			name:     testutil.TestNameEmptyString,
 			input:    "",
 			expected: nil,
 		},
@@ -1973,7 +1974,7 @@ func TestAlarmsParserParseAlarmsFromString(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name:      "empty string",
+			name:      testutil.TestNameEmptyString,
 			input:     "",
 			defaultTZ: "",
 			wantCount: 0,
@@ -2413,13 +2414,13 @@ func TestAlarmsParserParseAlarmAbsolute(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "with timezone",
+			name:      testutil.TestNameWithTimezone,
 			input:     "2025-11-15 10:00:00",
-			defaultTZ: "America/New_York",
+			defaultTZ: testutil.TZAmericaNewYork,
 			wantErr:   false,
 		},
 		{
-			name:      "empty string",
+			name:      testutil.TestNameEmptyString,
 			input:     "",
 			defaultTZ: "",
 			wantErr:   true,
@@ -2500,7 +2501,7 @@ func TestAlarmsParserParseRelativeAlarmDuration(t *testing.T) {
 			wantErr:          false,
 		},
 		{
-			name:             "empty string",
+			name:             testutil.TestNameEmptyString,
 			input:            "",
 			defaultDirection: -1,
 			expected:         0,
@@ -2604,7 +2605,7 @@ func TestAlarmsParserParseICSDuration(t *testing.T) {
 		{"P1W2D", "P1W2D", 7*24*time.Hour + 2*24*time.Hour, false},
 		{"P1W2DT3H4M5S", "P1W2DT3H4M5S", 7*24*time.Hour + 2*24*time.Hour + 3*time.Hour + 4*time.Minute + 5*time.Second, false},
 		{"lowercase", "pt15m", 15 * time.Minute, false},
-		{"with spaces", "  PT15M  ", 15 * time.Minute, false},
+		{testutil.TestNameWithSpaces, "  PT15M  ", 15 * time.Minute, false},
 
 		// Invalid formats
 		{"empty", "", 0, true},
@@ -2651,7 +2652,7 @@ func TestAlarmsParserParseBoolish(t *testing.T) {
 		{"Y", "Y", true},
 		{"on", "on", true},
 		{"ON", "ON", true},
-		{"with spaces", "  yes  ", true},
+		{testutil.TestNameWithSpaces, "  yes  ", true},
 
 		{"0", "0", false},
 		{"false", "false", false},
@@ -2745,7 +2746,7 @@ func TestAlarmsParserAtoiSafe(t *testing.T) {
 		{"two digits", "42", 42},
 		{"three digits", "123", 123},
 		{"large number", "999999", 999999},
-		{"with spaces", "  42  ", 42},
+		{testutil.TestNameWithSpaces, "  42  ", 42},
 		{"empty", "", 0},
 		{"only spaces", "   ", 0},
 		{"invalid chars", "12a34", 0},
@@ -3037,7 +3038,7 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyKeySegment(t *testing.T) {
 
 func TestAlarmsParserEdgeCaseParseAlarmAbsoluteInvalidTimezone(t *testing.T) {
 	// Invalid timezone should still work by falling back to UTC
-	_, err := parseAlarmAbsolute("2025-11-15 10:00:00", "Invalid/Timezone")
+	_, err := parseAlarmAbsolute("2025-11-15 10:00:00", testutil.TZInvalid)
 	if err != nil {
 		t.Errorf("Should not error with invalid timezone, should fall back: %v", err)
 	}
@@ -3116,7 +3117,7 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyDescription(t *testing.T) {
 
 func TestAlarmsParserEdgeCaseParseAlarmAbsoluteWithLocalTimezone(t *testing.T) {
 	// Test with a specific timezone
-	result, err := parseAlarmAbsolute("2025-11-15 10:00:00", "Europe/Madrid")
+	result, err := parseAlarmAbsolute("2025-11-15 10:00:00", testutil.TZEuropeMadrid)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}

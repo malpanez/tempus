@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"tempus/internal/testutil"
 	"strings"
 	"testing"
 	"time"
@@ -21,31 +22,31 @@ func TestRenderTmpl(t *testing.T) {
 			name:     "simple variable replacement",
 			tmpl:     "Hello {{name}}",
 			values:   map[string]string{"name": "World"},
-			expected: "Hello World",
+			expected: testutil.EventTitleHelloWorld,
 		},
 		{
 			name:     "multiple variables",
 			tmpl:     "{{first}} {{last}}",
 			values:   map[string]string{"first": "John", "last": "Doe"},
-			expected: "John Doe",
+			expected: testutil.NameJohnDoe,
 		},
 		{
 			name:     "slug helper",
 			tmpl:     "{{slug title}}",
 			values:   map[string]string{"title": "Hello World!"},
-			expected: "hello-world",
+			expected: testutil.TemplateHelloWorld,
 		},
 		{
 			name:     "date helper",
 			tmpl:     "{{date start}}",
 			values:   map[string]string{"start": "2025-12-01 10:00"},
-			expected: "2025-12-01",
+			expected: testutil.Date20251201,
 		},
 		{
 			name:     "conditional block - value present",
 			tmpl:     "{{#name}}Hello {{name}}{{/name}}",
 			values:   map[string]string{"name": "World"},
-			expected: "Hello World",
+			expected: testutil.EventTitleHelloWorld,
 		},
 		{
 			name:     "conditional block - value absent",
@@ -90,7 +91,7 @@ func TestRenderTmpl(t *testing.T) {
 			result, err := RenderTmpl(tt.tmpl, tt.values, tr)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
@@ -121,20 +122,20 @@ func TestSimpleReplace(t *testing.T) {
 		{
 			name:     "slug function",
 			input:    "{{slug title}}",
-			values:   map[string]string{"title": "Hello World"},
-			expected: "hello-world",
+			values:   map[string]string{"title": testutil.EventTitleHelloWorld},
+			expected: testutil.TemplateHelloWorld,
 		},
 		{
 			name:     "date function",
 			input:    "{{date when}}",
-			values:   map[string]string{"when": "2025-12-01"},
-			expected: "2025-12-01",
+			values:   map[string]string{"when": testutil.Date20251201},
+			expected: testutil.Date20251201,
 		},
 		{
 			name:     "date with time",
 			input:    "{{date when}}",
 			values:   map[string]string{"when": "2025-12-01 14:30"},
-			expected: "2025-12-01",
+			expected: testutil.Date20251201,
 		},
 		{
 			name:     "multiple replacements",
@@ -162,22 +163,22 @@ func TestExtractDate(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "date only",
-			input:    "2025-12-01",
-			expected: "2025-12-01",
+			name:     testutil.TestNameDateOnly,
+			input:    testutil.Date20251201,
+			expected: testutil.Date20251201,
 		},
 		{
 			name:     "datetime",
 			input:    "2025-12-01 14:30",
-			expected: "2025-12-01",
+			expected: testutil.Date20251201,
 		},
 		{
 			name:     "datetime with T separator",
 			input:    "2025-12-01T14:30",
-			expected: "2025-12-01",
+			expected: testutil.Date20251201,
 		},
 		{
-			name:     "empty string",
+			name:     testutil.TestNameEmptyString,
 			input:    "",
 			expected: "",
 		},
@@ -188,8 +189,8 @@ func TestExtractDate(t *testing.T) {
 		},
 		{
 			name:     "invalid date",
-			input:    "not-a-date",
-			expected: "not-a-date", // Falls back to slugify
+			input:    testutil.ErrMsgNotADate,
+			expected: testutil.ErrMsgNotADate, // Falls back to slugify
 		},
 	}
 
@@ -213,8 +214,8 @@ func TestParseDateOrDateTimeInLocation(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name:         "date only",
-			input:        "2025-12-01",
+			name:         testutil.TestNameDateOnly,
+			input:        testutil.Date20251201,
 			tzName:       "",
 			wantDateOnly: true,
 			wantErr:      false,
@@ -228,28 +229,28 @@ func TestParseDateOrDateTimeInLocation(t *testing.T) {
 		},
 		{
 			name:         "date with timezone",
-			input:        "2025-12-01",
-			tzName:       "America/New_York",
+			input:        testutil.Date20251201,
+			tzName:       testutil.TZAmericaNewYork,
 			wantDateOnly: true,
 			wantErr:      false,
 		},
 		{
 			name:         "datetime with timezone",
 			input:        "2025-12-01 14:30",
-			tzName:       "America/New_York",
+			tzName:       testutil.TZAmericaNewYork,
 			wantDateOnly: false,
 			wantErr:      false,
 		},
 		{
 			name:    "invalid date",
-			input:   "not-a-date",
+			input:   testutil.ErrMsgNotADate,
 			tzName:  "",
 			wantErr: true,
 		},
 		{
 			name:         "invalid timezone",
-			input:        "2025-12-01",
-			tzName:       "Invalid/Timezone",
+			input:        testutil.Date20251201,
+			tzName:       testutil.TZInvalid,
 			wantDateOnly: true, // Falls back to local, still date only
 			wantErr:      false,
 		},
@@ -260,7 +261,7 @@ func TestParseDateOrDateTimeInLocation(t *testing.T) {
 			result, isDateOnly, err := parseDateOrDateTimeInLocation(tt.input, tt.tzName)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
@@ -341,7 +342,7 @@ func TestParseHumanDuration(t *testing.T) {
 			expected: 15 * time.Minute,
 		},
 		{
-			name:    "empty string",
+			name:    testutil.TestNameEmptyString,
 			input:   "",
 			wantErr: true,
 		},
@@ -411,7 +412,7 @@ func TestParseHhMmCompact(t *testing.T) {
 			expected: 2 * time.Hour,
 		},
 		{
-			name:    "empty string",
+			name:    testutil.TestNameEmptyString,
 			input:   "",
 			wantErr: true,
 		},
@@ -464,7 +465,7 @@ func TestParseDurationString(t *testing.T) {
 			result, err := ParseDurationString(tt.input)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
@@ -521,7 +522,7 @@ func TestSplitMultiValueList(t *testing.T) {
 			expected: []string{"a", "b", "c"},
 		},
 		{
-			name:     "empty string",
+			name:     testutil.TestNameEmptyString,
 			input:    "",
 			expected: []string{},
 		},
@@ -565,11 +566,11 @@ func TestRenderDDToEvent(t *testing.T) {
 				},
 				Output: OutputTemplate{
 					StartField:  "start",
-					SummaryTmpl: "{{title}}",
+					SummaryTmpl: testutil.TemplatePlaceholderTitle,
 				},
 			},
 			values: map[string]string{
-				"title": "Test Event",
+				"title": testutil.EventTitleTestEvent,
 				"start": "2025-12-01 10:00",
 			},
 			wantErr: false,
@@ -584,13 +585,13 @@ func TestRenderDDToEvent(t *testing.T) {
 				},
 				Output: OutputTemplate{
 					StartField:  "date",
-					SummaryTmpl: "{{title}}",
+					SummaryTmpl: testutil.TemplatePlaceholderTitle,
 					AllDay:      true,
 				},
 			},
 			values: map[string]string{
 				"title": "All Day Event",
-				"date":  "2025-12-01",
+				"date":  testutil.Date20251201,
 			},
 			wantErr: false,
 		},
@@ -606,7 +607,7 @@ func TestRenderDDToEvent(t *testing.T) {
 				Output: OutputTemplate{
 					StartField:    "start",
 					DurationField: "duration",
-					SummaryTmpl:   "{{title}}",
+					SummaryTmpl:   testutil.TemplatePlaceholderTitle,
 				},
 			},
 			values: map[string]string{
@@ -628,7 +629,7 @@ func TestRenderDDToEvent(t *testing.T) {
 				Output: OutputTemplate{
 					StartField:  "start",
 					EndField:    "end",
-					SummaryTmpl: "{{title}}",
+					SummaryTmpl: testutil.TemplatePlaceholderTitle,
 				},
 			},
 			values: map[string]string{
@@ -648,7 +649,7 @@ func TestRenderDDToEvent(t *testing.T) {
 				},
 				Output: OutputTemplate{
 					StartField:  "start",
-					SummaryTmpl: "{{title}}",
+					SummaryTmpl: testutil.TemplatePlaceholderTitle,
 					Categories:  []string{"Work", "Important"},
 					Priority:    1,
 				},
@@ -672,13 +673,13 @@ func TestRenderDDToEvent(t *testing.T) {
 					StartField:   "start",
 					StartTZField: "tz",
 					EndTZField:   "tz",
-					SummaryTmpl:  "{{title}}",
+					SummaryTmpl:  testutil.TemplatePlaceholderTitle,
 				},
 			},
 			values: map[string]string{
 				"title": "Meeting",
 				"start": "2025-12-01 10:00",
-				"tz":    "America/New_York",
+				"tz":    testutil.TZAmericaNewYork,
 			},
 			wantErr: false,
 		},
@@ -695,7 +696,7 @@ func TestRenderDDToEvent(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid start time",
+			name: testutil.ErrMsgInvalidStartTime,
 			dd: DataDrivenTemplate{
 				Name: "bad-start",
 				Output: OutputTemplate{
@@ -763,14 +764,14 @@ func TestRenderDDToEvent(t *testing.T) {
 			event, err := tm.renderDDToEvent(&tt.dd, tt.values, tr)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
 				if event == nil {
-					t.Fatal("event is nil")
+					t.Fatal(testutil.ErrMsgEventIsNil)
 				}
 				if tt.check != nil {
 					var iface interface{} = event
@@ -796,7 +797,7 @@ func TestRenderDDToEventWithRecurrence(t *testing.T) {
 		Output: OutputTemplate{
 			StartField:  "start",
 			RRuleField:  "rrule",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 		},
 	}
 
@@ -828,7 +829,7 @@ func TestParseDDExDates(t *testing.T) {
 	}{
 		{
 			name:      "single date",
-			raw:       "2025-12-15",
+			raw:       testutil.Date20251215,
 			allDay:    false,
 			wantCount: 1,
 		},
@@ -857,14 +858,14 @@ func TestParseDDExDates(t *testing.T) {
 			wantCount: 2,
 		},
 		{
-			name:      "empty string",
+			name:      testutil.TestNameEmptyString,
 			raw:       "",
 			allDay:    false,
 			wantCount: 0,
 		},
 		{
 			name:    "invalid date",
-			raw:     "not-a-date",
+			raw:     testutil.ErrMsgNotADate,
 			allDay:  false,
 			wantErr: true,
 		},
@@ -875,7 +876,7 @@ func TestParseDDExDates(t *testing.T) {
 			result, err := parseDDExDates(tt.raw, startTime, tt.allDay, "UTC")
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
@@ -904,7 +905,7 @@ func TestRenderDDToEventWithAlarms(t *testing.T) {
 		Output: OutputTemplate{
 			StartField:  "start",
 			AlarmsField: "alarms",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 		},
 	}
 
@@ -933,7 +934,7 @@ func TestRenderDDToEventWithAlarms(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			values := map[string]string{
-				"title":  "Test Event",
+				"title":  testutil.EventTitleTestEvent,
 				"start":  "2025-12-01 10:00",
 				"alarms": tt.alarms,
 			}
@@ -964,7 +965,7 @@ func TestRenderDDToEventWithExDates(t *testing.T) {
 		Output: OutputTemplate{
 			StartField:   "start",
 			ExDatesField: "exdates",
-			SummaryTmpl:  "{{title}}",
+			SummaryTmpl:  testutil.TemplatePlaceholderTitle,
 		},
 	}
 
@@ -998,7 +999,7 @@ func TestRenderDDToEventAllDayWithEndDate(t *testing.T) {
 		Output: OutputTemplate{
 			StartField:  "start",
 			EndField:    "end",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 			AllDay:      true,
 		},
 	}
@@ -1011,22 +1012,22 @@ func TestRenderDDToEventAllDayWithEndDate(t *testing.T) {
 			name: "with end date",
 			values: map[string]string{
 				"title": "Vacation",
-				"start": "2025-12-20",
-				"end":   "2025-12-27",
+				"start": testutil.Date20251220,
+				"end":   testutil.Date20251227,
 			},
 		},
 		{
 			name: "without end date",
 			values: map[string]string{
 				"title": "Single Day",
-				"start": "2025-12-20",
+				"start": testutil.Date20251220,
 			},
 		},
 		{
 			name: "end with time (should normalize)",
 			values: map[string]string{
 				"title": "Vacation",
-				"start": "2025-12-20",
+				"start": testutil.Date20251220,
 				"end":   "2025-12-27 14:00",
 			},
 		},
@@ -1069,7 +1070,7 @@ func TestRenderDDToEventWithTemplatedFields(t *testing.T) {
 	}
 
 	values := map[string]string{
-		"name":     "John Doe",
+		"name":     testutil.NameJohnDoe,
 		"location": "Conference Room A",
 		"start":    "2025-12-01 10:00",
 	}
@@ -1079,13 +1080,13 @@ func TestRenderDDToEventWithTemplatedFields(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(event.Summary, "John Doe") {
+	if !strings.Contains(event.Summary, testutil.NameJohnDoe) {
 		t.Error("summary should contain name")
 	}
 	if event.Location != "Conference Room A" {
 		t.Errorf("location = %q, want %q", event.Location, "Conference Room A")
 	}
-	if !strings.Contains(event.Description, "John Doe") {
+	if !strings.Contains(event.Description, testutil.NameJohnDoe) {
 		t.Error("description should contain name")
 	}
 }

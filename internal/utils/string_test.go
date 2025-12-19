@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"tempus/internal/testutil"
 	"strings"
 	"testing"
 )
@@ -13,20 +14,20 @@ func TestSlugify(t *testing.T) {
 	}{
 		{"simple lowercase", "hello", "hello"},
 		{"uppercase to lowercase", "HELLO", "hello"},
-		{"spaces to hyphens", "hello world", "hello-world"},
-		{"multiple spaces", "hello   world", "hello-world"},
+		{"spaces to hyphens", "hello world", testutil.TemplateHelloWorld},
+		{"multiple spaces", "hello   world", testutil.TemplateHelloWorld},
 		{"special characters", "Meeting @ 3pm", "meeting-3pm"},
 		{"mixed punctuation", "hello, world! 2024", "hello-world-2024"},
-		{"underscores", "hello_world", "hello-world"},
+		{"underscores", "hello_world", testutil.TemplateHelloWorld},
 		{"slashes", "hello/world\\test", "hello-world-test"},
 		{"dots", "hello.world.test", "hello-world-test"},
-		{"leading/trailing spaces", "  hello world  ", "hello-world"},
-		{"leading/trailing hyphens", "-hello-world-", "hello-world"},
+		{"leading/trailing spaces", "  hello world  ", testutil.TemplateHelloWorld},
+		{"leading/trailing hyphens", "-hello-world-", testutil.TemplateHelloWorld},
 		{"only special chars", "@#$%^", "event"},
-		{"empty string", "", ""},
+		{testutil.TestNameEmptyString, "", ""},
 		{"accented characters", "múltiple espacios", "m-ltiple-espacios"},
 		{"numbers", "event 123 test 456", "event-123-test-456"},
-		{"consecutive hyphens", "hello---world", "hello-world"},
+		{"consecutive hyphens", "hello---world", testutil.TemplateHelloWorld},
 		{"mixed case with numbers", "Event2024Test", "event2024test"},
 	}
 
@@ -54,7 +55,7 @@ func TestSlugifyEdgeCases(t *testing.T) {
 	// Test very long string
 	longString := strings.Repeat("hello world ", 100)
 	result := Slugify(longString)
-	if !strings.Contains(result, "hello-world") {
+	if !strings.Contains(result, testutil.TemplateHelloWorld) {
 		t.Error("Slugify should handle long strings")
 	}
 	if strings.HasPrefix(result, "-") || strings.HasSuffix(result, "-") {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 func TestBatchCSVGeneratesCalendarWithMultipleEvents(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join(tmpDir, "events.csv")
+	inputPath := filepath.Join(tmpDir, testutil.FilenameEventsCSV)
 	outputPath := filepath.Join(tmpDir, "batch.ics")
 
 	csvData := strings.Join([]string{

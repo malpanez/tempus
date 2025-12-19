@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"tempus/internal/testutil"
 	"strings"
 	"testing"
 
@@ -204,9 +205,9 @@ func TestGenerateFlightEvent(t *testing.T) {
 				"to":             "LAX",
 				"departure_time": "2025-12-01 10:00",
 				"arrival_time":   "2025-12-01 14:00",
-				"departure_tz":   "America/New_York",
+				"departure_tz":   testutil.TZAmericaNewYork,
 				"arrival_tz":     "America/Los_Angeles",
-				"airline":        "American Airlines",
+				"airline":        testutil.AirlineAmerican,
 				"seat":           "12A",
 				"gate":           "B22",
 			},
@@ -214,7 +215,7 @@ func TestGenerateFlightEvent(t *testing.T) {
 			check: func(t *testing.T, v interface{}) {
 				event := v.(*interface{})
 				if event == nil {
-					t.Fatal("event is nil")
+					t.Fatal(testutil.ErrMsgEventIsNil)
 				}
 			},
 		},
@@ -236,7 +237,7 @@ func TestGenerateFlightEvent(t *testing.T) {
 				"from":           "JFK",
 				"to":             "LAX",
 				"departure_time": "2025-12-01 10:00",
-				"arrival_time":   "bad-time",
+				"arrival_time":   testutil.ErrMsgBadTime,
 			},
 			wantErr: true,
 		},
@@ -302,7 +303,7 @@ func TestGenerateMeetingEvent(t *testing.T) {
 				"title":      "Team Standup",
 				"start_time": "2025-12-01 10:00",
 				"duration":   "30m",
-				"timezone":   "America/New_York",
+				"timezone":   testutil.TZAmericaNewYork,
 				"location":   "Conference Room A",
 				"attendees":  "alice@example.com, bob@example.com",
 				"agenda":     "Sprint planning",
@@ -328,17 +329,17 @@ func TestGenerateMeetingEvent(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid start time",
+			name: testutil.ErrMsgInvalidStartTime,
 			data: map[string]string{
-				"title":      "Bad Meeting",
-				"start_time": "not-a-date",
+				"title":      testutil.EventTitleBadMeeting,
+				"start_time": testutil.ErrMsgNotADate,
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid end time",
 			data: map[string]string{
-				"title":      "Bad Meeting",
+				"title":      testutil.EventTitleBadMeeting,
 				"start_time": "2025-12-01 10:00",
 				"end_time":   "invalid",
 			},
@@ -347,7 +348,7 @@ func TestGenerateMeetingEvent(t *testing.T) {
 		{
 			name: "end before start",
 			data: map[string]string{
-				"title":      "Bad Meeting",
+				"title":      testutil.EventTitleBadMeeting,
 				"start_time": "2025-12-01 15:00",
 				"end_time":   "2025-12-01 14:00",
 			},
@@ -356,7 +357,7 @@ func TestGenerateMeetingEvent(t *testing.T) {
 		{
 			name: "invalid duration format",
 			data: map[string]string{
-				"title":      "Bad Meeting",
+				"title":      testutil.EventTitleBadMeeting,
 				"start_time": "2025-12-01 10:00",
 				"duration":   "xyz",
 			},
@@ -410,9 +411,9 @@ func TestGenerateHolidayEvent(t *testing.T) {
 			name: "valid holiday",
 			data: map[string]string{
 				"destination":   "Paris",
-				"start_date":    "2025-12-20",
-				"end_date":      "2025-12-27",
-				"timezone":      "Europe/Paris",
+				"start_date":    testutil.Date20251220,
+				"end_date":      testutil.Date20251227,
+				"timezone":      testutil.TZEuropeParis,
 				"accommodation": "Hotel de Paris",
 				"notes":         "Christmas holiday",
 			},
@@ -422,8 +423,8 @@ func TestGenerateHolidayEvent(t *testing.T) {
 			name: "invalid start date",
 			data: map[string]string{
 				"destination": "Paris",
-				"start_date":  "not-a-date",
-				"end_date":    "2025-12-27",
+				"start_date":  testutil.ErrMsgNotADate,
+				"end_date":    testutil.Date20251227,
 			},
 			wantErr: true,
 		},
@@ -431,7 +432,7 @@ func TestGenerateHolidayEvent(t *testing.T) {
 			name: "invalid end date",
 			data: map[string]string{
 				"destination": "Paris",
-				"start_date":  "2025-12-20",
+				"start_date":  testutil.Date20251220,
 				"end_date":    "bad-date",
 			},
 			wantErr: true,
@@ -481,7 +482,7 @@ func TestGenerateFocusBlockEvent(t *testing.T) {
 			name: "valid focus block with default duration",
 			data: map[string]string{
 				"task":       "Write documentation",
-				"start_time": "2025-12-01 09:00",
+				"start_time": testutil.DateTime20251201_0900,
 			},
 			wantErr: false,
 		},
@@ -496,10 +497,10 @@ func TestGenerateFocusBlockEvent(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid start time",
+			name: testutil.ErrMsgInvalidStartTime,
 			data: map[string]string{
 				"task":       "Invalid",
-				"start_time": "bad-time",
+				"start_time": testutil.ErrMsgBadTime,
 			},
 			wantErr: true,
 		},
@@ -507,7 +508,7 @@ func TestGenerateFocusBlockEvent(t *testing.T) {
 			name: "invalid duration",
 			data: map[string]string{
 				"task":       "Invalid",
-				"start_time": "2025-12-01 09:00",
+				"start_time": testutil.DateTime20251201_0900,
 				"duration":   "forever",
 			},
 			wantErr: true,
@@ -557,7 +558,7 @@ func TestGenerateMedicationEvent(t *testing.T) {
 			name: "valid medication with recurrence",
 			data: map[string]string{
 				"medication_name": "Adderall",
-				"time":            "2025-12-01 08:00",
+				"time":            testutil.DateTime20251201_0800,
 				"dosage":          "20mg",
 				"instructions":    "Take with food",
 				"recurrence":      "FREQ=DAILY",
@@ -647,7 +648,7 @@ func TestGenerateAppointmentEvent(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid start time",
+			name: testutil.ErrMsgInvalidStartTime,
 			data: map[string]string{
 				"title":      "Bad",
 				"start_time": "invalid",
@@ -734,11 +735,11 @@ func TestGenerateTransitionEvent(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid start time",
+			name: testutil.ErrMsgInvalidStartTime,
 			data: map[string]string{
 				"from_activity": "A",
 				"to_activity":   "B",
-				"start_time":    "bad-time",
+				"start_time":    testutil.ErrMsgBadTime,
 			},
 			wantErr: true,
 		},
@@ -787,7 +788,7 @@ func TestGenerateDeadlineEvent(t *testing.T) {
 			name: "valid deadline with priority",
 			data: map[string]string{
 				"task":     "Submit report",
-				"due_date": "2025-12-15",
+				"due_date": testutil.Date20251215,
 				"priority": "1",
 				"notes":    "Annual Q4 report",
 			},
@@ -805,7 +806,7 @@ func TestGenerateDeadlineEvent(t *testing.T) {
 			name: "invalid due date",
 			data: map[string]string{
 				"task":     "Bad deadline",
-				"due_date": "not-a-date",
+				"due_date": testutil.ErrMsgNotADate,
 			},
 			wantErr: true,
 		},
@@ -873,7 +874,7 @@ func TestSplitAndTrim(t *testing.T) {
 			name:     "comma separated emails",
 			input:    "alice@example.com, bob@example.com, charlie@example.com",
 			sep:      ",",
-			expected: []string{"alice@example.com", "bob@example.com", "charlie@example.com"},
+			expected: []string{testutil.EmailAlice, testutil.EmailBob, "charlie@example.com"},
 		},
 		{
 			name:     "with extra spaces",
@@ -983,7 +984,7 @@ func TestRegisterDDTemplate(t *testing.T) {
 	tm := NewTemplateManager()
 
 	dd := DataDrivenTemplate{
-		Name:        "custom-event",
+		Name:        testutil.TemplateCustomEvent,
 		Description: "A custom event template",
 		Fields: []Field{
 			{Key: "title", Name: "Title", Type: "text", Required: true},
@@ -991,7 +992,7 @@ func TestRegisterDDTemplate(t *testing.T) {
 		},
 		Output: OutputTemplate{
 			StartField:  "date",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 			AllDay:      true,
 			Categories:  []string{"Custom"},
 		},
@@ -1001,19 +1002,19 @@ func TestRegisterDDTemplate(t *testing.T) {
 	tm.RegisterDDTemplate(dd)
 
 	// Verify it was registered
-	tmpl, err := tm.GetTemplate("custom-event")
+	tmpl, err := tm.GetTemplate(testutil.TemplateCustomEvent)
 	if err != nil {
 		t.Fatalf("failed to get registered template: %v", err)
 	}
-	if tmpl.Name != "custom-event" {
-		t.Errorf("template name = %q, want %q", tmpl.Name, "custom-event")
+	if tmpl.Name != testutil.TemplateCustomEvent {
+		t.Errorf("template name = %q, want %q", tmpl.Name, testutil.TemplateCustomEvent)
 	}
 	if len(tmpl.Fields) != 2 {
 		t.Errorf("field count = %d, want 2", len(tmpl.Fields))
 	}
 
 	// Verify it's in ddTemplates map
-	if _, ok := tm.ddTemplates["custom-event"]; !ok {
+	if _, ok := tm.ddTemplates[testutil.TemplateCustomEvent]; !ok {
 		t.Error("template not in ddTemplates map")
 	}
 }
@@ -1032,7 +1033,7 @@ func TestFilenameTemplate(t *testing.T) {
 		},
 		Output: OutputTemplate{
 			StartField:  "date",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 		},
 	}
 	tm.RegisterDDTemplate(dd)
@@ -1086,7 +1087,7 @@ func TestDataTemplate(t *testing.T) {
 		},
 		Output: OutputTemplate{
 			StartField:  "date",
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 		},
 	}
 	tm.RegisterDDTemplate(dd)
@@ -1128,7 +1129,7 @@ func TestGuessStartDate(t *testing.T) {
 	tm := NewTemplateManager()
 
 	dd := DataDrivenTemplate{
-		Name: "date-test",
+		Name: testutil.TemplateDateTest,
 		Fields: []Field{
 			{Key: "start_date", Name: "Start Date", Type: "datetime", Required: true},
 		},
@@ -1148,25 +1149,25 @@ func TestGuessStartDate(t *testing.T) {
 	}{
 		{
 			name:     "valid date only",
-			tmplName: "date-test",
+			tmplName: testutil.TemplateDateTest,
 			values: map[string]string{
-				"start_date": "2025-12-01",
+				"start_date": testutil.Date20251201,
 			},
-			wantDate:  "2025-12-01",
+			wantDate:  testutil.Date20251201,
 			wantFound: true,
 		},
 		{
 			name:     "valid datetime",
-			tmplName: "date-test",
+			tmplName: testutil.TemplateDateTest,
 			values: map[string]string{
 				"start_date": "2025-12-01 14:30",
 			},
-			wantDate:  "2025-12-01",
+			wantDate:  testutil.Date20251201,
 			wantFound: true,
 		},
 		{
 			name:     "empty value",
-			tmplName: "date-test",
+			tmplName: testutil.TemplateDateTest,
 			values: map[string]string{
 				"start_date": "",
 			},
@@ -1207,7 +1208,7 @@ func TestAlarmGeneration(t *testing.T) {
 			name: "medication alarms",
 			data: map[string]string{
 				"medication_name": "Test",
-				"time":            "2025-12-01 08:00",
+				"time":            testutil.DateTime20251201_0800,
 				"dosage":          "10mg",
 			},
 			minAlarmCount: 3, // -10m, 0, +5m
@@ -1216,7 +1217,7 @@ func TestAlarmGeneration(t *testing.T) {
 			name: "focus block alarms",
 			data: map[string]string{
 				"task":       "Test",
-				"start_time": "2025-12-01 09:00",
+				"start_time": testutil.DateTime20251201_0900,
 			},
 			minAlarmCount: 2, // -5m, 0
 		},
@@ -1232,7 +1233,7 @@ func TestAlarmGeneration(t *testing.T) {
 			name: "deadline alarms",
 			data: map[string]string{
 				"task":     "Test",
-				"due_date": "2025-12-15",
+				"due_date": testutil.Date20251215,
 			},
 			minAlarmCount: 4, // 1w, 3d, 1d, morning
 		},
@@ -1274,7 +1275,7 @@ func TestAlarmGeneration(t *testing.T) {
 			// We need to count alarms manually since we can't do proper type assertion here
 			// This is a simplified check
 			if event == nil {
-				t.Error("event is nil")
+				t.Error(testutil.ErrMsgEventIsNil)
 			}
 		})
 	}
@@ -1304,7 +1305,7 @@ func TestCategoryGeneration(t *testing.T) {
 		{
 			name: "meeting categories",
 			data: map[string]string{
-				"title":      "Team Meeting",
+				"title":      testutil.EventTitleTeamMeeting,
 				"start_time": "2025-12-01 10:00",
 			},
 			expectedCategories: []string{"Meeting", "Work"},
@@ -1313,8 +1314,8 @@ func TestCategoryGeneration(t *testing.T) {
 			name: "holiday categories",
 			data: map[string]string{
 				"destination": "Paris",
-				"start_date":  "2025-12-20",
-				"end_date":    "2025-12-27",
+				"start_date":  testutil.Date20251220,
+				"end_date":    testutil.Date20251227,
 			},
 			expectedCategories: []string{"Vacation", "Personal"},
 		},
@@ -1344,7 +1345,7 @@ func TestCategoryGeneration(t *testing.T) {
 				t.Fatalf("generator failed: %v", err)
 			}
 			if event == nil {
-				t.Fatal("event is nil")
+				t.Fatal(testutil.ErrMsgEventIsNil)
 			}
 
 			// Categories check would need proper type assertion
@@ -1407,11 +1408,11 @@ func TestTimezoneHandling(t *testing.T) {
 			data: map[string]string{
 				"title":      "Test",
 				"start_time": "2025-12-01 10:00",
-				"timezone":   "America/New_York",
+				"timezone":   testutil.TZAmericaNewYork,
 			},
 			checkStartTZ: true,
 			checkEndTZ:   true,
-			expectedTZ:   "America/New_York",
+			expectedTZ:   testutil.TZAmericaNewYork,
 		},
 		{
 			name: "flight with different timezones",
@@ -1421,7 +1422,7 @@ func TestTimezoneHandling(t *testing.T) {
 				"to":             "LAX",
 				"departure_time": "2025-12-01 10:00",
 				"arrival_time":   "2025-12-01 14:00",
-				"departure_tz":   "America/New_York",
+				"departure_tz":   testutil.TZAmericaNewYork,
 				"arrival_tz":     "America/Los_Angeles",
 			},
 			checkStartTZ: true,
@@ -1448,7 +1449,7 @@ func TestTimezoneHandling(t *testing.T) {
 				t.Fatalf("generator failed: %v", err)
 			}
 			if event == nil {
-				t.Fatal("event is nil")
+				t.Fatal(testutil.ErrMsgEventIsNil)
 			}
 
 			// Timezone checks would need proper type assertion
@@ -1470,8 +1471,8 @@ func TestAllDayEvents(t *testing.T) {
 			name: "holiday is all-day",
 			data: map[string]string{
 				"destination": "Paris",
-				"start_date":  "2025-12-20",
-				"end_date":    "2025-12-27",
+				"start_date":  testutil.Date20251220,
+				"end_date":    testutil.Date20251227,
 			},
 			wantAllDay: true,
 		},
@@ -1479,14 +1480,14 @@ func TestAllDayEvents(t *testing.T) {
 			name: "deadline is all-day",
 			data: map[string]string{
 				"task":     "Submit report",
-				"due_date": "2025-12-15",
+				"due_date": testutil.Date20251215,
 			},
 			wantAllDay: true,
 		},
 		{
 			name: "meeting is not all-day",
 			data: map[string]string{
-				"title":      "Team Meeting",
+				"title":      testutil.EventTitleTeamMeeting,
 				"start_time": "2025-12-01 10:00",
 			},
 			wantAllDay: false,
@@ -1516,7 +1517,7 @@ func TestAllDayEvents(t *testing.T) {
 				t.Fatalf("generator failed: %v", err)
 			}
 			if event == nil {
-				t.Fatal("event is nil")
+				t.Fatal(testutil.ErrMsgEventIsNil)
 			}
 
 			// AllDay check would need proper type assertion
@@ -1544,7 +1545,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 				"to":             "LAX",
 				"departure_time": "2025-12-01 10:00",
 				"arrival_time":   "2025-12-01 14:00",
-				"airline":        "American Airlines",
+				"airline":        testutil.AirlineAmerican,
 			},
 		},
 		{
@@ -1552,7 +1553,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 			tmplName: "meeting",
 			data: map[string]string{
 				"title":      "Sprint Planning",
-				"start_time": "2025-12-01 09:00",
+				"start_time": testutil.DateTime20251201_0900,
 				"duration":   "2h",
 				"location":   "Room 101",
 			},
@@ -1562,7 +1563,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 			tmplName: "holiday",
 			data: map[string]string{
 				"destination": "Tokyo",
-				"start_date":  "2025-12-20",
+				"start_date":  testutil.Date20251220,
 				"end_date":    "2025-12-30",
 			},
 		},
@@ -1571,7 +1572,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 			tmplName: "focus-block",
 			data: map[string]string{
 				"task":       "Write tests",
-				"start_time": "2025-12-01 09:00",
+				"start_time": testutil.DateTime20251201_0900,
 				"duration":   "90m",
 			},
 		},
@@ -1580,7 +1581,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 			tmplName: "medication",
 			data: map[string]string{
 				"medication_name": "Adderall",
-				"time":            "2025-12-01 08:00",
+				"time":            testutil.DateTime20251201_0800,
 				"dosage":          "20mg",
 				"recurrence":      "FREQ=DAILY",
 			},
@@ -1685,7 +1686,7 @@ func BenchmarkGenerateFlightEvent(b *testing.B) {
 func BenchmarkGenerateMeetingEvent(b *testing.B) {
 	tr := newTestTranslator()
 	data := map[string]string{
-		"title":      "Team Meeting",
+		"title":      testutil.EventTitleTeamMeeting,
 		"start_time": "2025-12-01 10:00",
 		"duration":   "1h",
 	}
@@ -1745,7 +1746,7 @@ func TestGenerateEventValidation(t *testing.T) {
 			_, err := tm.GenerateEvent(tt.tmplName, tt.data, tr)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				} else if tt.errSubstr != "" && !strings.Contains(err.Error(), tt.errSubstr) {
 					t.Errorf("error = %v, want substring %q", err, tt.errSubstr)
 				}
@@ -1780,7 +1781,7 @@ func TestMeetingEdgeCases(t *testing.T) {
 			check: func(t *testing.T, v interface{}) {
 				event := v.(*interface{})
 				if event == nil {
-					t.Error("event is nil")
+					t.Error(testutil.ErrMsgEventIsNil)
 				}
 			},
 		},
@@ -1809,14 +1810,14 @@ func TestMeetingEdgeCases(t *testing.T) {
 			event, err := generateMeetingEvent(tt.data, tr)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
 				if event == nil {
-					t.Fatal("event is nil")
+					t.Fatal(testutil.ErrMsgEventIsNil)
 				}
 				if tt.check != nil {
 					var iface interface{} = event
@@ -1844,7 +1845,7 @@ func TestFlightOptionalFields(t *testing.T) {
 				"to":             "LAX",
 				"departure_time": "2025-12-01 10:00",
 				"arrival_time":   "2025-12-01 14:00",
-				"airline":        "American Airlines",
+				"airline":        testutil.AirlineAmerican,
 				"seat":           "12A",
 				"gate":           "B22",
 			},
@@ -1868,14 +1869,14 @@ func TestFlightOptionalFields(t *testing.T) {
 			event, err := generateFlightEvent(tt.data, tr)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("expected error, got nil")
+					t.Error(testutil.ErrMsgExpectedErrorGotNil)
 				}
 			} else {
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
 				if event == nil {
-					t.Fatal("event is nil")
+					t.Fatal(testutil.ErrMsgEventIsNil)
 				}
 			}
 		})
@@ -1888,8 +1889,8 @@ func TestHolidayOptionalFields(t *testing.T) {
 
 	data := map[string]string{
 		"destination":   "Paris",
-		"start_date":    "2025-12-20",
-		"end_date":      "2025-12-27",
+		"start_date":    testutil.Date20251220,
+		"end_date":      testutil.Date20251227,
 		"accommodation": "Hotel Ritz",
 		"notes":         "Christmas vacation",
 	}
@@ -1899,7 +1900,7 @@ func TestHolidayOptionalFields(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if event == nil {
-		t.Fatal("event is nil")
+		t.Fatal(testutil.ErrMsgEventIsNil)
 	}
 
 	// Verify optional fields are included in description
@@ -1917,7 +1918,7 @@ func TestFocusBlockOptionalFields(t *testing.T) {
 
 	data := map[string]string{
 		"task":       "Deep work",
-		"start_time": "2025-12-01 09:00",
+		"start_time": testutil.DateTime20251201_0900,
 		"duration":   "2h",
 		"notes":      "Complete feature implementation\n- Write code\n- Write tests",
 	}
@@ -1927,7 +1928,7 @@ func TestFocusBlockOptionalFields(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if event == nil {
-		t.Fatal("event is nil")
+		t.Fatal(testutil.ErrMsgEventIsNil)
 	}
 
 	// Verify notes are included
@@ -1942,7 +1943,7 @@ func TestMedicationOptionalFields(t *testing.T) {
 
 	data := map[string]string{
 		"medication_name": "Vitamin D",
-		"time":            "2025-12-01 08:00",
+		"time":            testutil.DateTime20251201_0800,
 		"dosage":          "1000 IU",
 		"instructions":    "Take with breakfast",
 	}
@@ -1952,7 +1953,7 @@ func TestMedicationOptionalFields(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if event == nil {
-		t.Fatal("event is nil")
+		t.Fatal(testutil.ErrMsgEventIsNil)
 	}
 
 	// Verify instructions are included
@@ -2002,7 +2003,7 @@ func TestAppointmentOptionalFields(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if event == nil {
-				t.Fatal("event is nil")
+				t.Fatal(testutil.ErrMsgEventIsNil)
 			}
 
 			// Verify optional fields when present
@@ -2043,7 +2044,7 @@ func TestDeadlinePriority(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			data := map[string]string{
 				"task":     "Test task",
-				"due_date": "2025-12-15",
+				"due_date": testutil.Date20251215,
 				"priority": tt.priority,
 			}
 
@@ -2052,7 +2053,7 @@ func TestDeadlinePriority(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if event == nil {
-				t.Fatal("event is nil")
+				t.Fatal(testutil.ErrMsgEventIsNil)
 			}
 
 			// Only check priority if expected to be set
@@ -2075,7 +2076,7 @@ func TestGuessStartDateEdgeCases(t *testing.T) {
 		},
 		Output: OutputTemplate{
 			StartField:  "", // No start field
-			SummaryTmpl: "{{title}}",
+			SummaryTmpl: testutil.TemplatePlaceholderTitle,
 		},
 	}
 	tm.RegisterDDTemplate(dd)
@@ -2096,7 +2097,7 @@ func TestGuessStartDateEdgeCases(t *testing.T) {
 		},
 		{
 			name:     "short date value",
-			tmplName: "date-test",
+			tmplName: testutil.TemplateDateTest,
 			values: map[string]string{
 				"start_date": "2025", // Too short
 			},

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,7 @@ func TestRunCreateWritesRecurrenceData(t *testing.T) {
 	cmd := newCreateCmd()
 
 	tmpDir := t.TempDir()
-	outputPath := filepath.Join(tmpDir, "event.ics")
+	outputPath := filepath.Join(tmpDir, testutil.FilenameEventICS)
 
 	set := func(name, value string) {
 		if err := cmd.Flags().Set(name, value); err != nil {
@@ -21,9 +22,9 @@ func TestRunCreateWritesRecurrenceData(t *testing.T) {
 
 	set("start", "2025-03-01 10:00")
 	set("end", "2025-03-01 11:00")
-	set("start-tz", "Europe/Madrid")
+	set("start-tz", testutil.TZEuropeMadrid)
 	set("output", outputPath)
-	set("rrule", "FREQ=DAILY;COUNT=5")
+	set("rrule", testutil.RRuleDaily5Count)
 	set("exdate", "2025-03-03 10:00")
 
 	if err := runCreate(cmd, []string{"Recurrent Event"}); err != nil {

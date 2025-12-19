@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"bufio"
 	"os"
 	"path/filepath"
@@ -33,7 +34,7 @@ func TestTemplateCreateMedicalSupportsAdvancedFeatures(t *testing.T) {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
 	templatesDir := filepath.Join(repoRoot, "internal", "templates", "json")
-	if err := createCmd.Flags().Set("templates-dir", templatesDir); err != nil {
+	if err := createCmd.Flags().Set(testutil.TemplatesDir, templatesDir); err != nil {
 		t.Fatalf("failed to set templates-dir flag: %v", err)
 	}
 
@@ -49,7 +50,7 @@ func TestTemplateCreateMedicalSupportsAdvancedFeatures(t *testing.T) {
 		"2025-10-15 09:30",                  // start_time
 		"",                                  // end_time (blank -> use duration)
 		"45m",                               // duration
-		"Europe/Madrid",                     // timezone
+		testutil.TZEuropeMadrid,                     // timezone
 		"Bring previous records",            // notes
 		"FREQ=MONTHLY;COUNT=3",              // rrule
 		"2025-10-20 09:30,2025-10-25 09:30", // exdates
@@ -103,7 +104,7 @@ func TestTemplateCreateMedicalFromCSVGeneratesMultipleICS(t *testing.T) {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
 	templatesDir := filepath.Join(repoRoot, "internal", "templates", "json")
-	if err := createCmd.Flags().Set("templates-dir", templatesDir); err != nil {
+	if err := createCmd.Flags().Set(testutil.TemplatesDir, templatesDir); err != nil {
 		t.Fatalf("failed to set templates-dir flag: %v", err)
 	}
 

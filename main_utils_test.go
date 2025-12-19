@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"strings"
 	"testing"
 	"time"
@@ -74,10 +75,10 @@ func TestStripEmoji(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"no emoji", "Hello World", "Hello World"},
+		{"no emoji", testutil.EventTitleHelloWorld, testutil.EventTitleHelloWorld},
 		{"with emoji", "💊 Medication", "Medication"},
 		{"emoji in middle", "Take 💊 medicine", "Take 💊 medicine"}, // Middle emoji not stripped
-		{"empty string", "", ""},
+		{testutil.TestNameEmptyString, "", ""},
 		{"leading spaces after emoji", "💊  Medication", "Medication"},
 		{"leading high unicode", "¡Hola", "Hola"}, // Strips first char if > 127
 	}
@@ -150,18 +151,18 @@ func TestSlugify(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"simple", "Hello World", "hello-world"},
+		{"simple", testutil.EventTitleHelloWorld, testutil.TemplateHelloWorld},
 		{"uppercase", "TEST STRING", "test-string"},
 		{"with underscores", "test_name_here", "test-name-here"},
-		{"multiple spaces", "hello    world", "hello-world"},
-		{"leading/trailing spaces", "  hello world  ", "hello-world"},
+		{"multiple spaces", "hello    world", testutil.TemplateHelloWorld},
+		{"leading/trailing spaces", "  hello world  ", testutil.TemplateHelloWorld},
 		{"special chars", "hello@world!test", "hello-world-test"},
 		{"numbers", "test123", "test123"},
 		{"mixed", "Test_123 Hello!", "test-123-hello"},
 		{"empty", "", ""},
 		{"only special chars", "@#$%", "event"}, // Returns "event" for empty/special-only
-		{"hyphen already exists", "hello-world", "hello-world"},
-		{"consecutive hyphens", "hello--world", "hello-world"},
+		{"hyphen already exists", testutil.TemplateHelloWorld, testutil.TemplateHelloWorld},
+		{"consecutive hyphens", "hello--world", testutil.TemplateHelloWorld},
 	}
 
 	for _, tt := range tests {
@@ -183,12 +184,12 @@ func TestDetectEventConflicts(t *testing.T) {
 
 	events := []calendar.Event{
 		{
-			Summary:   "Event 1",
+			Summary:   testutil.EventTitleEvent1,
 			StartTime: now,
 			EndTime:   now.Add(1 * time.Hour),
 		},
 		{
-			Summary:   "Event 2",
+			Summary:   testutil.EventTitleEvent2,
 			StartTime: now.Add(30 * time.Minute),
 			EndTime:   now.Add(90 * time.Minute),
 		},
@@ -209,12 +210,12 @@ func TestDetectEventConflicts(t *testing.T) {
 	// Test with no conflicts
 	noConflictEvents := []calendar.Event{
 		{
-			Summary:   "Event 1",
+			Summary:   testutil.EventTitleEvent1,
 			StartTime: now,
 			EndTime:   now.Add(1 * time.Hour),
 		},
 		{
-			Summary:   "Event 2",
+			Summary:   testutil.EventTitleEvent2,
 			StartTime: now.Add(2 * time.Hour),
 			EndTime:   now.Add(3 * time.Hour),
 		},
@@ -245,12 +246,12 @@ func TestDetectOverwhelmDays(t *testing.T) {
 	// Create events on same day
 	events := []calendar.Event{
 		{
-			Summary:   "Event 1",
+			Summary:   testutil.EventTitleEvent1,
 			StartTime: now,
 			EndTime:   now.Add(1 * time.Hour),
 		},
 		{
-			Summary:   "Event 2",
+			Summary:   testutil.EventTitleEvent2,
 			StartTime: now.Add(2 * time.Hour),
 			EndTime:   now.Add(3 * time.Hour),
 		},
@@ -298,11 +299,11 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 
 	// Test meeting (should get 15min prep)
 	meetingEvent := calendar.Event{
-		Summary:   "Team Meeting",
+		Summary:   testutil.EventTitleTeamMeeting,
 		StartTime: time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 11, 0, 0, 0, time.UTC),
-		StartTZ:   "Europe/Madrid",
-		EndTZ:     "Europe/Madrid",
+		StartTZ:   testutil.TZEuropeMadrid,
+		EndTZ:     testutil.TZEuropeMadrid,
 	}
 
 	events := []calendar.Event{meetingEvent}
@@ -338,7 +339,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 		Summary:   "Doctor Appointment",
 		StartTime: time.Date(2025, 5, 1, 14, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 15, 0, 0, 0, time.UTC),
-		StartTZ:   "Europe/Madrid",
+		StartTZ:   testutil.TZEuropeMadrid,
 	}
 	medicalPrep := generatePrepTimeEvents([]calendar.Event{doctorEvent})
 	if len(medicalPrep) != 1 {
@@ -379,7 +380,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 
 	// Test all-day event (should not get prep)
 	allDayEvent := calendar.Event{
-		Summary:   "Team Meeting",
+		Summary:   testutil.EventTitleTeamMeeting,
 		StartTime: time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 2, 0, 0, 0, 0, time.UTC),
 		AllDay:    true,

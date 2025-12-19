@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"tempus/internal/testutil"
 	"strings"
 	"testing"
 	"time"
@@ -14,8 +15,8 @@ func TestPrependToday(t *testing.T) {
 		wantTime bool // true if result should contain time component
 	}{
 		{"clock only", "10:30", "UTC", true},
-		{"full datetime", "2025-06-15 10:30", "UTC", true},
-		{"date only", "2025-06-15", "UTC", false},
+		{testutil.TestNameFullDatetime, "2025-06-15 10:30", "UTC", true},
+		{testutil.TestNameDateOnly, "2025-06-15", "UTC", false},
 		{"empty", "", "UTC", false},
 	}
 
@@ -84,8 +85,8 @@ func TestParseDateTime(t *testing.T) {
 		timezone string
 		wantErr  bool
 	}{
-		{"full datetime", "2025-06-15 14:30", "UTC", false},
-		{"date only", "2025-06-15", "UTC", false},
+		{testutil.TestNameFullDatetime, "2025-06-15 14:30", "UTC", false},
+		{testutil.TestNameDateOnly, "2025-06-15", "UTC", false},
 		{"time only", "14:30", "UTC", false},
 		{"empty", "", "UTC", true},
 		{"invalid", "invalid", "UTC", true},

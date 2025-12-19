@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,7 +83,7 @@ output:
 	if !ok {
 		t.Fatalf("expected template yaml-demo to be registered")
 	}
-	if yamlTmpl.Output.SummaryTmpl != "{{title}}" {
+	if yamlTmpl.Output.SummaryTmpl != testutil.TemplatePlaceholderTitle {
 		t.Fatalf("unexpected summary template: %s", yamlTmpl.Output.SummaryTmpl)
 	}
 }

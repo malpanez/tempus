@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,7 @@ func TestCreateSupportsAlarms(t *testing.T) {
 
 	set("start", "2025-03-01 10:00")
 	set("end", "2025-03-01 11:00")
-	set("start-tz", "Europe/Madrid")
+	set("start-tz", testutil.TZEuropeMadrid)
 	set("output", outputPath)
 	set("alarm", "15m")
 	set("alarm", "trigger=+10m,description=Wrap up")

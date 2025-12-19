@@ -1,6 +1,7 @@
 package timezone
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"strings"
 	"testing"
@@ -33,12 +34,12 @@ func TestGetTimezone(t *testing.T) {
 		shouldErr bool
 	}{
 		{"UTC exact match", "UTC", false},
-		{"America/New_York", "America/New_York", false},
-		{"Europe/London", "Europe/London", false},
-		{"Asia/Tokyo", "Asia/Tokyo", false},
+		{testutil.TZAmericaNewYork, testutil.TZAmericaNewYork, false},
+		{testutil.TZEuropeLondon, testutil.TZEuropeLondon, false},
+		{testutil.TZAsiaTokyо, testutil.TZAsiaTokyо, false},
 		{"case insensitive utc", "utc", false},
 		{"case insensitive", "america/new_york", false},
-		{"invalid timezone", "Invalid/Timezone", true},
+		{"invalid timezone", testutil.TZInvalid, true},
 	}
 
 	for _, tt := range tests {
@@ -79,7 +80,7 @@ func TestListTimezones(t *testing.T) {
 	}
 
 	// Check for some expected timezones
-	expectedZones := []string{"UTC", "America/New_York", "Europe/London", "Asia/Tokyo"}
+	expectedZones := []string{"UTC", testutil.TZAmericaNewYork, testutil.TZEuropeLondon, testutil.TZAsiaTokyо}
 	for _, expected := range expectedZones {
 		found := false
 		for _, zone := range zones {
@@ -115,7 +116,7 @@ func TestSuggestTimezone(t *testing.T) {
 		{"search UTC", "UTC", 1},
 		{"search America", "America", 1},
 		{"search Europe", "Europe", 1},
-		{"search New York", "New York", 1},
+		{"search New York", testutil.LocationNewYork, 1},
 		{"search London", "London", 1},
 		{"search Tokyo", "Tokyo", 1},
 		{"case insensitive", "utc", 1},
@@ -143,7 +144,7 @@ func TestGetEuropeanTimezones(t *testing.T) {
 	}
 
 	// Check for some expected European timezones
-	expectedZones := []string{"Europe/London", "Europe/Paris", "Europe/Berlin"}
+	expectedZones := []string{testutil.TZEuropeLondon, testutil.TZEuropeParis, testutil.TZEuropeBerlin}
 	for _, expected := range expectedZones {
 		found := false
 		for _, zone := range results {
@@ -166,10 +167,10 @@ func TestIsEuropeanTimezone(t *testing.T) {
 		tz       string
 		expected bool
 	}{
-		{"Europe/London is European", "Europe/London", true},
-		{"Europe/Paris is European", "Europe/Paris", true},
-		{"America/New_York is not", "America/New_York", false},
-		{"Asia/Tokyo is not", "Asia/Tokyo", false},
+		{"Europe/London is European", testutil.TZEuropeLondon, true},
+		{"Europe/Paris is European", testutil.TZEuropeParis, true},
+		{"America/New_York is not", testutil.TZAmericaNewYork, false},
+		{"Asia/Tokyo is not", testutil.TZAsiaTokyо, false},
 	}
 
 	for _, tt := range tests {
@@ -189,9 +190,9 @@ func TestGetTimezoneOffset(t *testing.T) {
 		iana string
 	}{
 		{"UTC", "UTC"},
-		{"America/New_York", "America/New_York"},
-		{"Europe/London", "Europe/London"},
-		{"Asia/Tokyo", "Asia/Tokyo"},
+		{testutil.TZAmericaNewYork, testutil.TZAmericaNewYork},
+		{testutil.TZEuropeLondon, testutil.TZEuropeLondon},
+		{testutil.TZAsiaTokyо, testutil.TZAsiaTokyо},
 	}
 
 	for _, tt := range tests {
@@ -218,9 +219,9 @@ func TestHasDST(t *testing.T) {
 		expectedDST bool
 	}{
 		{"UTC no DST", "UTC", false},
-		{"America/New_York has DST", "America/New_York", true},
-		{"Europe/London has DST", "Europe/London", true},
-		{"Asia/Tokyo no DST", "Asia/Tokyo", false},
+		{"America/New_York has DST", testutil.TZAmericaNewYork, true},
+		{"Europe/London has DST", testutil.TZEuropeLondon, true},
+		{"Asia/Tokyo no DST", testutil.TZAsiaTokyо, false},
 	}
 
 	for _, tt := range tests {
@@ -241,9 +242,9 @@ func TestDisplayFromIANA(t *testing.T) {
 		contains string // Expected substring in display name
 	}{
 		{"UTC", "UTC", "UTC"},
-		{"America/New_York", "America/New_York", "New York"},
-		{"Europe/London", "Europe/London", "London"},
-		{"Asia/Tokyo", "Asia/Tokyo", "Tokyo"},
+		{testutil.TZAmericaNewYork, testutil.TZAmericaNewYork, testutil.LocationNewYork},
+		{testutil.TZEuropeLondon, testutil.TZEuropeLondon, "London"},
+		{testutil.TZAsiaTokyо, testutil.TZAsiaTokyо, "Tokyo"},
 	}
 
 	for _, tt := range tests {
@@ -275,31 +276,31 @@ func TestConvertTime(t *testing.T) {
 		{
 			name:      "UTC to New York",
 			fromTZ:    "UTC",
-			toTZ:      "America/New_York",
+			toTZ:      testutil.TZAmericaNewYork,
 			shouldErr: false,
 		},
 		{
 			name:      "New York to London",
-			fromTZ:    "America/New_York",
-			toTZ:      "Europe/London",
+			fromTZ:    testutil.TZAmericaNewYork,
+			toTZ:      testutil.TZEuropeLondon,
 			shouldErr: false,
 		},
 		{
 			name:      "London to Tokyo",
-			fromTZ:    "Europe/London",
-			toTZ:      "Asia/Tokyo",
+			fromTZ:    testutil.TZEuropeLondon,
+			toTZ:      testutil.TZAsiaTokyо,
 			shouldErr: false,
 		},
 		{
 			name:      "Invalid source timezone",
-			fromTZ:    "Invalid/Timezone",
+			fromTZ:    testutil.TZInvalid,
 			toTZ:      "UTC",
 			shouldErr: true,
 		},
 		{
 			name:      "Invalid destination timezone",
 			fromTZ:    "UTC",
-			toTZ:      "Invalid/Timezone",
+			toTZ:      testutil.TZInvalid,
 			shouldErr: true,
 		},
 		{
@@ -357,12 +358,12 @@ func TestValidateTimezone(t *testing.T) {
 		shouldErr bool
 	}{
 		{"Valid UTC", "UTC", false},
-		{"Valid New York", "America/New_York", false},
-		{"Valid London", "Europe/London", false},
-		{"Valid Tokyo", "Asia/Tokyo", false},
-		{"Valid Madrid", "Europe/Madrid", false},
-		{"Invalid timezone", "Invalid/Timezone", true},
-		{"Empty string", "", false}, // time.LoadLocation("") returns Local/UTC, not an error
+		{"Valid New York", testutil.TZAmericaNewYork, false},
+		{"Valid London", testutil.TZEuropeLondon, false},
+		{"Valid Tokyo", testutil.TZAsiaTokyо, false},
+		{"Valid Madrid", testutil.TZEuropeMadrid, false},
+		{"Invalid timezone", testutil.TZInvalid, true},
+		{testutil.TestStringEmptyString, "", false}, // time.LoadLocation("") returns Local/UTC, not an error
 		{"Nonsense string", "NotATimezone", true},
 		{"Case insensitive valid", "utc", false},
 		{"Alias madrid", "madrid", false},
@@ -434,18 +435,18 @@ func TestGetTimezoneAbbreviation(t *testing.T) {
 		tz     string
 		expect string
 	}{
-		{"Madrid", "Europe/Madrid", "CET/CEST"},
-		{"Dublin", "Europe/Dublin", "GMT/IST"},
-		{"London", "Europe/London", "GMT/BST"},
-		{"Canary", "Atlantic/Canary", "WET/WEST"},
-		{"Paris", "Europe/Paris", "CET/CEST"},
-		{"Berlin", "Europe/Berlin", "CET/CEST"},
-		{"New York", "America/New_York", "EST/EDT"},
+		{"Madrid", testutil.TZEuropeMadrid, testutil.TZAbbrevCETCEST},
+		{"Dublin", testutil.TZEuropeDublin, "GMT/IST"},
+		{"London", testutil.TZEuropeLondon, "GMT/BST"},
+		{"Canary", testutil.TZAtlanticCanary, "WET/WEST"},
+		{"Paris", testutil.TZEuropeParis, testutil.TZAbbrevCETCEST},
+		{"Berlin", testutil.TZEuropeBerlin, testutil.TZAbbrevCETCEST},
+		{testutil.LocationNewYork, testutil.TZAmericaNewYork, "EST/EDT"},
 		{"Los Angeles", "America/Los_Angeles", "PST/PDT"},
 		{"Chicago", "America/Chicago", "CST/CDT"},
-		{"Sao Paulo", "America/Sao_Paulo", "BRT"},
-		{"Campo Grande", "America/Campo_Grande", "AMT"},
-		{"Tokyo", "Asia/Tokyo", "JST"},
+		{"Sao Paulo", testutil.TZAmericaSaoPaulo, "BRT"},
+		{"Campo Grande", testutil.TZAmericaCampoGrande, "AMT"},
+		{"Tokyo", testutil.TZAsiaTokyо, "JST"},
 		{"Shanghai", "Asia/Shanghai", "CST"},
 		{"Sydney", "Australia/Sydney", "AEST/AEDT"},
 		{"Mexico City", "America/Mexico_City", "CST/CDT"},
@@ -473,7 +474,7 @@ func TestValueOr(t *testing.T) {
 		expected string
 	}{
 		{"Non-empty string", "test", "fallback", "test"},
-		{"Empty string", "", "fallback", "fallback"},
+		{testutil.TestStringEmptyString, "", "fallback", "fallback"},
 		{"Whitespace only", "   ", "fallback", "fallback"},
 		{"Tab only", "\t", "fallback", "fallback"},
 		{"Newline only", "\n", "fallback", "fallback"},
@@ -534,7 +535,7 @@ func TestLoadJSONDir(t *testing.T) {
 		}
 
 		// Verify the zones were loaded
-		zone1, err := tm.GetTimezone("Test/Zone1")
+		zone1, err := tm.GetTimezone(testutil.TestZone1)
 		if err != nil {
 			t.Errorf("Failed to get loaded zone: %v", err)
 		} else if zone1.DisplayName != "Test Zone 1" {
@@ -545,7 +546,7 @@ func TestLoadJSONDir(t *testing.T) {
 		aliasZone, err := tm.GetTimezone("test1")
 		if err != nil {
 			t.Errorf("Failed to get zone by alias: %v", err)
-		} else if aliasZone.IANA != "Test/Zone1" {
+		} else if aliasZone.IANA != testutil.TestZone1 {
 			t.Errorf("Alias points to %q, want 'Test/Zone1'", aliasZone.IANA)
 		}
 
@@ -553,7 +554,7 @@ func TestLoadJSONDir(t *testing.T) {
 		globalAliasZone, err := tm.GetTimezone("testalias")
 		if err != nil {
 			t.Errorf("Failed to get zone by global alias: %v", err)
-		} else if globalAliasZone.IANA != "Test/Zone1" {
+		} else if globalAliasZone.IANA != testutil.TestZone1 {
 			t.Errorf("Global alias points to %q, want 'Test/Zone1'", globalAliasZone.IANA)
 		}
 	})
@@ -907,7 +908,7 @@ func TestSuggestTimezoneEmptyInput(t *testing.T) {
 		name  string
 		input string
 	}{
-		{"Empty string", ""},
+		{testutil.TestStringEmptyString, ""},
 		{"Whitespace only", "   "},
 		{"Tab only", "\t"},
 		{"Newline only", "\n"},
@@ -955,7 +956,7 @@ func TestSuggestTimezoneLimitResults(t *testing.T) {
 }
 
 func TestGetTimezoneOffsetInvalidTimezone(t *testing.T) {
-	result := getTimezoneOffset("Invalid/Timezone")
+	result := getTimezoneOffset(testutil.TZInvalid)
 
 	if result != "Unknown" {
 		t.Errorf("getTimezoneOffset('Invalid/Timezone') = %q, want 'Unknown'", result)
@@ -964,7 +965,7 @@ func TestGetTimezoneOffsetInvalidTimezone(t *testing.T) {
 
 func TestGetTimezoneOffsetNegativeOffset(t *testing.T) {
 	// Test a timezone with negative offset
-	result := getTimezoneOffset("America/New_York")
+	result := getTimezoneOffset(testutil.TZAmericaNewYork)
 
 	if result == "" {
 		t.Error("getTimezoneOffset('America/New_York') returned empty string")
@@ -977,7 +978,7 @@ func TestGetTimezoneOffsetNegativeOffset(t *testing.T) {
 }
 
 func TestHasDSTInvalidTimezone(t *testing.T) {
-	result := hasDST("Invalid/Timezone")
+	result := hasDST(testutil.TZInvalid)
 
 	if result != false {
 		t.Errorf("hasDST('Invalid/Timezone') = %v, want false", result)
@@ -1006,19 +1007,19 @@ func TestLoadFromZoneTabExistingZone(t *testing.T) {
 
 	// Pre-add a zone
 	preAddedZone := &TimezoneInfo{
-		IANA:        "Europe/Madrid",
+		IANA:        testutil.TZEuropeMadrid,
 		DisplayName: "Pre-added Madrid",
 		Country:     "Pre-added Spain",
 		Offset:      "+00:00",
 		DST:         false,
 	}
-	tm.zones["Europe/Madrid"] = preAddedZone
+	tm.zones[testutil.TZEuropeMadrid] = preAddedZone
 
 	// Load from zone tab (which should include Europe/Madrid)
 	tm.loadFromZoneTab()
 
 	// The pre-added zone should not be overwritten
-	zone := tm.zones["Europe/Madrid"]
+	zone := tm.zones[testutil.TZEuropeMadrid]
 	if zone.DisplayName != "Pre-added Madrid" {
 		t.Errorf("loadFromZoneTab() overwrote existing zone: got %q", zone.DisplayName)
 	}
@@ -1043,7 +1044,7 @@ func TestParseZone1970Tab(t *testing.T) {
 	}
 
 	// Check for some expected timezones
-	expectedZones := []string{"Europe/London", "America/New_York", "Asia/Tokyo"}
+	expectedZones := []string{testutil.TZEuropeLondon, testutil.TZAmericaNewYork, testutil.TZAsiaTokyо}
 	for _, expected := range expectedZones {
 		found := false
 		for _, row := range rows {

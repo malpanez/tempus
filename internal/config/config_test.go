@@ -1,6 +1,7 @@
 package config
 
 import (
+	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 const (
 	testConfigDir        = ".config"
-	testTimezoneEuMadrid = "Europe/Madrid"
+	testTimezoneEuMadrid = testutil.TZEuropeMadrid
 )
 
 func TestLoadDefaults(t *testing.T) {
@@ -227,7 +228,7 @@ func TestSave(t *testing.T) {
 	if err := cfg.Set("language", "ga"); err != nil {
 		t.Fatalf("Set(language) failed: %v", err)
 	}
-	if err := cfg.Set("timezone", "Europe/Dublin"); err != nil {
+	if err := cfg.Set("timezone", testutil.TZEuropeDublin); err != nil {
 		t.Fatalf("Set(timezone) failed: %v", err)
 	}
 
@@ -247,7 +248,7 @@ func TestSave(t *testing.T) {
 	if cfg2.Language != "ga" {
 		t.Errorf("expected language 'ga', got %q", cfg2.Language)
 	}
-	if cfg2.Timezone != "Europe/Dublin" {
+	if cfg2.Timezone != testutil.TZEuropeDublin {
 		t.Errorf("expected timezone 'Europe/Dublin', got %q", cfg2.Timezone)
 	}
 }
@@ -259,9 +260,9 @@ func TestValidateTimezone(t *testing.T) {
 		wantErr bool
 	}{
 		{"valid UTC", "UTC", false},
-		{"valid America/New_York", "America/New_York", false},
+		{"valid America/New_York", testutil.TZAmericaNewYork, false},
 		{"valid Europe/Madrid", testTimezoneEuMadrid, false},
-		{"invalid timezone", "Invalid/Timezone", true},
+		{"invalid timezone", testutil.TZInvalid, true},
 		{"empty timezone", "", true},
 		{"whitespace only", "   ", true},
 	}
@@ -381,7 +382,7 @@ func TestSetAllFields(t *testing.T) {
 		{"date_format", "02/01/2006", func(c *Config) string { return c.DateFormat }},
 		{"time_format", "15:04:05", func(c *Config) string { return c.TimeFormat }},
 		{"output_dir", "/tmp", func(c *Config) string { return c.OutputDir }},
-		{"default_title", "Test Event", func(c *Config) string { return c.DefaultTitle }},
+		{"default_title", testutil.EventTitleTestEvent, func(c *Config) string { return c.DefaultTitle }},
 	}
 
 	for _, tt := range tests {
