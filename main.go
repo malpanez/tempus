@@ -1591,84 +1591,99 @@ func generatePrepTimeEvents(events []calendar.Event) []*calendar.Event {
 	var prepEvents []*calendar.Event
 
 	for _, ev := range events {
-		// Skip all-day events (no prep time needed)
 		if ev.AllDay {
 			continue
 		}
 
-		summaryLower := strings.ToLower(ev.Summary)
-
-		// Determine if event needs prep time and how much
-		var prepDuration time.Duration
-		var prepDescription string
-		needsPrep := false
-
-		// Meetings and appointments: 15min prep (research recommendation)
-		if strings.Contains(summaryLower, "meeting") ||
-			strings.Contains(summaryLower, "reunion") ||
-			strings.Contains(summaryLower, "appointment") ||
-			strings.Contains(summaryLower, "cita") ||
-			strings.Contains(summaryLower, "interview") ||
-			strings.Contains(summaryLower, "call") {
-			prepDuration = 15 * time.Minute
-			prepDescription = "Preparation"
-			needsPrep = true
-		}
-
-		// Medical/health events: 20min prep (more time for travel, parking, etc.)
-		if strings.Contains(summaryLower, "doctor") ||
-			strings.Contains(summaryLower, "médico") ||
-			strings.Contains(summaryLower, "dentist") ||
-			strings.Contains(summaryLower, "therapy") ||
-			strings.Contains(summaryLower, "hospital") ||
-			strings.Contains(summaryLower, "clinic") {
-			prepDuration = 20 * time.Minute
-			prepDescription = "Travel & arrival buffer"
-			needsPrep = true
-		}
-
-		// Focus blocks: 5min transition after (decompression)
-		if strings.Contains(summaryLower, "focus") ||
-			strings.Contains(summaryLower, "deep work") ||
-			strings.Contains(summaryLower, "coding") ||
-			strings.Contains(summaryLower, "writing") {
-			// Add transition AFTER the event
-			transitionEvent := &calendar.Event{
-				UID:        generateUID(),
-				Summary:    "🔄 Transition: " + stripEmoji(ev.Summary),
-				StartTime:  ev.EndTime,
-				EndTime:    ev.EndTime.Add(5 * time.Minute),
-				StartTZ:    ev.StartTZ,
-				EndTZ:      ev.EndTZ,
-				AllDay:     false,
-				Categories: []string{"Transition"},
-				Status:     "CONFIRMED",
-				Created:    time.Now().UTC(),
-				LastMod:    time.Now().UTC(),
-			}
+		if transitionEvent := createTransitionEventIfNeeded(ev); transitionEvent != nil {
 			prepEvents = append(prepEvents, transitionEvent)
-			continue // Don't add prep before focus blocks
+			continue
 		}
 
-		if needsPrep {
-			prepEvent := &calendar.Event{
-				UID:        generateUID(),
-				Summary:    "⏰ " + prepDescription + ": " + stripEmoji(ev.Summary),
-				StartTime:  ev.StartTime.Add(-prepDuration),
-				EndTime:    ev.StartTime,
-				StartTZ:    ev.StartTZ,
-				EndTZ:      ev.EndTZ,
-				AllDay:     false,
-				Categories: []string{"Preparation"},
-				Status:     "CONFIRMED",
-				Created:    time.Now().UTC(),
-				LastMod:    time.Now().UTC(),
-			}
+		if prepEvent := createPrepEventIfNeeded(ev); prepEvent != nil {
 			prepEvents = append(prepEvents, prepEvent)
 		}
 	}
 
 	return prepEvents
+}
+
+func createTransitionEventIfNeeded(ev calendar.Event) *calendar.Event {
+	if !needsFocusTransition(ev.Summary) {
+		return nil
+	}
+
+	return &calendar.Event{
+		UID:        generateUID(),
+		Summary:    "🔄 Transition: " + stripEmoji(ev.Summary),
+		StartTime:  ev.EndTime,
+		EndTime:    ev.EndTime.Add(5 * time.Minute),
+		StartTZ:    ev.StartTZ,
+		EndTZ:      ev.EndTZ,
+		AllDay:     false,
+		Categories: []string{"Transition"},
+		Status:     "CONFIRMED",
+		Created:    time.Now().UTC(),
+		LastMod:    time.Now().UTC(),
+	}
+}
+
+func createPrepEventIfNeeded(ev calendar.Event) *calendar.Event {
+	duration, description := determinePrepTime(ev.Summary)
+	if duration == 0 {
+		return nil
+	}
+
+	return &calendar.Event{
+		UID:        generateUID(),
+		Summary:    "⏰ " + description + ": " + stripEmoji(ev.Summary),
+		StartTime:  ev.StartTime.Add(-duration),
+		EndTime:    ev.StartTime,
+		StartTZ:    ev.StartTZ,
+		EndTZ:      ev.EndTZ,
+		AllDay:     false,
+		Categories: []string{"Preparation"},
+		Status:     "CONFIRMED",
+		Created:    time.Now().UTC(),
+		LastMod:    time.Now().UTC(),
+	}
+}
+
+func needsFocusTransition(summary string) bool {
+	summaryLower := strings.ToLower(summary)
+	focusKeywords := []string{"focus", "deep work", "coding", "writing"}
+
+	for _, keyword := range focusKeywords {
+		if strings.Contains(summaryLower, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func determinePrepTime(summary string) (time.Duration, string) {
+	summaryLower := strings.ToLower(summary)
+
+	// Medical/health events: 20min prep
+	if containsAny(summaryLower, []string{"doctor", "médico", "dentist", "therapy", "hospital", "clinic"}) {
+		return 20 * time.Minute, "Travel & arrival buffer"
+	}
+
+	// Meetings and appointments: 15min prep
+	if containsAny(summaryLower, []string{"meeting", "reunion", "appointment", "cita", "interview", "call"}) {
+		return 15 * time.Minute, "Preparation"
+	}
+
+	return 0, ""
+}
+
+func containsAny(text string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+	return false
 }
 
 // stripEmoji removes emoji from event summary for prep event names
