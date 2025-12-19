@@ -1973,92 +1973,138 @@ Date Night,2025-12-21 20:00,2h,Europe/Madrid,Restaurant Downtown,Family|Personal
 }
 
 func lintICSFile(path string) error {
+	lines, err := loadAndValidateICSFile(path)
+	if err != nil {
+		return err
+	}
+
+	state := newLintState()
+	for _, line := range lines {
+		processLintLine(&state, line)
+	}
+
+	return validateLintResults(state)
+}
+
+type lintState struct {
+	calendarSeen bool
+	eventSeen    bool
+	inEvent      bool
+	eventIndex   int
+	eventFields  map[string]string
+	eventIssues  []string
+}
+
+func newLintState() lintState {
+	return lintState{
+		eventFields: make(map[string]string, 8),
+	}
+}
+
+func loadAndValidateICSFile(path string) ([]string, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("cannot access file: %w", err)
+		return nil, fmt.Errorf("cannot access file: %w", err)
 	}
 	if info.IsDir() {
-		return fmt.Errorf("%s is a directory, expected file", path)
+		return nil, fmt.Errorf("%s is a directory, expected file", path)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
+
 	lines := unfoldICSLines(string(data))
 	if len(lines) == 0 {
-		return fmt.Errorf("file is empty")
+		return nil, fmt.Errorf("file is empty")
 	}
 
-	var (
-		calendarSeen bool
-		eventSeen    bool
-		inEvent      bool
-		eventIndex   int
-		eventFields  map[string]string
-		eventIssues  []string
-	)
+	return lines, nil
+}
 
-	for _, raw := range lines {
-		line := strings.TrimSpace(raw)
-		if line == "" {
-			continue
-		}
+func processLintLine(state *lintState, raw string) {
+	line := strings.TrimSpace(raw)
+	if line == "" {
+		return
+	}
 
-		switch {
-		case strings.EqualFold(line, "BEGIN:VCALENDAR"):
-			calendarSeen = true
-		case strings.EqualFold(line, "END:VCALENDAR"):
-			// nothing
-		case strings.EqualFold(line, "BEGIN:VEVENT"):
-			inEvent = true
-			eventSeen = true
-			eventIndex++
-			eventFields = make(map[string]string, 8)
-		case strings.EqualFold(line, "END:VEVENT"):
-			if !inEvent {
-				eventIssues = append(eventIssues, "unexpected END:VEVENT without matching BEGIN:VEVENT")
-				continue
-			}
-			inEvent = false
+	switch {
+	case strings.EqualFold(line, "BEGIN:VCALENDAR"):
+		state.calendarSeen = true
+	case strings.EqualFold(line, "END:VCALENDAR"):
+		// nothing
+	case strings.EqualFold(line, "BEGIN:VEVENT"):
+		handleBeginEvent(state)
+	case strings.EqualFold(line, "END:VEVENT"):
+		handleEndEvent(state)
+	default:
+		handleEventProperty(state, line)
+	}
+}
 
-			label := fmt.Sprintf("VEVENT #%d", eventIndex)
-			if summary := strings.TrimSpace(eventFields["SUMMARY"]); summary != "" {
-				label = fmt.Sprintf("%s (%s)", label, summary)
-			}
-			must := []string{"UID", "SUMMARY", "DTSTART"}
-			for _, key := range must {
-				if strings.TrimSpace(eventFields[key]) == "" {
-					eventIssues = append(eventIssues, fmt.Sprintf("%s missing %s", label, key))
-				}
-			}
-			if _, hasEnd := eventFields["DTEND"]; !hasEnd {
-				if _, hasDuration := eventFields["DURATION"]; !hasDuration {
-					eventIssues = append(eventIssues, fmt.Sprintf("%s missing DTEND or DURATION", label))
-				}
-			}
-		default:
-			if !inEvent {
-				continue
-			}
-			name, value, ok := parseICSProperty(line)
-			if !ok {
-				continue
-			}
-			eventFields[name] = value
+func handleBeginEvent(state *lintState) {
+	state.inEvent = true
+	state.eventSeen = true
+	state.eventIndex++
+	state.eventFields = make(map[string]string, 8)
+}
+
+func handleEndEvent(state *lintState) {
+	if !state.inEvent {
+		state.eventIssues = append(state.eventIssues, "unexpected END:VEVENT without matching BEGIN:VEVENT")
+		return
+	}
+	state.inEvent = false
+
+	label := buildEventLabel(state.eventIndex, state.eventFields)
+	validateEventFields(state, label)
+}
+
+func buildEventLabel(index int, fields map[string]string) string {
+	label := fmt.Sprintf("VEVENT #%d", index)
+	if summary := strings.TrimSpace(fields["SUMMARY"]); summary != "" {
+		label = fmt.Sprintf("%s (%s)", label, summary)
+	}
+	return label
+}
+
+func validateEventFields(state *lintState, label string) {
+	requiredFields := []string{"UID", "SUMMARY", "DTSTART"}
+	for _, key := range requiredFields {
+		if strings.TrimSpace(state.eventFields[key]) == "" {
+			state.eventIssues = append(state.eventIssues, fmt.Sprintf("%s missing %s", label, key))
 		}
 	}
 
-	if !calendarSeen {
+	_, hasEnd := state.eventFields["DTEND"]
+	_, hasDuration := state.eventFields["DURATION"]
+	if !hasEnd && !hasDuration {
+		state.eventIssues = append(state.eventIssues, fmt.Sprintf("%s missing DTEND or DURATION", label))
+	}
+}
+
+func handleEventProperty(state *lintState, line string) {
+	if !state.inEvent {
+		return
+	}
+
+	name, value, ok := parseICSProperty(line)
+	if ok {
+		state.eventFields[name] = value
+	}
+}
+
+func validateLintResults(state lintState) error {
+	if !state.calendarSeen {
 		return fmt.Errorf("missing BEGIN:VCALENDAR")
 	}
-	if !eventSeen {
+	if !state.eventSeen {
 		return fmt.Errorf("no VEVENT blocks found")
 	}
-	if len(eventIssues) > 0 {
-		return fmt.Errorf("%s", strings.Join(eventIssues, "; "))
+	if len(state.eventIssues) > 0 {
+		return fmt.Errorf("%s", strings.Join(state.eventIssues, "; "))
 	}
-
 	return nil
 }
 
