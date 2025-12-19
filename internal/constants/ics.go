@@ -3,9 +3,9 @@ package constants
 // ICS/iCalendar constants (RFC 5545)
 const (
 	// Event status values
-	StatusConfirmed  = "CONFIRMED"
-	StatusTentative  = "TENTATIVE"
-	StatusCancelled  = "CANCELLED"
+	StatusConfirmed = "CONFIRMED"
+	StatusTentative = "TENTATIVE"
+	StatusCancelled = "CANCELLED"
 
 	// Alarm action types
 	AlarmActionDisplay = "DISPLAY"

@@ -4,11 +4,11 @@ package constants
 // These are IANA timezone identifiers.
 const (
 	// European timezones
-	TZEuropeMadrid  = "Europe/Madrid"
-	TZEuropeLondon  = "Europe/London"
-	TZEuropeDublin  = "Europe/Dublin"
-	TZEuropeParis   = "Europe/Paris"
-	TZEuropeBerlin  = "Europe/Berlin"
+	TZEuropeMadrid = "Europe/Madrid"
+	TZEuropeLondon = "Europe/London"
+	TZEuropeDublin = "Europe/Dublin"
+	TZEuropeParis  = "Europe/Paris"
+	TZEuropeBerlin = "Europe/Berlin"
 
 	// American timezones
 	TZAmericaNewYork    = "America/New_York"

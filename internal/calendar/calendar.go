@@ -12,8 +12,8 @@ import (
 
 const (
 	// VTIMEZONE block delimiters
-	vtzBegin        = "BEGIN:VTIMEZONE\r\n"
-	vtzEnd          = "END:VTIMEZONE\r\n"
+	vtzBegin         = "BEGIN:VTIMEZONE\r\n"
+	vtzEnd           = "END:VTIMEZONE\r\n"
 	vtzBeginDaylight = "BEGIN:DAYLIGHT\r\n"
 	vtzEndDaylight   = "END:DAYLIGHT\r\n"
 	vtzBeginStandard = "BEGIN:STANDARD\r\n"

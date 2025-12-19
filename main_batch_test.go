@@ -1,10 +1,10 @@
 package main
 
 import (
-	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 
 	"github.com/spf13/cobra"

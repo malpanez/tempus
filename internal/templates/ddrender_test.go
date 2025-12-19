@@ -1,8 +1,8 @@
 package templates
 
 import (
-	"tempus/internal/testutil"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 	"time"
 )

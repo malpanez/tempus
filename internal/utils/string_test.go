@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"tempus/internal/testutil"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 )
 

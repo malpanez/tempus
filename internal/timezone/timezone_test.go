@@ -1,9 +1,9 @@
 package timezone
 
 import (
-	"tempus/internal/testutil"
 	"os"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 	"time"
 )

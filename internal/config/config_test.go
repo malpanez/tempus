@@ -1,10 +1,10 @@
 package config
 
 import (
-	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 
 	"github.com/spf13/viper"

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"tempus/internal/testutil"
 	"os"
 	"path/filepath"
+	"tempus/internal/testutil"
 	"testing"
 	"time"
 

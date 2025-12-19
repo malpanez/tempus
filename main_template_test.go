@@ -1,11 +1,11 @@
 package main
 
 import (
-	"tempus/internal/testutil"
 	"bufio"
 	"os"
 	"path/filepath"
 	"strings"
+	"tempus/internal/testutil"
 	"testing"
 
 	"tempus/internal/prompts"
@@ -50,7 +50,7 @@ func TestTemplateCreateMedicalSupportsAdvancedFeatures(t *testing.T) {
 		"2025-10-15 09:30",                  // start_time
 		"",                                  // end_time (blank -> use duration)
 		"45m",                               // duration
-		testutil.TZEuropeMadrid,                     // timezone
+		testutil.TZEuropeMadrid,             // timezone
 		"Bring previous records",            // notes
 		"FREQ=MONTHLY;COUNT=3",              // rrule
 		"2025-10-20 09:30,2025-10-25 09:30", // exdates
