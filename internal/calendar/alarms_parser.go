@@ -13,10 +13,8 @@ const (
 	defaultDescText = "Reminder"
 
 	// Error messages
-	errEmptyDuration      = "empty duration"
-	errDurationMustBePos  = "duration must be positive"
-	errInvalidICSDuration = "invalid ICS duration %q"
-	errRepeatDurationPos  = "repeat duration must be positive in alarm %q"
+	errEmptyDuration     = "empty duration"
+	errDurationMustBePos = "duration must be positive"
 )
 
 var (
@@ -362,7 +360,7 @@ func parseAlarmRepeatParams(params map[string]string, spec string) (int, time.Du
 			return 0, 0, fmt.Errorf("invalid repeat duration %q in alarm %q: %v", repeatDurStr, spec, err)
 		}
 		if dur <= 0 {
-			return 0, 0, fmt.Errorf(errRepeatDurationPos, spec)
+			return 0, 0, fmt.Errorf("repeat duration must be positive in alarm %q", spec)
 		}
 		repeatDur = dur
 	}
@@ -541,12 +539,12 @@ func parseICSDuration(raw string) (time.Duration, error) {
 		return 0, fmt.Errorf(errDurationMustBePos)
 	}
 	if !strings.HasPrefix(val, "P") {
-		return 0, fmt.Errorf(errInvalidICSDuration, raw)
+		return 0, fmt.Errorf("invalid ICS duration %q", raw)
 	}
 
 	matches := icsDurationRe.FindStringSubmatch(val)
 	if matches == nil {
-		return 0, fmt.Errorf(errInvalidICSDuration, raw)
+		return 0, fmt.Errorf("invalid ICS duration %q", raw)
 	}
 
 	var total time.Duration
@@ -567,7 +565,7 @@ func parseICSDuration(raw string) (time.Duration, error) {
 	}
 
 	if total == 0 {
-		return 0, fmt.Errorf(errInvalidICSDuration, raw)
+		return 0, fmt.Errorf("invalid ICS duration %q", raw)
 	}
 	return total, nil
 }
