@@ -115,11 +115,11 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 		timezone string
 		wantErr  bool
 	}{
-		{"end provided", "2025-06-15 10:00", "2025-06-15 11:00", "1h", "UTC", false},
-		{"duration used", "2025-06-15 10:00", "", "45m", "UTC", false},
-		{"empty duration", "2025-06-15 10:00", "", "", "UTC", false},
+		{"end provided", testutil.DateTime20250615_1000, "2025-06-15 11:00", "1h", "UTC", false},
+		{"duration used", testutil.DateTime20250615_1000, "", "45m", "UTC", false},
+		{"empty duration", testutil.DateTime20250615_1000, "", "", "UTC", false},
 		{"invalid start", "invalid", "", "1h", "UTC", true},
-		{"invalid duration", "2025-06-15 10:00", "", "invalid", "UTC", true},
+		{"invalid duration", testutil.DateTime20250615_1000, "", "invalid", "UTC", true},
 	}
 
 	for _, tt := range tests {
@@ -163,7 +163,7 @@ func TestNormalizeValuesForTemplate(t *testing.T) {
 		{
 			name: "calculate end from duration",
 			values: map[string]string{
-				"start_time": "2025-06-15 10:00",
+				"start_time": testutil.DateTime20250615_1000,
 				"end_time":   "",
 				"duration":   "1h",
 				"timezone":   "UTC",
