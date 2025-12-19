@@ -804,15 +804,15 @@ func TestRenderDDToEventWithRecurrence(t *testing.T) {
 	values := map[string]string{
 		"title": "Weekly Meeting",
 		"start": testutil.DateTime20251201_1000,
-		"rrule": "FREQ=WEEKLY;BYDAY=MO",
+		"rrule": testutil.ICSRRuleWeeklyMonday,
 	}
 
 	event, err := tm.renderDDToEvent(&dd, values, tr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if event.RRule != "FREQ=WEEKLY;BYDAY=MO" {
-		t.Errorf("RRule = %q, want %q", event.RRule, "FREQ=WEEKLY;BYDAY=MO")
+	if event.RRule != testutil.ICSRRuleWeeklyMonday {
+		t.Errorf("RRule = %q, want %q", event.RRule, testutil.ICSRRuleWeeklyMonday)
 	}
 }
 

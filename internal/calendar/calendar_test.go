@@ -188,7 +188,7 @@ func TestCalendarToICSBasic(t *testing.T) {
 		"SUMMARY:Meeting",
 		"DTSTART:",
 		"DTEND:",
-		"STATUS:CONFIRMED",
+		testutil.ICSStatusConfirmed,
 		"END:VEVENT",
 		"END:VCALENDAR",
 	}
@@ -599,14 +599,14 @@ func TestParseDateTime(t *testing.T) {
 		timezone string
 		wantErr  bool
 	}{
-		{testutil.TestNameDateOnly, "2025-11-15", "", "", false},
-		{"date and time", "2025-11-15", "14:30", "", false},
-		{testutil.TestNameWithTimezone, "2025-11-15", "14:30", testutil.TZAmericaNewYork, false},
-		{"invalid timezone", "2025-11-15", "14:30", "Invalid/Zone", true},
+		{testutil.TestNameDateOnly, testutil.Date20251115, "", "", false},
+		{"date and time", testutil.Date20251115, "14:30", "", false},
+		{testutil.TestNameWithTimezone, testutil.Date20251115, "14:30", testutil.TZAmericaNewYork, false},
+		{"invalid timezone", testutil.Date20251115, "14:30", "Invalid/Zone", true},
 		{"invalid date", "2025-13-32", "", "", true},
-		{"invalid time", "2025-11-15", "25:99", "", true},
-		{"UTC timezone", "2025-11-15", "14:30", "UTC", false},
-		{testutil.TZEuropeMadrid, "2025-11-15", "14:30", testutil.TZEuropeMadrid, false},
+		{"invalid time", testutil.Date20251115, "25:99", "", true},
+		{"UTC timezone", testutil.Date20251115, "14:30", "UTC", false},
+		{testutil.TZEuropeMadrid, testutil.Date20251115, "14:30", testutil.TZEuropeMadrid, false},
 	}
 
 	for _, tt := range tests {
@@ -938,7 +938,7 @@ func TestEventWithExDatesWithTimezone(t *testing.T) {
 	start := time.Date(2025, 11, 15, 10, 0, 0, 0, loc)
 	event := NewEvent("Recurring", start, start.Add(1*time.Hour))
 	event.SetTimezone(testutil.TZAmericaNewYork)
-	event.RRule = "FREQ=WEEKLY;BYDAY=MO"
+	event.RRule = testutil.ICSRRuleWeeklyMonday
 
 	exDate := time.Date(2025, 11, 22, 10, 0, 0, 0, loc)
 	event.ExDates = []time.Time{exDate}
@@ -1039,11 +1039,11 @@ func TestEventStatusVariations(t *testing.T) {
 		status        string
 		expectedInICS string
 	}{
-		{"confirmed", "CONFIRMED", "STATUS:CONFIRMED"},
+		{"confirmed", "CONFIRMED", testutil.ICSStatusConfirmed},
 		{"tentative", "TENTATIVE", "STATUS:TENTATIVE"},
 		{"cancelled", "CANCELLED", "STATUS:CANCELLED"},
-		{"empty defaults to confirmed", "", "STATUS:CONFIRMED"},
-		{"whitespace defaults to confirmed", "   ", "STATUS:CONFIRMED"},
+		{"empty defaults to confirmed", "", testutil.ICSStatusConfirmed},
+		{"whitespace defaults to confirmed", "   ", testutil.ICSStatusConfirmed},
 	}
 
 	for _, tt := range tests {
@@ -1221,7 +1221,7 @@ func TestCalendarWithIncludeVTZ(t *testing.T) {
 	ics := cal.ToICS()
 
 	// Should include VTIMEZONE block
-	if !strings.Contains(ics, "BEGIN:VTIMEZONE") {
+	if !strings.Contains(ics, testutil.ICSBeginVTimezone) {
 		t.Error("ICS with IncludeVTZ should contain VTIMEZONE block")
 	}
 	if !strings.Contains(ics, "TZID:Europe/Madrid") {
@@ -1253,7 +1253,7 @@ func TestCalendarWithIncludeVTZMultipleTimezones(t *testing.T) {
 	ics := cal.ToICS()
 
 	// Should include both VTIMEZONE blocks
-	vtzCount := strings.Count(ics, "BEGIN:VTIMEZONE")
+	vtzCount := strings.Count(ics, testutil.ICSBeginVTimezone)
 	if vtzCount != 2 {
 		t.Errorf("Expected 2 VTIMEZONE blocks, got %d", vtzCount)
 	}
@@ -1277,7 +1277,7 @@ func TestCalendarWithIncludeVTZAllDayEvents(t *testing.T) {
 	ics := cal.ToICS()
 
 	// All-day events don't use timezones, so no VTIMEZONE should be included
-	if strings.Contains(ics, "BEGIN:VTIMEZONE") {
+	if strings.Contains(ics, testutil.ICSBeginVTimezone) {
 		t.Error("All-day events should not trigger VTIMEZONE inclusion")
 	}
 }
@@ -1325,7 +1325,7 @@ func TestKnownVTZ(t *testing.T) {
 			if hasResult != tt.hasVTZ {
 				t.Errorf("knownVTZ(%q) returned data=%v, want=%v", tt.tzid, hasResult, tt.hasVTZ)
 			}
-			if tt.hasVTZ && !strings.Contains(result, "BEGIN:VTIMEZONE") {
+			if tt.hasVTZ && !strings.Contains(result, testutil.ICSBeginVTimezone) {
 				t.Errorf("knownVTZ(%q) should return valid VTIMEZONE block", tt.tzid)
 			}
 		})
@@ -2003,7 +2003,7 @@ func TestAlarmsParserParseAlarmsFromString(t *testing.T) {
 		},
 		{
 			name:      "with absolute time",
-			input:     "2025-11-15 10:00:00",
+			input:     testutil.DateTime20251115_1000,
 			defaultTZ: "UTC",
 			wantCount: 1,
 			wantErr:   false,
@@ -2128,7 +2128,7 @@ func TestAlarmsParserParseSimpleAlarmSpec(t *testing.T) {
 		},
 		{
 			name:       "absolute time",
-			spec:       "2025-11-15 10:00:00",
+			spec:       testutil.DateTime20251115_1000,
 			defaultTZ:  "UTC",
 			wantAction: "DISPLAY",
 			wantDesc:   "Reminder",
@@ -2194,10 +2194,10 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
 				if a.TriggerDuration != -15*time.Minute {
-					t.Errorf("TriggerDuration = %v, want -15m", a.TriggerDuration)
+					t.Errorf(testutil.AlarmTriggerDurationMismatch, a.TriggerDuration)
 				}
 				if !a.TriggerIsRelative {
-					t.Error("TriggerIsRelative should be true")
+					t.Error(testutil.AlarmTriggerIsRelativeShouldTrue)
 				}
 			},
 		},
@@ -2247,7 +2247,7 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
 				if a.TriggerDuration != -15*time.Minute {
-					t.Errorf("TriggerDuration = %v, want -15m", a.TriggerDuration)
+					t.Errorf(testutil.AlarmTriggerDurationMismatch, a.TriggerDuration)
 				}
 			},
 		},
@@ -2257,7 +2257,7 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
 				if !a.TriggerIsRelative {
-					t.Error("TriggerIsRelative should be true")
+					t.Error(testutil.AlarmTriggerIsRelativeShouldTrue)
 				}
 			},
 		},
@@ -2267,7 +2267,7 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
 				if a.TriggerDuration != -15*time.Minute {
-					t.Errorf("TriggerDuration = %v, want -15m", a.TriggerDuration)
+					t.Errorf(testutil.AlarmTriggerDurationMismatch, a.TriggerDuration)
 				}
 			},
 		},
@@ -2300,7 +2300,7 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
 				if !a.TriggerIsRelative {
-					t.Error("TriggerIsRelative should be true")
+					t.Error(testutil.AlarmTriggerIsRelativeShouldTrue)
 				}
 			},
 		},
@@ -2391,7 +2391,7 @@ func TestAlarmsParserParseAlarmAbsolute(t *testing.T) {
 		},
 		{
 			name:      "date time with seconds",
-			input:     "2025-11-15 10:00:00",
+			input:     testutil.DateTime20251115_1000,
 			defaultTZ: "UTC",
 			wantErr:   false,
 		},
@@ -2415,7 +2415,7 @@ func TestAlarmsParserParseAlarmAbsolute(t *testing.T) {
 		},
 		{
 			name:      testutil.TestNameWithTimezone,
-			input:     "2025-11-15 10:00:00",
+			input:     testutil.DateTime20251115_1000,
 			defaultTZ: testutil.TZAmericaNewYork,
 			wantErr:   false,
 		},
@@ -2787,10 +2787,10 @@ func TestAlarmsParserIntegrationRelativeAlarms(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			alarms, err := ParseAlarmsFromString(tt.input, "UTC")
 			if err != nil {
-				t.Fatalf("ParseAlarmsFromString(%q) error: %v", tt.input, err)
+				t.Fatalf(testutil.AlarmParseError, tt.input, err)
 			}
 			if len(alarms) != 1 {
-				t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+				t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 			}
 			if !alarms[0].TriggerIsRelative {
 				t.Error("Expected relative alarm")
@@ -2812,10 +2812,10 @@ func TestAlarmsParserIntegrationAbsoluteAlarms(t *testing.T) {
 	input := "2025-11-15T10:00:00Z"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("ParseAlarmsFromString(%q) error: %v", input, err)
+		t.Fatalf(testutil.AlarmParseError, input, err)
 	}
 	if len(alarms) != 1 {
-		t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+		t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 	}
 	if alarms[0].TriggerIsRelative {
 		t.Error("Expected absolute alarm")
@@ -2833,10 +2833,10 @@ func TestAlarmsParserIntegrationComplexKeyValue(t *testing.T) {
 	input := "trigger=15m,action=EMAIL,description=Meeting reminder,summary=Important Meeting,repeat=3,repeat_duration=5m"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("ParseAlarmsFromString(%q) error: %v", input, err)
+		t.Fatalf(testutil.AlarmParseError, input, err)
 	}
 	if len(alarms) != 1 {
-		t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+		t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 	}
 
 	alarm := alarms[0]
@@ -2850,7 +2850,7 @@ func TestAlarmsParserIntegrationComplexKeyValue(t *testing.T) {
 		t.Errorf("Summary = %q, want 'Important Meeting'", alarm.Summary)
 	}
 	if alarm.TriggerDuration != -15*time.Minute {
-		t.Errorf("TriggerDuration = %v, want -15m", alarm.TriggerDuration)
+		t.Errorf(testutil.AlarmTriggerDurationMismatch, alarm.TriggerDuration)
 	}
 	if alarm.Repeat != 3 {
 		t.Errorf("Repeat = %d, want 3", alarm.Repeat)
@@ -2864,7 +2864,7 @@ func TestAlarmsParserIntegrationMultipleAlarms(t *testing.T) {
 	input := "15m,30m,1h,2h"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("ParseAlarmsFromString(%q) error: %v", input, err)
+		t.Fatalf(testutil.AlarmParseError, input, err)
 	}
 	if len(alarms) != 4 {
 		t.Fatalf("Expected 4 alarms, got %d", len(alarms))
@@ -2898,10 +2898,10 @@ func TestAlarmsParserIntegrationAlternativeKeys(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			alarms, err := ParseAlarmsFromString(tt.input, "UTC")
 			if err != nil {
-				t.Errorf("ParseAlarmsFromString(%q) error: %v", tt.input, err)
+				t.Errorf(testutil.AlarmParseError, tt.input, err)
 			}
 			if len(alarms) != 1 {
-				t.Errorf("Expected 1 alarm, got %d", len(alarms))
+				t.Errorf(testutil.AlarmExpected1Alarm, len(alarms))
 			}
 		})
 	}
@@ -2937,10 +2937,10 @@ func TestAlarmsParserEdgeCaseDirectionHints(t *testing.T) {
 			input := fmt.Sprintf("trigger=15m,direction=%s", tt.direction)
 			alarms, err := ParseAlarmsFromString(input, "UTC")
 			if err != nil {
-				t.Fatalf("ParseAlarmsFromString(%q) error: %v", input, err)
+				t.Fatalf(testutil.AlarmParseError, input, err)
 			}
 			if len(alarms) != 1 {
-				t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+				t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 			}
 
 			expected := time.Duration(tt.wantSign) * 15 * time.Minute
@@ -3014,10 +3014,10 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecRelativeFalse(t *testing.T) {
 	input := "trigger=2025-11-15T10:00:00Z,relative=no"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	if len(alarms) != 1 {
-		t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+		t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 	}
 	if alarms[0].TriggerIsRelative {
 		t.Error("Expected absolute trigger with relative=no")
@@ -3029,16 +3029,16 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyKeySegment(t *testing.T) {
 	input := "trigger=15m;   ;action=DISPLAY"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	if len(alarms) != 1 {
-		t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+		t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 	}
 }
 
 func TestAlarmsParserEdgeCaseParseAlarmAbsoluteInvalidTimezone(t *testing.T) {
 	// Invalid timezone should still work by falling back to UTC
-	_, err := parseAlarmAbsolute("2025-11-15 10:00:00", testutil.TZInvalid)
+	_, err := parseAlarmAbsolute(testutil.DateTime20251115_1000, testutil.TZInvalid)
 	if err != nil {
 		t.Errorf("Should not error with invalid timezone, should fall back: %v", err)
 	}
@@ -3056,11 +3056,11 @@ func TestAlarmsParserEdgeCaseParseICSDurationOnlyWeeks(t *testing.T) {
 	// Test week-only duration
 	result, err := parseICSDuration("P2W")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	expected := 2 * 7 * 24 * time.Hour
 	if result != expected {
-		t.Errorf("Result = %v, want %v", result, expected)
+		t.Errorf(testutil.AlarmResultMismatch, result, expected)
 	}
 }
 
@@ -3068,11 +3068,11 @@ func TestAlarmsParserEdgeCaseParseICSDurationOnlyDays(t *testing.T) {
 	// Test day-only duration
 	result, err := parseICSDuration("P5D")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	expected := 5 * 24 * time.Hour
 	if result != expected {
-		t.Errorf("Result = %v, want %v", result, expected)
+		t.Errorf(testutil.AlarmResultMismatch, result, expected)
 	}
 }
 
@@ -3080,11 +3080,11 @@ func TestAlarmsParserEdgeCaseParseICSDurationOnlyHours(t *testing.T) {
 	// Test hour-only duration
 	result, err := parseICSDuration("PT3H")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	expected := 3 * time.Hour
 	if result != expected {
-		t.Errorf("Result = %v, want %v", result, expected)
+		t.Errorf(testutil.AlarmResultMismatch, result, expected)
 	}
 }
 
@@ -3092,11 +3092,11 @@ func TestAlarmsParserEdgeCaseParseICSDurationOnlySeconds(t *testing.T) {
 	// Test second-only duration
 	result, err := parseICSDuration("PT30S")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	expected := 30 * time.Second
 	if result != expected {
-		t.Errorf("Result = %v, want %v", result, expected)
+		t.Errorf(testutil.AlarmResultMismatch, result, expected)
 	}
 }
 
@@ -3105,10 +3105,10 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyDescription(t *testing.T) {
 	input := "trigger=15m,action=DISPLAY,description="
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	if len(alarms) != 1 {
-		t.Fatalf("Expected 1 alarm, got %d", len(alarms))
+		t.Fatalf(testutil.AlarmExpected1Alarm, len(alarms))
 	}
 	if alarms[0].Description != "Reminder" {
 		t.Errorf("Description = %q, want 'Reminder'", alarms[0].Description)
@@ -3117,9 +3117,9 @@ func TestAlarmsParserEdgeCaseKeyValueAlarmSpecEmptyDescription(t *testing.T) {
 
 func TestAlarmsParserEdgeCaseParseAlarmAbsoluteWithLocalTimezone(t *testing.T) {
 	// Test with a specific timezone
-	result, err := parseAlarmAbsolute("2025-11-15 10:00:00", testutil.TZEuropeMadrid)
+	result, err := parseAlarmAbsolute(testutil.DateTime20251115_1000, testutil.TZEuropeMadrid)
 	if err != nil {
-		t.Fatalf("Error: %v", err)
+		t.Fatalf(testutil.AlarmErrorFormat, err)
 	}
 	if result.IsZero() {
 		t.Error("Result should not be zero")
