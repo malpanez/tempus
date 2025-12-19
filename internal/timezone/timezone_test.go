@@ -525,19 +525,19 @@ func TestLoadJSONDir(t *testing.T) {
 
 		jsonPath := tmpDir + "/test.json"
 		if err := os.WriteFile(jsonPath, []byte(validJSON), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		// Load the directory
 		err := tm.LoadJSONDir(tmpDir)
 		if err != nil {
-			t.Errorf("LoadJSONDir() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
 		}
 
 		// Verify the zones were loaded
 		zone1, err := tm.GetTimezone(testutil.TestZone1)
 		if err != nil {
-			t.Errorf("Failed to get loaded zone: %v", err)
+			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
 		} else if zone1.DisplayName != "Test Zone 1" {
 			t.Errorf("Zone display name = %q, want 'Test Zone 1'", zone1.DisplayName)
 		}
@@ -593,7 +593,7 @@ func TestLoadJSONDir(t *testing.T) {
 		// Should not error, just skip the file
 		err := tm.LoadJSONDir(tmpDir)
 		if err != nil {
-			t.Errorf("LoadJSONDir() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
 		}
 	})
 
@@ -605,13 +605,13 @@ func TestLoadJSONDir(t *testing.T) {
 		invalidJSON := `{invalid json content`
 		jsonPath := tmpDir + "/invalid.json"
 		if err := os.WriteFile(jsonPath, []byte(invalidJSON), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		// Should not return error, but will log warning
 		err := tm.LoadJSONDir(tmpDir)
 		if err != nil {
-			t.Errorf("LoadJSONDir() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
 		}
 	})
 
@@ -622,12 +622,12 @@ func TestLoadJSONDir(t *testing.T) {
 		emptyJSON := `{"zones": []}`
 		jsonPath := tmpDir + "/empty.json"
 		if err := os.WriteFile(jsonPath, []byte(emptyJSON), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.LoadJSONDir(tmpDir)
 		if err != nil {
-			t.Errorf("LoadJSONDir() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
 		}
 	})
 
@@ -646,12 +646,12 @@ func TestLoadJSONDir(t *testing.T) {
 		}`
 		jsonPath := tmpDir + "/noiana.json"
 		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.LoadJSONDir(tmpDir)
 		if err != nil {
-			t.Errorf("LoadJSONDir() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
 		}
 	})
 }
@@ -689,17 +689,17 @@ func TestLoadJSONFile(t *testing.T) {
 
 		jsonPath := tmpDir + "/custom.json"
 		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.loadJSONFile(jsonPath)
 		if err != nil {
-			t.Errorf("loadJSONFile() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
 		}
 
 		zone, err := tm.GetTimezone("Custom/Zone")
 		if err != nil {
-			t.Errorf("Failed to get loaded zone: %v", err)
+			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
 		} else {
 			if zone.DisplayName != "Custom Zone" {
 				t.Errorf("DisplayName = %q, want 'Custom Zone'", zone.DisplayName)
@@ -729,17 +729,17 @@ func TestLoadJSONFile(t *testing.T) {
 
 		jsonPath := tmpDir + "/nodetails.json"
 		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.loadJSONFile(jsonPath)
 		if err != nil {
-			t.Errorf("loadJSONFile() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
 		}
 
 		zone, err := tm.GetTimezone("Test/NoDetails")
 		if err != nil {
-			t.Errorf("Failed to get loaded zone: %v", err)
+			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
 		} else {
 			// DisplayName should fall back to IANA
 			if zone.DisplayName != "Test/NoDetails" {
@@ -766,7 +766,7 @@ func TestLoadJSONFile(t *testing.T) {
 
 		jsonPath := tmpDir + "/invalid.json"
 		if err := os.WriteFile(jsonPath, []byte("{invalid"), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.loadJSONFile(jsonPath)
@@ -792,12 +792,12 @@ func TestLoadJSONFile(t *testing.T) {
 
 		jsonPath := tmpDir + "/aliases.json"
 		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.loadJSONFile(jsonPath)
 		if err != nil {
-			t.Errorf("loadJSONFile() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
 		}
 
 		// Valid alias should work
@@ -822,12 +822,12 @@ func TestLoadJSONFile(t *testing.T) {
 
 		jsonPath := tmpDir + "/badalias.json"
 		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf("Failed to write test JSON: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
 		}
 
 		err := tm.loadJSONFile(jsonPath)
 		if err != nil {
-			t.Errorf("loadJSONFile() unexpected error: %v", err)
+			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
 		}
 
 		// Bad alias should not resolve
