@@ -24,19 +24,26 @@ const (
 	NameJohnDoe = "John Doe"
 
 	// Common date strings
+	Date20251115 = "2025-11-15"
 	Date20251201 = "2025-12-01"
 	Date20251215 = "2025-12-15"
 	Date20251220 = "2025-12-20"
 	Date20251227 = "2025-12-27"
 	Date20250501 = "2025-05-01"
 	Date20250503 = "2025-05-03"
+	Date20250615 = "2025-06-15"
 
 	// Common datetime strings
+	DateTime20251115_1000 = "2025-11-15 10:00:00"
 	DateTime20251201_0800 = "2025-12-01 08:00"
 	DateTime20251201_0900 = "2025-12-01 09:00"
+	DateTime20251201_1000 = "2025-12-01 10:00"
+	DateTime20251201_1400 = "2025-12-01 14:00"
+	DateTime20251201_1430 = "2025-12-01 14:30"
 	DateTime20250501_1000 = "2025-05-01 10:00"
 	DateTime20250501_1100 = "2025-05-01 11:00"
 	DateTime20250501_1400 = "2025-05-01 14:00"
+	DateTime20250615_1000 = "2025-06-15 10:00"
 	DateTime20251216_1030 = "2025-12-16 10:30"
 
 	// Common test names/labels
@@ -120,5 +127,45 @@ const (
 	TestStringEmptyString = "Empty string"
 
 	// Common date formats (for test validation)
-	TestDateFormatRFC = "Mon, 02 Jan 2006 15:04 MST"
+	TestDateFormatRFC         = "Mon, 02 Jan 2006 15:04 MST"
+	TestDateFormatDate        = "2006-01-02"
+	TestDateFormatDateTime    = "2006-01-02 15:04"
+	TestDateFormatDateTimeHMS = "2006-01-02 15:04:05"
+
+	// Common format strings
+	FormatKeyValuePair = "%s: %s\n"
+
+	// Common test strings and labels
+	StringHelloWorld           = "Hello World"
+	StringLine1Line2Escaped    = "Line1\\nLine2"
+	StringLine1Line2           = "Line1\nLine2"
+	StringABC                  = "A\nB\nC"
+	StringWithPlus             = "with plus"
+	StringZeroDuration         = "zero duration"
+	StringInvalidDate          = "invalid date"
+	StringInvalidStartTime     = "invalid start time"
+	StringRequiredFieldMissing = "required field missing"
+	StringOptionB              = "Option B"
+	StringOptionC              = "Option C"
+	StringConferenceRoomA      = "Conference Room A"
+	StringFocusBlock           = "focus-block"
+	StringNonExistentTemplate  = "non-existent template"
+
+	// Common ICS fields
+	ICSStatusConfirmed         = "STATUS:CONFIRMED"
+	ICSBeginVTimezone          = "BEGIN:VTIMEZONE"
+	ICSRRuleWeeklyMonday       = "FREQ=WEEKLY;BYDAY=MO"
+	ICSPromptStartTime         = "Start Time (YYYY-MM-DD HH:MM)"
+	ICSMustacheNameTemplate    = "{{#name}}Hello {{name}}{{/name}}"
+	ICSCountryUnitedStates     = "United States"
+
+	// Alarm-specific test strings
+	AlarmExpected1Alarm              = "Expected 1 alarm, got %d"
+	AlarmParseError                  = "ParseAlarmsFromString(%q) error: %v"
+	AlarmTriggerDurationMismatch     = "TriggerDuration = %v, want -15m"
+	AlarmTriggerIsRelativeShouldTrue = "TriggerIsRelative should be true"
+	AlarmResultMismatch              = "Result = %v, want %v"
+	AlarmErrorFormat                 = "Error: %v"
+	AlarmInvalidStartTimeFormat      = "invalid start time: %w"
+	AlarmInvalidDurationFormat       = "invalid duration: %w"
 )
