@@ -62,7 +62,8 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -230,7 +231,8 @@ jobs:
     name: Coverage Check
     if: always()
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
