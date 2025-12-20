@@ -535,7 +535,7 @@ func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calen
 	return event, nil
 }
 
-func generateMedicationEvent(data map[string]string, translator *i18n.Translator) (*calendar.Event, error) {
+func generateMedicationEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	medName := data["medication_name"]
 	dosage := data["dosage"]
 
@@ -599,7 +599,7 @@ func generateMedicationEvent(data map[string]string, translator *i18n.Translator
 	return event, nil
 }
 
-func generateAppointmentEvent(data map[string]string, translator *i18n.Translator) (*calendar.Event, error) {
+func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	title := data["title"]
 
 	// Parse appointment time
@@ -685,7 +685,7 @@ func generateAppointmentEvent(data map[string]string, translator *i18n.Translato
 	return event, nil
 }
 
-func generateTransitionEvent(data map[string]string, translator *i18n.Translator) (*calendar.Event, error) {
+func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	fromActivity := data["from_activity"]
 	toActivity := data["to_activity"]
 
@@ -737,7 +737,7 @@ func generateTransitionEvent(data map[string]string, translator *i18n.Translator
 	return event, nil
 }
 
-func generateDeadlineEvent(data map[string]string, translator *i18n.Translator) (*calendar.Event, error) {
+func generateDeadlineEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	task := data["task"]
 
 	// Parse due date

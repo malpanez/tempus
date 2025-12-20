@@ -2358,7 +2358,7 @@ func runConfigSet(_ *cobra.Command, args []string) error {
 	return nil
 }
 
-func runConfigList(cmd *cobra.Command, args []string) error {
+func runConfigList(_ *cobra.Command, _ []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -2419,7 +2419,7 @@ func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Show version information",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			if strings.TrimSpace(date) == "" {
 				fmt.Printf("tempus %s\n", version)
 			} else {
@@ -2687,7 +2687,7 @@ func newTemplateInitCmd() *cobra.Command {
 	return cmd
 }
 
-func runTemplateList(cmd *cobra.Command, args []string) error {
+func runTemplateList(cmd *cobra.Command, _ []string) error {
 	tm, _, err := loadTemplateManager(cmd)
 	if err != nil {
 		return err
@@ -3301,7 +3301,7 @@ func newLocaleCmd() *cobra.Command {
 	return root
 }
 
-func runLocaleList(cmd *cobra.Command, _ []string) error {
+func runLocaleList(_ *cobra.Command, _ []string) error {
 	locales := i18n.Locales()
 	if len(locales) == 0 {
 		fmt.Println("No locales found.")
@@ -3756,7 +3756,7 @@ func runTZList(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func runTZInfo(cmd *cobra.Command, args []string) error {
+func runTZInfo(_ *cobra.Command, args []string) error {
 	query := strings.TrimSpace(strings.Join(args, " "))
 	if query == "" {
 		return fmt.Errorf("please provide a timezone name or IANA identifier")
