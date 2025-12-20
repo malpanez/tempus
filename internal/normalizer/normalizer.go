@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"tempus/internal/constants"
 	"tempus/internal/testutil"
 )
 
@@ -34,7 +35,7 @@ func PrependToday(input, timezone string) string {
 
 	// Prepend today's date
 	now := time.Now().In(loc)
-	return fmt.Sprintf("%s %s", now.Format("2006-01-02"), input)
+	return fmt.Sprintf("%s %s", now.Format(constants.DateFormatISO), input)
 }
 
 // NormalizeEndTimeFromDuration calculates end time from start + duration.
@@ -68,9 +69,9 @@ func NormalizeEndTimeFromDuration(start, end, duration, timezone string) (string
 
 	// Format based on whether start has time component
 	if strings.Contains(start, ":") {
-		return endTime.Format("2006-01-02 15:04"), nil
+		return endTime.Format(constants.DateTimeFormatISO), nil
 	}
-	return endTime.Format("2006-01-02"), nil
+	return endTime.Format(constants.DateFormatISO), nil
 }
 
 // ParseDateTime parses a datetime string in various formats, using the given timezone.
@@ -94,15 +95,15 @@ func ParseDateTime(input, timezone string) (time.Time, error) {
 
 	// Try parsing different formats
 	formats := []string{
-		"2006-01-02 15:04",
-		"2006-01-02",
-		"15:04",
+		constants.DateTimeFormatISO,
+		constants.DateFormatISO,
+		constants.TimeFormatHHMM,
 	}
 
 	for _, format := range formats {
 		if t, err := time.ParseInLocation(format, input, loc); err == nil {
 			// If it's time-only format, prepend today
-			if format == "15:04" {
+			if format == constants.TimeFormatHHMM {
 				now := time.Now().In(loc)
 				return time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), 0, 0, loc), nil
 			}

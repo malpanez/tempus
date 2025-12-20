@@ -527,10 +527,10 @@ func ParseDateTime(dateStr, timeStr, timezone string) (time.Time, error) {
 	var fullStr string
 
 	if timeStr == "" {
-		layout = "2006-01-02"
+		layout = constants.DateFormatISO
 		fullStr = dateStr
 	} else {
-		layout = "2006-01-02 15:04"
+		layout = constants.DateTimeFormatISO
 		fullStr = fmt.Sprintf("%s %s", dateStr, timeStr)
 	}
 

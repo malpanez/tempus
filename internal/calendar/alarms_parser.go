@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"tempus/internal/constants"
 	"tempus/internal/testutil"
 )
 
@@ -438,8 +439,8 @@ func loadTimezoneLocation(defaultTZ string) *time.Location {
 
 func tryParseCommonLayouts(val string, loc *time.Location, raw string) (time.Time, error) {
 	layouts := []string{
-		"2006-01-02 15:04:05",
-		"2006-01-02 15:04",
+		constants.DateTimeFormatISOSeconds,
+		constants.DateTimeFormatISO,
 		"2006-01-02T15:04:05",
 		"2006-01-02T15:04",
 	}

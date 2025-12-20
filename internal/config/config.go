@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"tempus/internal/constants"
 	"tempus/internal/i18n"
 )
 
@@ -26,8 +27,8 @@ type Config struct {
 var defaultConfig = Config{
 	Language:     "en",
 	Timezone:     "UTC",
-	DateFormat:   "2006-01-02",
-	TimeFormat:   "15:04",
+	DateFormat:   constants.DateFormatISO,
+	TimeFormat:   constants.TimeFormatHHMM,
 	OutputDir:    ".",
 	DefaultTitle: "Event",
 	AlarmProfiles: map[string][]string{

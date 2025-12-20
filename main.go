@@ -388,13 +388,13 @@ func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, er
 			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date: %w", parseErr)
 		}
 		if endDate.Before(startTime) {
-			return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
+			return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgEndDateAfterStart)
 		}
 		endTime = endDate.AddDate(0, 0, 1)
 	}
 
 	if !endTime.After(startTime) {
-		return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
+		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgEndDateAfterStart)
 	}
 
 	return startTime, endTime, nil
@@ -429,7 +429,7 @@ func parseTimedEventTimes(startStr, endStr, durStr string) (startTime, endTime t
 func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
 	if d, derr := calendar.ParseHumanDuration(endStr); derr == nil {
 		if d <= 0 {
-			return time.Time{}, fmt.Errorf("duration must be greater than zero")
+			return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
 		}
 		return startTime.Add(d), nil
 	}
@@ -447,7 +447,7 @@ func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("invalid duration: %v", err)
 	}
 	if d <= 0 {
-		return time.Time{}, fmt.Errorf("duration must be greater than zero")
+		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
 	}
 	return startTime.Add(d), nil
 }
@@ -683,7 +683,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Ca
 				validationErrors = append(validationErrors, fmt.Sprintf("Row %d: %v", i+1, err))
 				continue
 			}
-			return nil, nil, fmt.Errorf("row %d: %w", i+1, err)
+			return nil, nil, fmt.Errorf(testutil.ErrMsgRowFormat, i+1, err)
 		}
 		cal.AddEvent(ev)
 	}
@@ -1093,7 +1093,7 @@ func parseBatchAllDayTimes(startStr, endStr string) (startTime, endTime time.Tim
 			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date %q: %w", endStr, parseErr)
 		}
 		if endDate.Before(startTime) {
-			return time.Time{}, time.Time{}, fmt.Errorf("end date must be on or after start date")
+			return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgEndDateAfterStart)
 		}
 		endTime = endDate.AddDate(0, 0, 1)
 	}
@@ -1142,7 +1142,7 @@ func parseBatchExplicitEnd(endStr string, startTime time.Time, endTZ, originalEn
 
 	if dur, derr := calendar.ParseHumanDuration(endStr); derr == nil {
 		if dur <= 0 {
-			return time.Time{}, fmt.Errorf("duration must be greater than zero")
+			return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
 		}
 		return startTime.Add(dur), nil
 	}
@@ -1160,7 +1160,7 @@ func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error
 		return time.Time{}, fmt.Errorf("invalid duration %q: %v", durStr, err)
 	}
 	if dur <= 0 {
-		return time.Time{}, fmt.Errorf("duration must be greater than zero")
+		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
 	}
 	return startTime.Add(dur), nil
 }
@@ -2815,7 +2815,7 @@ func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmp
 
 		ev, err := tm.GenerateEvent(params.templateName, values, tr)
 		if err != nil {
-			return fmt.Errorf("row %d: %w", idx+1, err)
+			return fmt.Errorf(testutil.ErrMsgRowFormat, idx+1, err)
 		}
 
 		cal := buildTemplateCalendar(ev)
@@ -2828,7 +2828,7 @@ func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmp
 		filename = ensureUniquePath(filename)
 
 		if err := ensureDirForFile(filename); err != nil {
-			return fmt.Errorf("row %d: %w", idx+1, err)
+			return fmt.Errorf(testutil.ErrMsgRowFormat, idx+1, err)
 		}
 		if err := os.WriteFile(filename, []byte(cal.ToICS()), 0600); err != nil {
 			return fmt.Errorf("row %d: failed to write file: %w", idx+1, err)

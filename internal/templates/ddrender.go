@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/constants"
 	"tempus/internal/i18n"
 	"tempus/internal/testutil"
 	"tempus/internal/utils"
@@ -88,12 +89,12 @@ func extractDate(value string) string {
 	}
 	if len(v) >= 10 {
 		datePart := v[:10]
-		if _, err := time.Parse("2006-01-02", datePart); err == nil {
+		if _, err := time.Parse(constants.DateFormatISO, datePart); err == nil {
 			return datePart
 		}
 	}
 	if t, _, err := parseDateOrDateTimeInLocation(v, ""); err == nil {
-		return t.Format("2006-01-02")
+		return t.Format(constants.DateFormatISO)
 	}
 	return slugify(v)
 }
@@ -308,8 +309,8 @@ func parseDateOrDateTimeInLocation(s, tzName string) (t time.Time, isDateOnly bo
 	s = strings.TrimSpace(s)
 
 	// Date-time first
-	if len(s) >= len("2006-01-02 15:04") && strings.Contains(s, " ") {
-		layout := "2006-01-02 15:04"
+	if len(s) >= len(constants.DateTimeFormatISO) && strings.Contains(s, " ") {
+		layout := constants.DateTimeFormatISO
 		if tzName != "" {
 			if loc, lerr := time.LoadLocation(tzName); lerr == nil {
 				t, e := time.ParseInLocation(layout, s, loc)
@@ -321,7 +322,7 @@ func parseDateOrDateTimeInLocation(s, tzName string) (t time.Time, isDateOnly bo
 	}
 
 	// Date-only
-	layout := "2006-01-02"
+	layout := constants.DateFormatISO
 	if tzName != "" {
 		if loc, lerr := time.LoadLocation(tzName); lerr == nil {
 			d, e := time.ParseInLocation(layout, s, loc)

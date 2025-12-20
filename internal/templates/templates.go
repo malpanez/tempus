@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/constants"
 	"tempus/internal/i18n"
 	"tempus/internal/testutil"
 )
@@ -301,11 +302,11 @@ func generateFlightEvent(data map[string]string, translator *i18n.Translator) (*
 	to := data["to"]
 
 	// Parse times
-	departureTime, err := time.Parse("2006-01-02 15:04", data["departure_time"])
+	departureTime, err := time.Parse(constants.DateTimeFormatISO, data["departure_time"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid departure time: %w", err)
 	}
-	arrivalTime, err := time.Parse("2006-01-02 15:04", data["arrival_time"])
+	arrivalTime, err := time.Parse(constants.DateTimeFormatISO, data["arrival_time"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid arrival time: %w", err)
 	}
@@ -349,7 +350,7 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	title := data["title"]
 
 	// Parse start
-	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
+	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
 		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
@@ -357,7 +358,7 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	// End can be explicit or computed from duration
 	var endTime time.Time
 	if endStr := strings.TrimSpace(data["end_time"]); endStr != "" {
-		endTime, err = time.Parse("2006-01-02 15:04", endStr)
+		endTime, err = time.Parse(constants.DateTimeFormatISO, endStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid end time: %w", err)
 		}
@@ -416,11 +417,11 @@ func generateHolidayEvent(data map[string]string, translator *i18n.Translator) (
 	destination := data["destination"]
 
 	// Parse dates
-	startDate, err := time.Parse("2006-01-02", data["start_date"])
+	startDate, err := time.Parse(constants.DateFormatISO, data["start_date"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid start date: %w", err)
 	}
-	endDate, err := time.Parse("2006-01-02", data["end_date"])
+	endDate, err := time.Parse(constants.DateFormatISO, data["end_date"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid end date: %w", err)
 	}
@@ -476,7 +477,7 @@ func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calen
 	task := data["task"]
 
 	// Parse start time
-	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
+	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
 		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
@@ -541,7 +542,7 @@ func generateMedicationEvent(data map[string]string, _ *i18n.Translator) (*calen
 	dosage := data["dosage"]
 
 	// Parse time
-	medTime, err := time.Parse("2006-01-02 15:04", data["time"])
+	medTime, err := time.Parse(constants.DateTimeFormatISO, data["time"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid time: %w", err)
 	}
@@ -604,7 +605,7 @@ func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*cale
 	title := data["title"]
 
 	// Parse appointment time
-	apptTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
+	apptTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
 		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
@@ -691,7 +692,7 @@ func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calen
 	toActivity := data["to_activity"]
 
 	// Parse start time
-	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
+	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
 		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
@@ -742,7 +743,7 @@ func generateDeadlineEvent(data map[string]string, _ *i18n.Translator) (*calenda
 	task := data["task"]
 
 	// Parse due date
-	dueDate, err := time.Parse("2006-01-02", data["due_date"])
+	dueDate, err := time.Parse(constants.DateFormatISO, data["due_date"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid due date: %w", err)
 	}
@@ -767,7 +768,7 @@ func generateDeadlineEvent(data map[string]string, _ *i18n.Translator) (*calenda
 	// Build description
 	var description string
 	description += fmt.Sprintf("Task: %s\n", task)
-	description += fmt.Sprintf("Due: %s\n\n", dueDate.Format("2006-01-02"))
+	description += fmt.Sprintf("Due: %s\n\n", dueDate.Format(constants.DateFormatISO))
 	if notes := data["notes"]; notes != "" {
 		description += fmt.Sprintf("Notes:\n%s\n\n", notes)
 	}
