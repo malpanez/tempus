@@ -434,7 +434,7 @@ func TestLoadBatchFromCSV(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			got, err := loadBatchFromCSV(path)
@@ -453,7 +453,7 @@ func TestLoadBatchFromCSV(t *testing.T) {
 		path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 		content := "summary,start,all_day\nEvent1,2025-05-01,true\nEvent2,2025-05-02,false\nEvent3,2025-05-03,1"
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 		}
 
 		records, err := loadBatchFromCSV(path)
@@ -525,7 +525,7 @@ func TestLoadBatchFromJSON(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			got, err := loadBatchFromJSON(path)
@@ -625,7 +625,7 @@ func TestLoadTemplateFromJSON(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, testutil.FilenameTestJSON)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			got, err := loadTemplateFromJSON(path)
@@ -840,7 +840,7 @@ END:VCALENDAR`,
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, "test.ics")
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			err := lintICSFile(path)
@@ -1280,7 +1280,7 @@ func TestLoadBatchFromCSVWithDelimitedFields(t *testing.T) {
 Event,2025-05-01 10:00,2025-05-01 11:00,"2025-05-03,2025-05-04","work,urgent","15m,30m"`
 
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 	}
 
 	records, err := loadBatchFromCSV(path)
@@ -1326,7 +1326,7 @@ func TestLoadBatchFromJSONWithComplexTypes(t *testing.T) {
 	}
 
 	if err := os.WriteFile(path, jsonData, 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 	}
 
 	records, err := loadBatchFromJSON(path)
@@ -1498,7 +1498,7 @@ func TestLoadTemplateFromCSV(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, testutil.FilenameTestCSV)
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			got, err := loadTemplateFromCSV(path)

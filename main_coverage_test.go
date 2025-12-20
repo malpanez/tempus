@@ -165,7 +165,7 @@ func TestLoadBatchFromYAML(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			path := filepath.Join(tmpDir, tt.name+".yaml")
 			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
-				t.Fatalf("failed to write test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
 			got, err := loadBatchFromYAML(path)

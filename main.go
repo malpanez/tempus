@@ -2449,96 +2449,29 @@ Examples of what you can create:
 	}
 }
 
-func runRRuleHelper(cmd *cobra.Command, args []string) error {
+func runRRuleHelper(_ *cobra.Command, _ []string) error {
 	fmt.Println("RRULE Builder - Create recurring event patterns")
 	fmt.Println()
 
-	// Frequency
-	fmt.Println("Select frequency:")
-	fmt.Println("  1. Daily")
-	fmt.Println("  2. Weekly")
-	fmt.Println("  3. Monthly")
-	fmt.Println("  4. Yearly")
-	fmt.Print("Enter choice (1-4): ")
-
-	var freqChoice int
-	if _, err := fmt.Scanln(&freqChoice); err != nil || freqChoice < 1 || freqChoice > 4 {
-		return fmt.Errorf("invalid choice")
-	}
-
-	var freq string
-	switch freqChoice {
-	case 1:
-		freq = "DAILY"
-	case 2:
-		freq = "WEEKLY"
-	case 3:
-		freq = "MONTHLY"
-	case 4:
-		freq = "YEARLY"
+	freq, err := promptRRuleFrequency()
+	if err != nil {
+		return err
 	}
 
 	parts := []string{fmt.Sprintf("FREQ=%s", freq)}
 
-	// Interval
-	fmt.Print("\nRepeat every N occurrences (default 1): ")
-	var intervalStr string
-	_, _ = fmt.Scanln(&intervalStr)
-	intervalStr = strings.TrimSpace(intervalStr)
-	if intervalStr != "" && intervalStr != "1" {
-		interval := atoiSafe(intervalStr)
-		if interval > 0 {
-			parts = append(parts, fmt.Sprintf("INTERVAL=%d", interval))
-		}
+	if interval := promptRRuleInterval(); interval != "" {
+		parts = append(parts, interval)
 	}
 
-	// Days of week (for weekly)
 	if freq == "WEEKLY" {
-		fmt.Println("\nSelect days of week (comma-separated):")
-		fmt.Println("  MO, TU, WE, TH, FR, SA, SU")
-		fmt.Print("Days (e.g., 'MO,WE,FR' or leave empty for all): ")
-		var daysStr string
-		_, _ = fmt.Scanln(&daysStr)
-		daysStr = strings.TrimSpace(daysStr)
-		if daysStr != "" {
-			parts = append(parts, fmt.Sprintf("BYDAY=%s", strings.ToUpper(daysStr)))
+		if days := promptRRuleWeeklyDays(); days != "" {
+			parts = append(parts, days)
 		}
 	}
 
-	// End condition
-	fmt.Println("\nHow should the recurrence end?")
-	fmt.Println("  1. Never (infinite)")
-	fmt.Println("  2. After N occurrences")
-	fmt.Println("  3. On a specific date")
-	fmt.Print("Enter choice (1-3): ")
-
-	var endChoice int
-	if _, err := fmt.Scanln(&endChoice); err != nil || endChoice < 1 || endChoice > 3 {
-		endChoice = 1
-	}
-
-	switch endChoice {
-	case 2:
-		fmt.Print("Number of occurrences: ")
-		var countStr string
-		_, _ = fmt.Scanln(&countStr)
-		count := atoiSafe(strings.TrimSpace(countStr))
-		if count > 0 {
-			parts = append(parts, fmt.Sprintf("COUNT=%d", count))
-		}
-	case 3:
-		fmt.Print("End date (YYYY-MM-DD): ")
-		var untilStr string
-		_, _ = fmt.Scanln(&untilStr)
-		untilStr = strings.TrimSpace(untilStr)
-		if untilStr != "" {
-			// Parse to validate
-			if _, err := time.Parse("2006-01-02", untilStr); err == nil {
-				// Convert to RRULE format (YYYYMMDD)
-				untilStr = strings.ReplaceAll(untilStr, "-", "")
-				parts = append(parts, fmt.Sprintf("UNTIL=%s", untilStr))
-			}
-		}
+	if endCond := promptRRuleEndCondition(); endCond != "" {
+		parts = append(parts, endCond)
 	}
 
 	rrule := strings.Join(parts, ";")
@@ -2610,6 +2543,86 @@ func interpretRRule(rrule string) string {
 	}
 
 	return result
+}
+
+func promptRRuleFrequency() (string, error) {
+	fmt.Println("Select frequency:")
+	fmt.Println("  1. Daily")
+	fmt.Println("  2. Weekly")
+	fmt.Println("  3. Monthly")
+	fmt.Println("  4. Yearly")
+	fmt.Print("Enter choice (1-4): ")
+
+	var freqChoice int
+	if _, err := fmt.Scanln(&freqChoice); err != nil || freqChoice < 1 || freqChoice > 4 {
+		return "", fmt.Errorf("invalid choice")
+	}
+
+	frequencies := map[int]string{1: "DAILY", 2: "WEEKLY", 3: "MONTHLY", 4: "YEARLY"}
+	return frequencies[freqChoice], nil
+}
+
+func promptRRuleInterval() string {
+	fmt.Print("\nRepeat every N occurrences (default 1): ")
+	var intervalStr string
+	_, _ = fmt.Scanln(&intervalStr)
+	intervalStr = strings.TrimSpace(intervalStr)
+	if intervalStr != "" && intervalStr != "1" {
+		interval := atoiSafe(intervalStr)
+		if interval > 0 {
+			return fmt.Sprintf("INTERVAL=%d", interval)
+		}
+	}
+	return ""
+}
+
+func promptRRuleWeeklyDays() string {
+	fmt.Println("\nSelect days of week (comma-separated):")
+	fmt.Println("  MO, TU, WE, TH, FR, SA, SU")
+	fmt.Print("Days (e.g., 'MO,WE,FR' or leave empty for all): ")
+	var daysStr string
+	_, _ = fmt.Scanln(&daysStr)
+	daysStr = strings.TrimSpace(daysStr)
+	if daysStr != "" {
+		return fmt.Sprintf("BYDAY=%s", strings.ToUpper(daysStr))
+	}
+	return ""
+}
+
+func promptRRuleEndCondition() string {
+	fmt.Println("\nHow should the recurrence end?")
+	fmt.Println("  1. Never (infinite)")
+	fmt.Println("  2. After N occurrences")
+	fmt.Println("  3. On a specific date")
+	fmt.Print("Enter choice (1-3): ")
+
+	var endChoice int
+	if _, err := fmt.Scanln(&endChoice); err != nil || endChoice < 1 || endChoice > 3 {
+		endChoice = 1
+	}
+
+	switch endChoice {
+	case 2:
+		fmt.Print("Number of occurrences: ")
+		var countStr string
+		_, _ = fmt.Scanln(&countStr)
+		count := atoiSafe(strings.TrimSpace(countStr))
+		if count > 0 {
+			return fmt.Sprintf("COUNT=%d", count)
+		}
+	case 3:
+		fmt.Print("End date (YYYY-MM-DD): ")
+		var untilStr string
+		_, _ = fmt.Scanln(&untilStr)
+		untilStr = strings.TrimSpace(untilStr)
+		if untilStr != "" {
+			if _, err := time.Parse("2006-01-02", untilStr); err == nil {
+				untilStr = strings.ReplaceAll(untilStr, "-", "")
+				return fmt.Sprintf("UNTIL=%s", untilStr)
+			}
+		}
+	}
+	return ""
 }
 
 func newTemplateCmd() *cobra.Command {
@@ -2825,9 +2838,9 @@ func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmp
 	return nil
 }
 
-func runTemplateDescribe(cmd *cobra.Command, args []string) error {
+func runTemplateDescribe(_ *cobra.Command, args []string) error {
 	name := args[0]
-	tm, _, err := loadTemplateManager(cmd)
+	tm, _, err := loadTemplateManager(nil)
 	if err != nil {
 		return err
 	}
@@ -2837,13 +2850,23 @@ func runTemplateDescribe(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	printTemplateBasicInfo(tmpl)
+	dd := printTemplateTypeInfo(tm, name)
+	printTemplateFields(tmpl.Fields)
+	printTemplateOutput(dd)
+	return nil
+}
+
+func printTemplateBasicInfo(tmpl *tpl.Template) {
 	fmt.Printf("Name: %s\n", tmpl.Name)
 	if desc := strings.TrimSpace(tmpl.Description); desc != "" {
 		fmt.Printf("Description: %s\n", desc)
 	} else {
 		fmt.Println("Description: -")
 	}
+}
 
+func printTemplateTypeInfo(tm *tpl.TemplateManager, name string) tpl.DataDrivenTemplate {
 	var dd tpl.DataDrivenTemplate
 	if ddt, ok := tm.DataTemplate(name); ok {
 		fmt.Printf("Type: data-driven (schema v%d)\n", ddt.SchemaVersion)
@@ -2859,9 +2882,12 @@ func runTemplateDescribe(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Println("Type: built-in (compiled)")
 	}
+	return dd
+}
 
+func printTemplateFields(fields []tpl.Field) {
 	fmt.Println("Fields:")
-	for _, field := range tmpl.Fields {
+	for _, field := range fields {
 		required := "optional"
 		if field.Required {
 			required = "required"
@@ -2875,39 +2901,35 @@ func runTemplateDescribe(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(line)
 	}
+}
 
-	if dd.Name != "" {
-		fmt.Println("Output:")
-		fmt.Printf("  start_field: %s\n", dd.Output.StartField)
-		if strings.TrimSpace(dd.Output.EndField) != "" {
-			fmt.Printf("  end_field: %s\n", dd.Output.EndField)
-		}
-		if strings.TrimSpace(dd.Output.DurationField) != "" {
-			fmt.Printf("  duration_field: %s\n", dd.Output.DurationField)
-		}
-		if strings.TrimSpace(dd.Output.StartTZField) != "" {
-			fmt.Printf("  start_tz_field: %s\n", dd.Output.StartTZField)
-		}
-		if strings.TrimSpace(dd.Output.EndTZField) != "" && dd.Output.EndTZField != dd.Output.StartTZField {
-			fmt.Printf("  end_tz_field: %s\n", dd.Output.EndTZField)
-		}
-		if strings.TrimSpace(dd.Output.SummaryTmpl) != "" {
-			fmt.Printf("  summary_tmpl: %s\n", dd.Output.SummaryTmpl)
-		}
-		if strings.TrimSpace(dd.Output.LocationTmpl) != "" {
-			fmt.Printf("  location_tmpl: %s\n", dd.Output.LocationTmpl)
-		}
-		if strings.TrimSpace(dd.Output.DescriptionTmpl) != "" {
-			fmt.Printf("  description_tmpl: %s\n", dd.Output.DescriptionTmpl)
-		}
-		if len(dd.Output.Categories) > 0 {
-			fmt.Printf("  categories: %s\n", strings.Join(dd.Output.Categories, ", "))
-		}
-		if dd.Output.Priority > 0 {
-			fmt.Printf("  priority: %d\n", dd.Output.Priority)
-		}
+func printTemplateOutput(dd tpl.DataDrivenTemplate) {
+	if dd.Name == "" {
+		return
 	}
-	return nil
+	fmt.Println("Output:")
+	fmt.Printf("  start_field: %s\n", dd.Output.StartField)
+	printIfNotEmpty("  end_field: %s\n", dd.Output.EndField)
+	printIfNotEmpty("  duration_field: %s\n", dd.Output.DurationField)
+	printIfNotEmpty("  start_tz_field: %s\n", dd.Output.StartTZField)
+	if strings.TrimSpace(dd.Output.EndTZField) != "" && dd.Output.EndTZField != dd.Output.StartTZField {
+		fmt.Printf("  end_tz_field: %s\n", dd.Output.EndTZField)
+	}
+	printIfNotEmpty("  summary_tmpl: %s\n", dd.Output.SummaryTmpl)
+	printIfNotEmpty("  location_tmpl: %s\n", dd.Output.LocationTmpl)
+	printIfNotEmpty("  description_tmpl: %s\n", dd.Output.DescriptionTmpl)
+	if len(dd.Output.Categories) > 0 {
+		fmt.Printf("  categories: %s\n", strings.Join(dd.Output.Categories, ", "))
+	}
+	if dd.Output.Priority > 0 {
+		fmt.Printf("  priority: %d\n", dd.Output.Priority)
+	}
+}
+
+func printIfNotEmpty(format, value string) {
+	if strings.TrimSpace(value) != "" {
+		fmt.Printf(format, value)
+	}
 }
 
 func detectTemplateInputFormat(flag, path string) (string, error) {
@@ -3479,29 +3501,13 @@ func normalizeEndTimeFromDuration(values map[string]string, startKey, endKey, du
 		return
 	}
 
-	end := ""
-	if strings.TrimSpace(endKey) != "" {
-		end = strings.TrimSpace(values[endKey])
-	}
-	dur := ""
-	if strings.TrimSpace(durationKey) != "" {
-		dur = strings.TrimSpace(values[durationKey])
-	}
+	end := getValueIfKeyNotEmpty(values, endKey)
+	dur := getValueIfKeyNotEmpty(values, durationKey)
 	tz := strings.TrimSpace(values[tzKey])
 
 	// If user typed a duration in end_time, treat it as duration.
-	if end != "" {
-		if d, err := calendar.ParseHumanDuration(end); err == nil && d > 0 {
-			if endDT := addDurationToStart(start, tz, d); endDT != "" {
-				if strings.TrimSpace(endKey) != "" {
-					values[endKey] = endDT
-				}
-				if strings.TrimSpace(durationKey) != "" {
-					values[durationKey] = fmtDurationHuman(d)
-				}
-				return
-			}
-		}
+	if trySetEndFromDurationInEnd(values, start, tz, end, endKey, durationKey) {
+		return
 	}
 
 	// If end is empty, try duration or default to 30m.
@@ -3509,16 +3515,51 @@ func normalizeEndTimeFromDuration(values map[string]string, startKey, endKey, du
 		if dur == "" {
 			dur = strings.TrimSpace(defaultDuration)
 		}
-		if d, err := calendar.ParseHumanDuration(dur); err == nil && d > 0 {
-			if endDT := addDurationToStart(start, tz, d); endDT != "" {
-				if strings.TrimSpace(endKey) != "" {
-					values[endKey] = endDT
-				}
-				if strings.TrimSpace(durationKey) != "" {
-					values[durationKey] = fmtDurationHuman(d)
-				}
-			}
-		}
+		setEndFromDuration(values, start, tz, dur, endKey, durationKey)
+	}
+}
+
+func getValueIfKeyNotEmpty(values map[string]string, key string) string {
+	if strings.TrimSpace(key) != "" {
+		return strings.TrimSpace(values[key])
+	}
+	return ""
+}
+
+func trySetEndFromDurationInEnd(values map[string]string, start, tz, end, endKey, durationKey string) bool {
+	if end == "" {
+		return false
+	}
+	d, err := calendar.ParseHumanDuration(end)
+	if err != nil || d <= 0 {
+		return false
+	}
+	endDT := addDurationToStart(start, tz, d)
+	if endDT == "" {
+		return false
+	}
+	setEndAndDuration(values, endKey, durationKey, endDT, d)
+	return true
+}
+
+func setEndFromDuration(values map[string]string, start, tz, dur, endKey, durationKey string) {
+	d, err := calendar.ParseHumanDuration(dur)
+	if err != nil || d <= 0 {
+		return
+	}
+	endDT := addDurationToStart(start, tz, d)
+	if endDT == "" {
+		return
+	}
+	setEndAndDuration(values, endKey, durationKey, endDT, d)
+}
+
+func setEndAndDuration(values map[string]string, endKey, durationKey, endDT string, d time.Duration) {
+	if strings.TrimSpace(endKey) != "" {
+		values[endKey] = endDT
+	}
+	if strings.TrimSpace(durationKey) != "" {
+		values[durationKey] = fmtDurationHuman(d)
 	}
 }
 
