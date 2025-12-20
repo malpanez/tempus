@@ -68,7 +68,7 @@ func (tm *TimezoneManager) LoadDefaultJSONDirs() {
 }
 
 func (tm *TimezoneManager) loadJSONFile(path string) error {
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return err
 	}

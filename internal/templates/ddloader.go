@@ -40,7 +40,7 @@ func LoadDDTemplates(dir string) (map[string]DataDrivenTemplate, error) {
 			return nil
 		}
 
-		data, err := os.ReadFile(p)
+		data, err := os.ReadFile(filepath.Clean(p))
 		if err != nil {
 			return err
 		}

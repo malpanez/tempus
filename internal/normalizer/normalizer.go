@@ -129,8 +129,9 @@ func ParseHumanDuration(s string) (time.Duration, error) {
 		daysStr := strings.TrimSuffix(s, "d")
 		if days, err := fmt.Sscanf(daysStr, "%d", new(int)); err == nil && days == 1 {
 			var d int
-			fmt.Sscanf(daysStr, "%d", &d)
-			return time.Duration(d) * 24 * time.Hour, nil
+			if _, err := fmt.Sscanf(daysStr, "%d", &d); err == nil {
+				return time.Duration(d) * 24 * time.Hour, nil
+			}
 		}
 	}
 
@@ -139,8 +140,9 @@ func ParseHumanDuration(s string) (time.Duration, error) {
 		weeksStr := strings.TrimSuffix(s, "w")
 		if weeks, err := fmt.Sscanf(weeksStr, "%d", new(int)); err == nil && weeks == 1 {
 			var w int
-			fmt.Sscanf(weeksStr, "%d", &w)
-			return time.Duration(w) * 7 * 24 * time.Hour, nil
+			if _, err := fmt.Sscanf(weeksStr, "%d", &w); err == nil {
+				return time.Duration(w) * 7 * 24 * time.Hour, nil
+			}
 		}
 	}
 

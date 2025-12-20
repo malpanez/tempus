@@ -177,7 +177,7 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
 		return err
 	}
 	configFile := filepath.Join(configDir, "config.yaml")

@@ -203,7 +203,7 @@ func writeQuickCalendar(details quickParsedEvent, tz, output string) error {
 	cal.AddEvent(event)
 	icsContent := cal.ToICS()
 
-	if err := os.WriteFile(output, []byte(icsContent), 0644); err != nil {
+	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
 		printErr("failed to write file: %v\n", err)
 		return err
 	}
@@ -558,7 +558,7 @@ func writeCalendarOutput(cal *calendar.Calendar, output string) error {
 		return nil
 	}
 
-	if err := os.WriteFile(output, []byte(icsContent), 0644); err != nil {
+	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
 		printErr("failed to write file: %v\n", err)
 		return err
 	}
@@ -775,7 +775,7 @@ func writeBatchOutput(cal *calendar.Calendar, warnings []string, output string, 
 		return err
 	}
 
-	if err := os.WriteFile(output, []byte(cal.ToICS()), 0644); err != nil {
+	if err := os.WriteFile(output, []byte(cal.ToICS()), 0600); err != nil {
 		return fmt.Errorf("failed to write %s: %w", output, err)
 	}
 
@@ -883,7 +883,7 @@ func loadBatchRecords(path string, format batchFormat) ([]batchRecord, error) {
 }
 
 func loadBatchFromCSV(path string) ([]batchRecord, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -956,7 +956,7 @@ func csvValue(row []string, index map[string]int, key string) string {
 }
 
 func loadBatchFromJSON(path string) ([]batchRecord, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -992,7 +992,7 @@ func loadBatchFromJSON(path string) ([]batchRecord, error) {
 }
 
 func loadBatchFromYAML(path string) ([]batchRecord, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -1800,7 +1800,7 @@ Examples:
 	}
 
 	cmd.Flags().StringP("output", "o", "", "Output file path (required)")
-	cmd.MarkFlagRequired("output")
+	_ = cmd.MarkFlagRequired("output")
 
 	return cmd
 }
@@ -1818,7 +1818,7 @@ func runBatchTemplate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := os.WriteFile(output, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(output, []byte(content), 0600); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -2017,7 +2017,8 @@ func newLintState() lintState {
 }
 
 func loadAndValidateICSFile(path string) ([]string, error) {
-	info, err := os.Stat(path)
+	cleanPath := filepath.Clean(path)
+	info, err := os.Stat(cleanPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot access file: %w", err)
 	}
@@ -2025,7 +2026,7 @@ func loadAndValidateICSFile(path string) ([]string, error) {
 		return nil, fmt.Errorf("%s is a directory, expected file", path)
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -2171,7 +2172,7 @@ func ensureDirForFile(path string) error {
 	if dir == "" || dir == "." {
 		return nil
 	}
-	return os.MkdirAll(dir, 0o755)
+	return os.MkdirAll(dir, 0o750)
 }
 
 func extractDate(s string) string {
@@ -2482,7 +2483,7 @@ func runRRuleHelper(cmd *cobra.Command, args []string) error {
 	// Interval
 	fmt.Print("\nRepeat every N occurrences (default 1): ")
 	var intervalStr string
-	fmt.Scanln(&intervalStr)
+	_, _ = fmt.Scanln(&intervalStr)
 	intervalStr = strings.TrimSpace(intervalStr)
 	if intervalStr != "" && intervalStr != "1" {
 		interval := atoiSafe(intervalStr)
@@ -2497,7 +2498,7 @@ func runRRuleHelper(cmd *cobra.Command, args []string) error {
 		fmt.Println("  MO, TU, WE, TH, FR, SA, SU")
 		fmt.Print("Days (e.g., 'MO,WE,FR' or leave empty for all): ")
 		var daysStr string
-		fmt.Scanln(&daysStr)
+		_, _ = fmt.Scanln(&daysStr)
 		daysStr = strings.TrimSpace(daysStr)
 		if daysStr != "" {
 			parts = append(parts, fmt.Sprintf("BYDAY=%s", strings.ToUpper(daysStr)))
@@ -2520,7 +2521,7 @@ func runRRuleHelper(cmd *cobra.Command, args []string) error {
 	case 2:
 		fmt.Print("Number of occurrences: ")
 		var countStr string
-		fmt.Scanln(&countStr)
+		_, _ = fmt.Scanln(&countStr)
 		count := atoiSafe(strings.TrimSpace(countStr))
 		if count > 0 {
 			parts = append(parts, fmt.Sprintf("COUNT=%d", count))
@@ -2528,7 +2529,7 @@ func runRRuleHelper(cmd *cobra.Command, args []string) error {
 	case 3:
 		fmt.Print("End date (YYYY-MM-DD): ")
 		var untilStr string
-		fmt.Scanln(&untilStr)
+		_, _ = fmt.Scanln(&untilStr)
 		untilStr = strings.TrimSpace(untilStr)
 		if untilStr != "" {
 			// Parse to validate
@@ -2764,7 +2765,7 @@ func runTemplateCreate(cmd *cobra.Command, args []string) error {
 	if err := ensureDirForFile(finalName); err != nil {
 		return err
 	}
-	if err := os.WriteFile(finalName, []byte(cal.ToICS()), 0644); err != nil {
+	if err := os.WriteFile(finalName, []byte(cal.ToICS()), 0600); err != nil {
 		printErr("failed to write file: %v\n", err)
 		return err
 	}
@@ -2815,7 +2816,7 @@ func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmp
 		if err := ensureDirForFile(filename); err != nil {
 			return fmt.Errorf("row %d: %w", idx+1, err)
 		}
-		if err := os.WriteFile(filename, []byte(cal.ToICS()), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte(cal.ToICS()), 0600); err != nil {
 			return fmt.Errorf("row %d: failed to write file: %w", idx+1, err)
 		}
 		printOK("Created: %s\n", filename)
@@ -2941,7 +2942,7 @@ func loadTemplateRecords(path, format string) ([]map[string]string, error) {
 }
 
 func loadTemplateFromCSV(path string) ([]map[string]string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -2998,7 +2999,7 @@ func loadTemplateFromCSV(path string) ([]map[string]string, error) {
 }
 
 func loadTemplateFromJSON(path string) ([]map[string]string, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}
@@ -3222,7 +3223,7 @@ func runTemplateInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("directory cannot be empty")
 	}
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
@@ -3255,7 +3256,7 @@ func runTemplateInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := os.WriteFile(filename, content, 0o644); err != nil {
+	if err := os.WriteFile(filename, content, 0o600); err != nil {
 		return fmt.Errorf("failed to write scaffold: %w", err)
 	}
 

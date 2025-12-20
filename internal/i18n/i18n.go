@@ -235,7 +235,7 @@ func loadFromDisk(language string) (map[string]string, error) {
 	for _, base := range localeSearchPaths() {
 		for _, ext := range localeExtensions {
 			path := filepath.Join(base, language+ext)
-			data, err := os.ReadFile(path)
+			data, err := os.ReadFile(filepath.Clean(path))
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					continue
