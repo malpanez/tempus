@@ -10,6 +10,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/i18n"
+	"tempus/internal/testutil"
 	"tempus/internal/utils"
 )
 
@@ -342,7 +343,7 @@ func parseDateOrDateTimeInLocation(s, tzName string) (t time.Time, isDateOnly bo
 func parseHumanDuration(s string) (time.Duration, error) {
 	s = strings.TrimSpace(strings.ToLower(s))
 	if s == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 
 	// Plain number => minutes

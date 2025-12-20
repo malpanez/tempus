@@ -294,7 +294,7 @@ func TestEnsureUniquePath(t *testing.T) {
 			if tt.existingFile {
 				// Create the file
 				if err := os.WriteFile(tt.path, []byte("test"), 0644); err != nil {
-					t.Fatalf("failed to create test file: %v", err)
+					t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 				}
 			}
 			got := ensureUniquePath(tt.path)
@@ -308,7 +308,7 @@ func TestEnsureUniquePath(t *testing.T) {
 	t.Run("with collision", func(t *testing.T) {
 		path := filepath.Join(tmpDir, "collision.ics")
 		if err := os.WriteFile(path, []byte("test"), 0644); err != nil {
-			t.Fatalf("failed to create test file: %v", err)
+			t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 		}
 		got := ensureUniquePath(path)
 		expected := filepath.Join(tmpDir, "collision-2.ics")
@@ -982,7 +982,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ev, err := buildEventFromBatch(tt.record, tt.fallbackTZ)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("buildEventFromBatch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(testutil.ErrMsgBuildEventFromBatchError+", wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && tt.checkFunc != nil {
@@ -1002,7 +1002,7 @@ func TestNewConfigCmd(t *testing.T) {
 		t.Fatal("newConfigCmd() returned nil")
 	}
 	if cmd.Use != "config" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "config")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "config")
 	}
 
 	// Check subcommands
@@ -1070,7 +1070,7 @@ func TestNewVersionCmd(t *testing.T) {
 		t.Fatal("newVersionCmd() returned nil")
 	}
 	if cmd.Use != "version" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "version")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "version")
 	}
 	if cmd.Run == nil {
 		t.Error("version command should have Run function")
@@ -1134,7 +1134,7 @@ func TestRunTemplateValidate(t *testing.T) {
 func TestTemplateFieldDefault(t *testing.T) {
 	// This test is a placeholder since we need tpl.Template structure
 	// which is in the internal package
-	t.Skip("requires internal template structures")
+	t.Skip(testutil.ErrMsgRequiresInternalStructures)
 }
 
 func TestDeriveTemplateFilename(t *testing.T) {
@@ -1360,7 +1360,7 @@ func TestBuildEventFromBatchWithCategories(t *testing.T) {
 
 	ev, err := buildEventFromBatch(rec, "")
 	if err != nil {
-		t.Fatalf("buildEventFromBatch() error = %v", err)
+		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
 
 	if len(ev.Categories) != 3 {
@@ -1378,7 +1378,7 @@ func TestBuildEventFromBatchWithRRule(t *testing.T) {
 
 	ev, err := buildEventFromBatch(rec, "")
 	if err != nil {
-		t.Fatalf("buildEventFromBatch() error = %v", err)
+		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
 
 	if ev.RRule != testutil.RRuleDaily5Count {
@@ -1427,7 +1427,7 @@ func TestEnsureUniquePathMultipleCollisions(t *testing.T) {
 
 	// Create the base file
 	if err := os.WriteFile(basePath, []byte("test"), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 	}
 
 	// First call should return event-2.ics
@@ -1439,7 +1439,7 @@ func TestEnsureUniquePathMultipleCollisions(t *testing.T) {
 
 	// Create event-2.ics
 	if err := os.WriteFile(result, []byte("test"), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 	}
 
 	// Second call should return event-3.ics
@@ -1588,7 +1588,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := buildEventFromBatch(tt.record, "")
 			if (err != nil) != tt.wantErr {
-				t.Errorf("buildEventFromBatch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(testutil.ErrMsgBuildEventFromBatchError+", wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1607,7 +1607,7 @@ func TestBuildEventFromBatchWithExDatesAndAlarms(t *testing.T) {
 
 	ev, err := buildEventFromBatch(rec, "")
 	if err != nil {
-		t.Fatalf("buildEventFromBatch() error = %v", err)
+		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
 
 	if len(ev.ExDates) != 2 {
@@ -1935,12 +1935,12 @@ func TestCityToIANA(t *testing.T) {
 
 func TestLabelForField(t *testing.T) {
 	// This requires internal template structures, but we can test the logic
-	t.Skip("requires internal template structures")
+	t.Skip(testutil.ErrMsgRequiresInternalStructures)
 }
 
 func TestIsAlarmField(t *testing.T) {
 	// This requires internal template structures
-	t.Skip("requires internal template structures")
+	t.Skip(testutil.ErrMsgRequiresInternalStructures)
 }
 
 func TestCleanDisplay(t *testing.T) {
@@ -1967,7 +1967,7 @@ func TestCleanDisplay(t *testing.T) {
 
 func TestMergeTemplateValues(t *testing.T) {
 	// This requires internal template structures
-	t.Skip("requires internal template structures")
+	t.Skip(testutil.ErrMsgRequiresInternalStructures)
 }
 
 func TestAugmentValuesForFilename(t *testing.T) {

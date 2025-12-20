@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"tempus/internal/testutil"
 )
 
 var clockOnlyRe = regexp.MustCompile(`^\d{1,2}:\d{2}$`)
@@ -52,13 +54,13 @@ func NormalizeEndTimeFromDuration(start, end, duration, timezone string) (string
 	// Parse start time
 	startTime, err := ParseDateTime(start, timezone)
 	if err != nil {
-		return "", fmt.Errorf("invalid start time: %w", err)
+		return "", fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	// Parse duration
 	dur, err := ParseHumanDuration(duration)
 	if err != nil {
-		return "", fmt.Errorf("invalid duration: %w", err)
+		return "", fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
 	}
 
 	// Calculate end time
@@ -121,7 +123,7 @@ func ParseDateTime(input, timezone string) (time.Time, error) {
 func ParseHumanDuration(s string) (time.Duration, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 
 	// Try parsing days (1d, 2d, etc.)

@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tempus/internal/testutil"
 )
 
 const (
@@ -24,7 +26,7 @@ var (
 func ParseHumanDuration(s string) (time.Duration, error) {
 	x := strings.ToLower(strings.TrimSpace(s))
 	if x == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 
 	if dur, ok := tryParseDaysOrWeeks(x); ok {
@@ -466,7 +468,7 @@ func tryParseWithLayout(val, layout string, loc *time.Location) (time.Time, bool
 func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 
 	sign := 0
@@ -499,13 +501,13 @@ func parseRelativeAlarmDuration(raw string, defaultDirection int) (time.Duration
 func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	val := strings.TrimSpace(raw)
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf("duration must be positive")
+		return 0, fmt.Errorf(testutil.ErrMsgDurationMustBePositive)
 	}
 
 	if d, err := ParseHumanDuration(val); err == nil {
@@ -513,7 +515,7 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 	}
 	if d, err := time.ParseDuration(val); err == nil {
 		if d < 0 {
-			return 0, fmt.Errorf("duration must be positive")
+			return 0, fmt.Errorf(testutil.ErrMsgDurationMustBePositive)
 		}
 		return d, nil
 	}
@@ -526,21 +528,21 @@ func parseAlarmDurationValue(raw string) (time.Duration, error) {
 func parseICSDuration(raw string) (time.Duration, error) {
 	val := strings.ToUpper(strings.TrimSpace(raw))
 	if val == "" {
-		return 0, fmt.Errorf("empty duration")
+		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 	if strings.HasPrefix(val, "+") {
 		val = strings.TrimSpace(val[1:])
 	}
 	if strings.HasPrefix(val, "-") {
-		return 0, fmt.Errorf("duration must be positive")
+		return 0, fmt.Errorf(testutil.ErrMsgDurationMustBePositive)
 	}
 	if !strings.HasPrefix(val, "P") {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(testutil.ErrMsgInvalidICSDuration, raw)
 	}
 
 	matches := icsDurationRe.FindStringSubmatch(val)
 	if matches == nil {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(testutil.ErrMsgInvalidICSDuration, raw)
 	}
 
 	var total time.Duration
@@ -561,7 +563,7 @@ func parseICSDuration(raw string) (time.Duration, error) {
 	}
 
 	if total == 0 {
-		return 0, fmt.Errorf("invalid ICS duration %q", raw)
+		return 0, fmt.Errorf(testutil.ErrMsgInvalidICSDuration, raw)
 	}
 	return total, nil
 }

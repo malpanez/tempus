@@ -376,7 +376,7 @@ func TestEnsureUniquePathEdgeCases(t *testing.T) {
 	// Test with file that has no extension - adds .ics
 	noExtPath := filepath.Join(tmpDir, "file")
 	if err := os.WriteFile(noExtPath, []byte("test"), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 	}
 
 	result := ensureUniquePath(noExtPath)
@@ -388,7 +388,7 @@ func TestEnsureUniquePathEdgeCases(t *testing.T) {
 	// Test with multiple dots in filename
 	dotsPath := filepath.Join(tmpDir, "file.backup.ics")
 	if err := os.WriteFile(dotsPath, []byte("test"), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
+		t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 	}
 
 	result2 := ensureUniquePath(dotsPath)
@@ -443,7 +443,7 @@ func TestBuildEventFromBatchEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ev, err := buildEventFromBatch(tt.record, "UTC")
 			if (err != nil) != tt.wantErr {
-				t.Errorf("buildEventFromBatch() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf(testutil.ErrMsgBuildEventFromBatchError+", wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && ev == nil {

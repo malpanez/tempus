@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"tempus/internal/testutil"
 )
 
 const (
@@ -689,7 +691,7 @@ func TestLoadFromDiskWithDifferentFormats(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			path := filepath.Join(dir, tt.filename)
 			if err := os.WriteFile(path, []byte(tt.content), 0o644); err != nil {
-				t.Fatalf("failed to create test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 			}
 			t.Cleanup(func() {
 				_ = os.Remove(path)
@@ -736,7 +738,7 @@ func TestLoadFromDiskWithInvalidContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			path := filepath.Join(dir, tt.filename)
 			if err := os.WriteFile(path, []byte(tt.content), 0o644); err != nil {
-				t.Fatalf("failed to create test file: %v", err)
+				t.Fatalf(testutil.ErrMsgFailedToCreateTestFile, err)
 			}
 			t.Cleanup(func() {
 				_ = os.Remove(path)

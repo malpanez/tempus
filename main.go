@@ -20,6 +20,7 @@ import (
 	"tempus/internal/normalizer"
 	"tempus/internal/prompts"
 	tpl "tempus/internal/templates"
+	"tempus/internal/testutil"
 	tzpkg "tempus/internal/timezone"
 	"tempus/internal/utils"
 
@@ -402,7 +403,7 @@ func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, er
 func parseTimedEventTimes(startStr, endStr, durStr string) (startTime, endTime time.Time, err error) {
 	startTime, err = time.Parse("2006-01-02 15:04", startStr)
 	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
+		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	switch {

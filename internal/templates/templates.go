@@ -8,6 +8,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/i18n"
+	"tempus/internal/testutil"
 )
 
 // Template represents an event template (built-in or data-driven wrapper)
@@ -350,7 +351,7 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	// Parse start
 	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
 	if err != nil {
-		return nil, fmt.Errorf("invalid start time: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	// End can be explicit or computed from duration
@@ -363,7 +364,7 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	} else if durStr := strings.TrimSpace(data["duration"]); durStr != "" {
 		dur, derr := parseHumanDuration(durStr)
 		if derr != nil {
-			return nil, fmt.Errorf("invalid duration: %w", derr)
+			return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, derr)
 		}
 		endTime = startTime.Add(dur)
 	} else {
@@ -477,7 +478,7 @@ func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calen
 	// Parse start time
 	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
 	if err != nil {
-		return nil, fmt.Errorf("invalid start time: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	// Parse duration
@@ -487,7 +488,7 @@ func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calen
 	}
 	dur, err := parseHumanDuration(durStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid duration: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
 	}
 	endTime := startTime.Add(dur)
 
@@ -605,7 +606,7 @@ func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*cale
 	// Parse appointment time
 	apptTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
 	if err != nil {
-		return nil, fmt.Errorf("invalid start time: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	// Parse duration
@@ -615,7 +616,7 @@ func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*cale
 	}
 	dur, err := parseHumanDuration(durStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid duration: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
 	}
 	endTime := apptTime.Add(dur)
 
@@ -692,7 +693,7 @@ func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calen
 	// Parse start time
 	startTime, err := time.Parse("2006-01-02 15:04", data["start_time"])
 	if err != nil {
-		return nil, fmt.Errorf("invalid start time: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
 
 	// Parse duration
@@ -702,7 +703,7 @@ func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calen
 	}
 	dur, err := parseHumanDuration(durStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid duration: %w", err)
+		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
 	}
 	endTime := startTime.Add(dur)
 

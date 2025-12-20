@@ -472,7 +472,7 @@ func TestNewTimezoneCmd(t *testing.T) {
 		t.Fatal("newTimezoneCmd() returned nil")
 	}
 	if cmd.Use != "timezone" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "timezone")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "timezone")
 	}
 
 	// Check subcommands
@@ -504,7 +504,7 @@ func TestNewRRuleHelperCmd(t *testing.T) {
 		t.Fatal("newRRuleHelperCmd() returned nil")
 	}
 	if cmd.Use != "rrule" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "rrule")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "rrule")
 	}
 	if cmd.RunE == nil {
 		t.Error("rrule command should have RunE function")
@@ -517,7 +517,7 @@ func TestNewLocaleCmd(t *testing.T) {
 		t.Fatal("newLocaleCmd() returned nil")
 	}
 	if cmd.Use != "locale" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "locale")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "locale")
 	}
 
 	// Check subcommands
@@ -538,7 +538,7 @@ func TestNewTemplateCmd(t *testing.T) {
 		t.Fatal("newTemplateCmd() returned nil")
 	}
 	if cmd.Use != "template" {
-		t.Errorf("Use = %q, want %q", cmd.Use, "template")
+		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "template")
 	}
 
 	// Check subcommands exist
