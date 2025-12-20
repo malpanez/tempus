@@ -1764,6 +1764,44 @@ func TestGenerateEventValidation(t *testing.T) {
 	}
 }
 
+// Helper to verify event generation result
+func verifyEventGeneration(t *testing.T, event *calendar.Event, err error, wantErr bool) bool {
+	t.Helper()
+	if wantErr {
+		if err == nil {
+			t.Error(testutil.ErrMsgExpectedErrorGotNil)
+		}
+		return false
+	}
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+		return false
+	}
+
+	if event == nil {
+		t.Fatal(testutil.ErrMsgEventIsNil)
+		return false
+	}
+
+	return true
+}
+
+// Helper to verify appointment optional fields
+func verifyAppointmentFields(t *testing.T, event *calendar.Event, data map[string]string) {
+	t.Helper()
+	if provider := data["provider"]; provider != "" {
+		if !strings.Contains(event.Summary, provider) {
+			t.Error("summary should contain provider name")
+		}
+	}
+	if location := data["location"]; location != "" {
+		if event.Location != location {
+			t.Errorf("location = %q, want %q", event.Location, location)
+		}
+	}
+}
+
 // TestMeetingEdgeCases tests edge cases in meeting generation
 func TestMeetingEdgeCases(t *testing.T) {
 	tr := newTestTranslator()
@@ -1813,21 +1851,9 @@ func TestMeetingEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			event, err := generateMeetingEvent(tt.data, tr)
-			if tt.wantErr {
-				if err == nil {
-					t.Error(testutil.ErrMsgExpectedErrorGotNil)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if event == nil {
-					t.Fatal(testutil.ErrMsgEventIsNil)
-				}
-				if tt.check != nil {
-					var iface interface{} = event
-					tt.check(t, &iface)
-				}
+			if verifyEventGeneration(t, event, err, tt.wantErr) && tt.check != nil {
+				var iface interface{} = event
+				tt.check(t, &iface)
 			}
 		})
 	}
@@ -1872,18 +1898,7 @@ func TestFlightOptionalFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			event, err := generateFlightEvent(tt.data, tr)
-			if tt.wantErr {
-				if err == nil {
-					t.Error(testutil.ErrMsgExpectedErrorGotNil)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if event == nil {
-					t.Fatal(testutil.ErrMsgEventIsNil)
-				}
-			}
+			verifyEventGeneration(t, event, err, tt.wantErr)
 		})
 	}
 }
@@ -2004,24 +2019,12 @@ func TestAppointmentOptionalFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			event, err := generateAppointmentEvent(tt.data, tr)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if event == nil {
-				t.Fatal(testutil.ErrMsgEventIsNil)
+			if !verifyEventGeneration(t, event, err, false) {
+				return
 			}
 
 			// Verify optional fields when present
-			if provider := tt.data["provider"]; provider != "" {
-				if !strings.Contains(event.Summary, provider) {
-					t.Error("summary should contain provider name")
-				}
-			}
-			if location := tt.data["location"]; location != "" {
-				if event.Location != location {
-					t.Errorf("location = %q, want %q", event.Location, location)
-				}
-			}
+			verifyAppointmentFields(t, event, tt.data)
 		})
 	}
 }
