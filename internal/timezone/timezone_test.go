@@ -25,6 +25,18 @@ func TestNewTimezoneManager(t *testing.T) {
 	}
 }
 
+// Helper to verify timezone is valid
+func verifyTimezoneValid(t *testing.T, tz *TimezoneInfo, input string) {
+	t.Helper()
+	if tz == nil {
+		t.Errorf("GetTimezone(%q) returned nil timezone", input)
+		return
+	}
+	if tz.IANA == "" {
+		t.Errorf("GetTimezone(%q) returned empty IANA name", input)
+	}
+}
+
 func TestGetTimezone(t *testing.T) {
 	tm := NewTimezoneManager()
 
@@ -58,14 +70,7 @@ func TestGetTimezone(t *testing.T) {
 				return
 			}
 
-			if tz == nil {
-				t.Errorf("GetTimezone(%q) returned nil timezone", tt.input)
-				return
-			}
-
-			if tz.IANA == "" {
-				t.Errorf("GetTimezone(%q) returned empty IANA name", tt.input)
-			}
+			verifyTimezoneValid(t, tz, tt.input)
 		})
 	}
 }
@@ -495,14 +500,40 @@ func TestValueOr(t *testing.T) {
 	}
 }
 
+// Helper to load directory and verify no error
+func loadDirAndVerify(t *testing.T, tm *TimezoneManager, dir string) {
+	t.Helper()
+	if err := tm.LoadJSONDir(dir); err != nil {
+		t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
+	}
+}
+
+// Helper to verify zone display name
+func verifyZoneDisplayName(t *testing.T, zone *TimezoneInfo, wantName string) {
+	t.Helper()
+	if zone != nil && zone.DisplayName != wantName {
+		t.Errorf("Zone display name = %q, want %q", zone.DisplayName, wantName)
+	}
+}
+
+// Helper to verify zone alias
+func verifyAlias(t *testing.T, tm *TimezoneManager, alias, wantIANA string) {
+	t.Helper()
+	zone, err := tm.GetTimezone(alias)
+	if err != nil {
+		t.Errorf("Failed to get zone by alias: %v", err)
+		return
+	}
+	if zone.IANA != wantIANA {
+		t.Errorf("Alias points to %q, want %q", zone.IANA, wantIANA)
+	}
+}
+
 func TestLoadJSONDir(t *testing.T) {
 	tm := NewTimezoneManager()
 
 	t.Run("Load from valid directory with JSON files", func(t *testing.T) {
-		// Create a temporary directory
 		tmpDir := t.TempDir()
-
-		// Create a valid JSON file
 		validJSON := `{
 			"zones": [
 				{
@@ -523,59 +554,26 @@ func TestLoadJSONDir(t *testing.T) {
 			}
 		}`
 
-		jsonPath := tmpDir + "/test.json"
-		if err := os.WriteFile(jsonPath, []byte(validJSON), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
+		writeTestJSONFile(t, tmpDir, "test.json", validJSON)
+		loadDirAndVerify(t, tm, tmpDir)
 
-		// Load the directory
-		err := tm.LoadJSONDir(tmpDir)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
-		}
-
-		// Verify the zones were loaded
-		zone1, err := tm.GetTimezone(testutil.TestZone1)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
-		} else if zone1.DisplayName != "Test Zone 1" {
-			t.Errorf("Zone display name = %q, want 'Test Zone 1'", zone1.DisplayName)
-		}
-
-		// Verify alias
-		aliasZone, err := tm.GetTimezone("test1")
-		if err != nil {
-			t.Errorf("Failed to get zone by alias: %v", err)
-		} else if aliasZone.IANA != testutil.TestZone1 {
-			t.Errorf("Alias points to %q, want 'Test/Zone1'", aliasZone.IANA)
-		}
-
-		// Verify global alias
-		globalAliasZone, err := tm.GetTimezone("testalias")
-		if err != nil {
-			t.Errorf("Failed to get zone by global alias: %v", err)
-		} else if globalAliasZone.IANA != testutil.TestZone1 {
-			t.Errorf("Global alias points to %q, want 'Test/Zone1'", globalAliasZone.IANA)
-		}
+		zone1 := getAndVerifyZone(t, tm, testutil.TestZone1)
+		verifyZoneDisplayName(t, zone1, "Test Zone 1")
+		verifyAlias(t, tm, "test1", testutil.TestZone1)
+		verifyAlias(t, tm, "testalias", testutil.TestZone1)
 	})
 
 	t.Run("Load from non-existent directory", func(t *testing.T) {
 		tm := NewTimezoneManager()
-		err := tm.LoadJSONDir("/nonexistent/directory/path")
-		if err == nil {
+		if err := tm.LoadJSONDir("/nonexistent/directory/path"); err == nil {
 			t.Error("LoadJSONDir() expected error for non-existent directory, got nil")
 		}
 	})
 
 	t.Run("Load from file instead of directory", func(t *testing.T) {
 		tm := NewTimezoneManager()
-		tmpFile := t.TempDir() + "/notadir.txt"
-		if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
-			t.Fatalf("Failed to write test file: %v", err)
-		}
-
-		err := tm.LoadJSONDir(tmpFile)
-		if err == nil {
+		tmpFile := writeTestJSONFile(t, t.TempDir(), "notadir.txt", "test")
+		if err := tm.LoadJSONDir(tmpFile); err == nil {
 			t.Error("LoadJSONDir() expected error for file path, got nil")
 		}
 	})
@@ -583,58 +581,27 @@ func TestLoadJSONDir(t *testing.T) {
 	t.Run("Load directory with non-JSON files", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
-
-		// Create a non-JSON file
-		txtPath := tmpDir + "/test.txt"
-		if err := os.WriteFile(txtPath, []byte("not json"), 0644); err != nil {
-			t.Fatalf("Failed to write test file: %v", err)
-		}
-
-		// Should not error, just skip the file
-		err := tm.LoadJSONDir(tmpDir)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
-		}
+		writeTestJSONFile(t, tmpDir, "test.txt", "not json")
+		loadDirAndVerify(t, tm, tmpDir)
 	})
 
 	t.Run("Load directory with invalid JSON", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
-
-		// Create an invalid JSON file
-		invalidJSON := `{invalid json content`
-		jsonPath := tmpDir + "/invalid.json"
-		if err := os.WriteFile(jsonPath, []byte(invalidJSON), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
-
-		// Should not return error, but will log warning
-		err := tm.LoadJSONDir(tmpDir)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
-		}
+		writeTestJSONFile(t, tmpDir, "invalid.json", `{invalid json content`)
+		loadDirAndVerify(t, tm, tmpDir)
 	})
 
 	t.Run("Load directory with empty zones array", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
-
-		emptyJSON := `{"zones": []}`
-		jsonPath := tmpDir + "/empty.json"
-		if err := os.WriteFile(jsonPath, []byte(emptyJSON), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
-
-		err := tm.LoadJSONDir(tmpDir)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
-		}
+		writeTestJSONFile(t, tmpDir, "empty.json", `{"zones": []}`)
+		loadDirAndVerify(t, tm, tmpDir)
 	})
 
 	t.Run("Load directory with zone without IANA", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
-
 		jsonContent := `{
 			"zones": [
 				{
@@ -644,15 +611,8 @@ func TestLoadJSONDir(t *testing.T) {
 				}
 			]
 		}`
-		jsonPath := tmpDir + "/noiana.json"
-		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
-
-		err := tm.LoadJSONDir(tmpDir)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONDirError, err)
-		}
+		writeTestJSONFile(t, tmpDir, "noiana.json", jsonContent)
+		loadDirAndVerify(t, tm, tmpDir)
 	})
 }
 
@@ -670,12 +630,41 @@ func TestLoadDefaultJSONDirs(t *testing.T) {
 	}
 }
 
+// Helper function to write test JSON file
+func writeTestJSONFile(t *testing.T, tmpDir, filename, content string) string {
+	t.Helper()
+	jsonPath := tmpDir + "/" + filename
+	if err := os.WriteFile(jsonPath, []byte(content), 0644); err != nil {
+		t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
+	}
+	return jsonPath
+}
+
+// Helper function to load JSON and verify no error
+func loadAndVerifyJSON(t *testing.T, tm *TimezoneManager, jsonPath string) {
+	t.Helper()
+	if err := tm.loadJSONFile(jsonPath); err != nil {
+		t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
+	}
+}
+
+// Helper function to get timezone and verify
+func getAndVerifyZone(t *testing.T, tm *TimezoneManager, iana string) *TimezoneInfo {
+	t.Helper()
+	zone, err := tm.GetTimezone(iana)
+	if err != nil {
+		t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
+		return nil
+	}
+	return zone
+}
+
 func TestLoadJSONFile(t *testing.T) {
 	t.Run("Load valid JSON file with DST specified", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
-
 		dstTrue := true
+
 		jsonContent := `{
 			"zones": [
 				{
@@ -687,20 +676,11 @@ func TestLoadJSONFile(t *testing.T) {
 			]
 		}`
 
-		jsonPath := tmpDir + "/custom.json"
-		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
+		jsonPath := writeTestJSONFile(t, tmpDir, "custom.json", jsonContent)
+		loadAndVerifyJSON(t, tm, jsonPath)
+		zone := getAndVerifyZone(t, tm, "Custom/Zone")
 
-		err := tm.loadJSONFile(jsonPath)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
-		}
-
-		zone, err := tm.GetTimezone("Custom/Zone")
-		if err != nil {
-			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
-		} else {
+		if zone != nil {
 			if zone.DisplayName != "Custom Zone" {
 				t.Errorf("DisplayName = %q, want 'Custom Zone'", zone.DisplayName)
 			}
@@ -727,25 +707,14 @@ func TestLoadJSONFile(t *testing.T) {
 			]
 		}`
 
-		jsonPath := tmpDir + "/nodetails.json"
-		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
+		jsonPath := writeTestJSONFile(t, tmpDir, "nodetails.json", jsonContent)
+		loadAndVerifyJSON(t, tm, jsonPath)
+		zone := getAndVerifyZone(t, tm, "Test/NoDetails")
 
-		err := tm.loadJSONFile(jsonPath)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
-		}
-
-		zone, err := tm.GetTimezone("Test/NoDetails")
-		if err != nil {
-			t.Errorf(testutil.ErrMsgFailedToGetLoadedZone, err)
-		} else {
-			// DisplayName should fall back to IANA
+		if zone != nil {
 			if zone.DisplayName != "Test/NoDetails" {
 				t.Errorf("DisplayName = %q, want 'Test/NoDetails'", zone.DisplayName)
 			}
-			// Country should fall back to "Unknown"
 			if zone.Country != "Unknown" {
 				t.Errorf("Country = %q, want 'Unknown'", zone.Country)
 			}
@@ -754,8 +723,7 @@ func TestLoadJSONFile(t *testing.T) {
 
 	t.Run("Load non-existent file", func(t *testing.T) {
 		tm := NewTimezoneManager()
-		err := tm.loadJSONFile("/nonexistent/file.json")
-		if err == nil {
+		if err := tm.loadJSONFile("/nonexistent/file.json"); err == nil {
 			t.Error("loadJSONFile() expected error for non-existent file, got nil")
 		}
 	})
@@ -763,14 +731,9 @@ func TestLoadJSONFile(t *testing.T) {
 	t.Run("Load invalid JSON", func(t *testing.T) {
 		tm := NewTimezoneManager()
 		tmpDir := t.TempDir()
+		jsonPath := writeTestJSONFile(t, tmpDir, "invalid.json", "{invalid")
 
-		jsonPath := tmpDir + "/invalid.json"
-		if err := os.WriteFile(jsonPath, []byte("{invalid"), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
-
-		err := tm.loadJSONFile(jsonPath)
-		if err == nil {
+		if err := tm.loadJSONFile(jsonPath); err == nil {
 			t.Error("loadJSONFile() expected error for invalid JSON, got nil")
 		}
 	})
@@ -790,21 +753,11 @@ func TestLoadJSONFile(t *testing.T) {
 			]
 		}`
 
-		jsonPath := tmpDir + "/aliases.json"
-		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
+		jsonPath := writeTestJSONFile(t, tmpDir, "aliases.json", jsonContent)
+		loadAndVerifyJSON(t, tm, jsonPath)
+		zone := getAndVerifyZone(t, tm, "valid_alias")
 
-		err := tm.loadJSONFile(jsonPath)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
-		}
-
-		// Valid alias should work
-		zone, err := tm.GetTimezone("valid_alias")
-		if err != nil {
-			t.Errorf("Failed to get zone by valid alias: %v", err)
-		} else if zone.IANA != "Test/Alias" {
+		if zone != nil && zone.IANA != "Test/Alias" {
 			t.Errorf("Alias points to %q, want 'Test/Alias'", zone.IANA)
 		}
 	})
@@ -820,19 +773,10 @@ func TestLoadJSONFile(t *testing.T) {
 			}
 		}`
 
-		jsonPath := tmpDir + "/badalias.json"
-		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
-			t.Fatalf(testutil.ErrMsgFailedToWriteTestJSON, err)
-		}
+		jsonPath := writeTestJSONFile(t, tmpDir, "badalias.json", jsonContent)
+		loadAndVerifyJSON(t, tm, jsonPath)
 
-		err := tm.loadJSONFile(jsonPath)
-		if err != nil {
-			t.Errorf(testutil.ErrMsgLoadJSONFileError, err)
-		}
-
-		// Bad alias should not resolve
-		_, err = tm.GetTimezone("bad_alias")
-		if err == nil {
+		if _, err := tm.GetTimezone("bad_alias"); err == nil {
 			t.Error("Expected error for alias pointing to non-existent zone")
 		}
 	})

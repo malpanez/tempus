@@ -2,6 +2,7 @@ package templates
 
 import (
 	"strings"
+	"tempus/internal/calendar"
 	"tempus/internal/testutil"
 	"testing"
 
@@ -1526,11 +1527,37 @@ func TestAllDayEvents(t *testing.T) {
 }
 
 // TestEndToEndEventGeneration tests complete event generation flow
+// Helper function to verify basic event properties
+func verifyBasicEventProperties(t *testing.T, event *calendar.Event) {
+	t.Helper()
+
+	if event == nil {
+		t.Fatal("event is nil")
+	}
+	if event.UID == "" {
+		t.Error("event UID is empty")
+	}
+	if event.Summary == "" {
+		t.Error("event summary is empty")
+	}
+	if event.StartTime.IsZero() {
+		t.Error("event start time is zero")
+	}
+	if event.EndTime.IsZero() {
+		t.Error("event end time is zero")
+	}
+	if !event.EndTime.After(event.StartTime) && !event.AllDay {
+		t.Error("event end time should be after start time")
+	}
+	if event.Created.IsZero() {
+		t.Error("event created time is zero")
+	}
+}
+
 func TestEndToEndEventGeneration(t *testing.T) {
 	tm := NewTemplateManager()
 	tr := newTestTranslator()
 
-	// Test each built-in template end-to-end
 	tests := []struct {
 		name     string
 		tmplName string
@@ -1622,29 +1649,7 @@ func TestEndToEndEventGeneration(t *testing.T) {
 			if err != nil {
 				t.Fatalf("GenerateEvent() failed: %v", err)
 			}
-			if event == nil {
-				t.Fatal("GenerateEvent() returned nil event")
-			}
-
-			// Verify basic event properties
-			if event.UID == "" {
-				t.Error("event UID is empty")
-			}
-			if event.Summary == "" {
-				t.Error("event summary is empty")
-			}
-			if event.StartTime.IsZero() {
-				t.Error("event start time is zero")
-			}
-			if event.EndTime.IsZero() {
-				t.Error("event end time is zero")
-			}
-			if !event.EndTime.After(event.StartTime) && !event.AllDay {
-				t.Error("event end time should be after start time")
-			}
-			if event.Created.IsZero() {
-				t.Error("event created time is zero")
-			}
+			verifyBasicEventProperties(t, event)
 		})
 	}
 }

@@ -121,36 +121,49 @@ func (tm *TimezoneManager) ValidateTimezone(tz string) error {
 }
 
 // SuggestTimezone suggests a timezone based on partial input
-func (tm *TimezoneManager) SuggestTimezone(input string) []*TimezoneInfo {
-	q := strings.ToLower(strings.TrimSpace(input))
-	if q == "" {
-		return nil
-	}
-	results := make([]*TimezoneInfo, 0, 10)
-	seen := map[string]bool{}
-	for key, zone := range tm.zones {
-		if zone == nil {
-			continue
-		}
-		if strings.Contains(strings.ToLower(key), q) ||
-			strings.Contains(strings.ToLower(zone.DisplayName), q) ||
-			strings.Contains(strings.ToLower(zone.IANA), q) ||
-			strings.Contains(strings.ToLower(zone.Country), q) {
-			if !seen[zone.IANA] {
-				results = append(results, zone)
-				seen[zone.IANA] = true
-				if len(results) >= 10 {
-					break
-				}
-			}
-		}
-	}
+// zoneMatchesQuery checks if a zone matches the search query
+func zoneMatchesQuery(zone *TimezoneInfo, key, query string) bool {
+	return strings.Contains(strings.ToLower(key), query) ||
+		strings.Contains(strings.ToLower(zone.DisplayName), query) ||
+		strings.Contains(strings.ToLower(zone.IANA), query) ||
+		strings.Contains(strings.ToLower(zone.Country), query)
+}
+
+// sortTimezoneResults sorts timezone results by DisplayName, then IANA
+func sortTimezoneResults(results []*TimezoneInfo) {
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].DisplayName == results[j].DisplayName {
 			return results[i].IANA < results[j].IANA
 		}
 		return results[i].DisplayName < results[j].DisplayName
 	})
+}
+
+func (tm *TimezoneManager) SuggestTimezone(input string) []*TimezoneInfo {
+	q := strings.ToLower(strings.TrimSpace(input))
+	if q == "" {
+		return nil
+	}
+
+	const maxResults = 10
+	results := make([]*TimezoneInfo, 0, maxResults)
+	seen := map[string]bool{}
+
+	for key, zone := range tm.zones {
+		if zone == nil || !zoneMatchesQuery(zone, key, q) {
+			continue
+		}
+
+		if !seen[zone.IANA] {
+			results = append(results, zone)
+			seen[zone.IANA] = true
+			if len(results) >= maxResults {
+				break
+			}
+		}
+	}
+
+	sortTimezoneResults(results)
 	return results
 }
 
