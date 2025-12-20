@@ -2838,9 +2838,9 @@ func runTemplateCreateFromFile(tm *tpl.TemplateManager, tr *i18n.Translator, tmp
 	return nil
 }
 
-func runTemplateDescribe(_ *cobra.Command, args []string) error {
+func runTemplateDescribe(cmd *cobra.Command, args []string) error {
 	name := args[0]
-	tm, _, err := loadTemplateManager(nil)
+	tm, _, err := loadTemplateManager(cmd)
 	if err != nil {
 		return err
 	}
