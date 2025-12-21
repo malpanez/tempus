@@ -150,7 +150,7 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 	}
 
 	// Apply metadata (categories, priority)
-	applyEventMetadata(ev, dd, values, tr)
+	applyEventMetadata(ev, dd)
 
 	// Apply recurrence rules (rrule, exdates, alarms)
 	if err := applyRecurrence(ev, out, values, startTime, allDay, startTzName, endTzName); err != nil {
@@ -243,7 +243,7 @@ func calculateEndTime(values map[string]string, out OutputTemplate, startTime ti
 }
 
 // applyEventMetadata applies categories and priority from the template to the event.
-func applyEventMetadata(ev *calendar.Event, dd *DataDrivenTemplate, values map[string]string, tr *i18n.Translator) {
+func applyEventMetadata(ev *calendar.Event, dd *DataDrivenTemplate) {
 	out := dd.Output
 	for _, c := range out.Categories {
 		if strings.TrimSpace(c) != "" {
@@ -257,14 +257,30 @@ func applyEventMetadata(ev *calendar.Event, dd *DataDrivenTemplate, values map[s
 
 // applyRecurrence applies recurrence rules, exception dates, and alarms to the event.
 func applyRecurrence(ev *calendar.Event, out OutputTemplate, values map[string]string, startTime time.Time, allDay bool, startTZ, endTZ string) error {
-	// Optional recurrence
+	applyRRule(ev, out, values)
+
+	if err := applyExDates(ev, out, values, startTime, allDay, startTZ); err != nil {
+		return err
+	}
+
+	if err := applyAlarms(ev, out, values, startTZ, endTZ); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// applyRRule applies recurrence rule to the event if present.
+func applyRRule(ev *calendar.Event, out OutputTemplate, values map[string]string) {
 	if field := strings.TrimSpace(out.RRuleField); field != "" {
 		if val := strings.TrimSpace(values[field]); val != "" {
 			ev.RRule = val
 		}
 	}
+}
 
-	// Optional exclusions
+// applyExDates applies exception dates to the event if present.
+func applyExDates(ev *calendar.Event, out OutputTemplate, values map[string]string, startTime time.Time, allDay bool, startTZ string) error {
 	if field := strings.TrimSpace(out.ExDatesField); field != "" {
 		if raw := strings.TrimSpace(values[field]); raw != "" {
 			exDates, err := parseDDExDates(raw, startTime, allDay, startTZ)
@@ -276,16 +292,16 @@ func applyRecurrence(ev *calendar.Event, out OutputTemplate, values map[string]s
 			}
 		}
 	}
+	return nil
+}
 
-	// Optional alarms
+// applyAlarms applies alarms to the event if present.
+func applyAlarms(ev *calendar.Event, out OutputTemplate, values map[string]string, startTZ, endTZ string) error {
 	if field := strings.TrimSpace(out.AlarmsField); field != "" {
 		if raw := strings.TrimSpace(values[field]); raw != "" {
 			specs := calendar.SplitAlarmInput(raw)
 			if len(specs) > 0 {
-				defaultAlarmTZ := strings.TrimSpace(startTZ)
-				if defaultAlarmTZ == "" {
-					defaultAlarmTZ = strings.TrimSpace(endTZ)
-				}
+				defaultAlarmTZ := determineDefaultAlarmTZ(startTZ, endTZ)
 				parsed, err := calendar.ParseAlarmSpecs(specs, defaultAlarmTZ)
 				if err != nil {
 					return err
@@ -294,8 +310,16 @@ func applyRecurrence(ev *calendar.Event, out OutputTemplate, values map[string]s
 			}
 		}
 	}
-
 	return nil
+}
+
+// determineDefaultAlarmTZ determines the default timezone for alarms.
+func determineDefaultAlarmTZ(startTZ, endTZ string) string {
+	defaultAlarmTZ := strings.TrimSpace(startTZ)
+	if defaultAlarmTZ == "" {
+		defaultAlarmTZ = strings.TrimSpace(endTZ)
+	}
+	return defaultAlarmTZ
 }
 
 func parseDDExDates(raw string, start time.Time, allDay bool, tzName string) ([]time.Time, error) {

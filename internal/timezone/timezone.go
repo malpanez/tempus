@@ -222,9 +222,9 @@ func (tm *TimezoneManager) loadCommonTimezones() {
 		{"Europe/Zurich", "Zurich", "Switzerland"},
 
 		// Americas (incl. Brazil you asked about)
-		{testutil.TZAmericaNewYork, "New York", "United States"},
-		{"America/Los_Angeles", "Los Angeles", "United States"},
-		{"America/Chicago", "Chicago", "United States"},
+		{testutil.TZAmericaNewYork, "New York", testutil.CountryUnitedStates},
+		{"America/Los_Angeles", "Los Angeles", testutil.CountryUnitedStates},
+		{"America/Chicago", "Chicago", testutil.CountryUnitedStates},
 		{"America/Mexico_City", "Mexico City", "Mexico"},
 		{testutil.TZAmericaSaoPaulo, "São Paulo", "Brazil"},
 		{testutil.TZAmericaCampoGrande, "Campo Grande", "Brazil"},
@@ -483,7 +483,7 @@ var countryNames = map[string]string{
 	"TC": "Turks and Caicos Islands", "TH": "Thailand", "TN": "Tunisia",
 	"TR": "Turkiye", "TT": "Trinidad and Tobago", "TW": "Taiwan", "TZ": "Tanzania",
 
-	"UA": "Ukraine", "UG": "Uganda", "US": "United States", "UY": "Uruguay",
+	"UA": "Ukraine", "UG": "Uganda", "US": testutil.CountryUnitedStates, "UY": "Uruguay",
 	"UZ": "Uzbekistan",
 
 	"VA": "Vatican City", "VE": "Venezuela", "VG": "Virgin Islands (UK)",

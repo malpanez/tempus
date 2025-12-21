@@ -89,6 +89,9 @@ const (
 	// Common location strings
 	LocationNewYork = "New York"
 
+	// Common country names
+	CountryUnitedStates = "United States"
+
 	// Common description strings
 	DescriptionMeetingNotes = "Meeting notes"
 	DescriptionDeepWork     = "deep work"
