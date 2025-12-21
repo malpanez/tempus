@@ -88,61 +88,16 @@ func decodeDDTemplate(data []byte, ext string) (DataDrivenTemplate, error) {
 }
 
 func ValidateDDTemplate(t *DataDrivenTemplate) error {
-	if strings.TrimSpace(t.Name) == "" {
-		return fmt.Errorf("template name cannot be empty")
-	}
-	if len(t.Fields) == 0 {
-		return fmt.Errorf("template %q must define at least one field", t.Name)
+	if err := validateBasicTemplateInfo(t); err != nil {
+		return err
 	}
 
-	fieldKeys := make(map[string]struct{}, len(t.Fields))
-	for i, f := range t.Fields {
-		key := strings.TrimSpace(f.Key)
-		if key == "" {
-			return fmt.Errorf("template %q field %d is missing a key", t.Name, i)
-		}
-		if _, exists := fieldKeys[key]; exists {
-			return fmt.Errorf("template %q has duplicate field key %q", t.Name, key)
-		}
-		fieldKeys[key] = struct{}{}
+	fieldKeys, err := buildFieldKeysMap(t)
+	if err != nil {
+		return err
 	}
 
-	checkField := func(label, key string, allowEmpty bool) error {
-		key = strings.TrimSpace(key)
-		if key == "" {
-			if allowEmpty {
-				return nil
-			}
-			return fmt.Errorf("template %q missing %s", t.Name, label)
-		}
-		if _, ok := fieldKeys[key]; !ok {
-			return fmt.Errorf("template %q references unknown %s %q", t.Name, label, key)
-		}
-		return nil
-	}
-
-	if err := checkField("output.start_field", t.Output.StartField, false); err != nil {
-		return err
-	}
-	if err := checkField("output.end_field", t.Output.EndField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.duration_field", t.Output.DurationField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.start_tz_field", t.Output.StartTZField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.end_tz_field", t.Output.EndTZField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.rrule_field", t.Output.RRuleField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.exdates_field", t.Output.ExDatesField, true); err != nil {
-		return err
-	}
-	if err := checkField("output.alarms_field", t.Output.AlarmsField, true); err != nil {
+	if err := validateOutputFields(t, fieldKeys); err != nil {
 		return err
 	}
 
@@ -150,6 +105,73 @@ func ValidateDDTemplate(t *DataDrivenTemplate) error {
 		return fmt.Errorf("template %q missing output.summary_tmpl", t.Name)
 	}
 
+	return nil
+}
+
+// validateBasicTemplateInfo validates the template name and that fields are defined.
+func validateBasicTemplateInfo(t *DataDrivenTemplate) error {
+	if strings.TrimSpace(t.Name) == "" {
+		return fmt.Errorf("template name cannot be empty")
+	}
+	if len(t.Fields) == 0 {
+		return fmt.Errorf("template %q must define at least one field", t.Name)
+	}
+	return nil
+}
+
+// buildFieldKeysMap builds a map of field keys and validates they are unique and non-empty.
+func buildFieldKeysMap(t *DataDrivenTemplate) (map[string]struct{}, error) {
+	fieldKeys := make(map[string]struct{}, len(t.Fields))
+	for i, f := range t.Fields {
+		key := strings.TrimSpace(f.Key)
+		if key == "" {
+			return nil, fmt.Errorf("template %q field %d is missing a key", t.Name, i)
+		}
+		if _, exists := fieldKeys[key]; exists {
+			return nil, fmt.Errorf("template %q has duplicate field key %q", t.Name, key)
+		}
+		fieldKeys[key] = struct{}{}
+	}
+	return fieldKeys, nil
+}
+
+// validateOutputFields validates all output field references.
+func validateOutputFields(t *DataDrivenTemplate, fieldKeys map[string]struct{}) error {
+	fieldsToCheck := []struct {
+		label      string
+		key        string
+		allowEmpty bool
+	}{
+		{"output.start_field", t.Output.StartField, false},
+		{"output.end_field", t.Output.EndField, true},
+		{"output.duration_field", t.Output.DurationField, true},
+		{"output.start_tz_field", t.Output.StartTZField, true},
+		{"output.end_tz_field", t.Output.EndTZField, true},
+		{"output.rrule_field", t.Output.RRuleField, true},
+		{"output.exdates_field", t.Output.ExDatesField, true},
+		{"output.alarms_field", t.Output.AlarmsField, true},
+	}
+
+	for _, field := range fieldsToCheck {
+		if err := validateFieldReference(t.Name, field.label, field.key, field.allowEmpty, fieldKeys); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateFieldReference validates a single field reference.
+func validateFieldReference(templateName, label, key string, allowEmpty bool, fieldKeys map[string]struct{}) error {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		if allowEmpty {
+			return nil
+		}
+		return fmt.Errorf("template %q missing %s", templateName, label)
+	}
+	if _, ok := fieldKeys[key]; !ok {
+		return fmt.Errorf("template %q references unknown %s %q", templateName, label, key)
+	}
 	return nil
 }
 
