@@ -127,53 +127,83 @@ func ParseHumanDuration(s string) (time.Duration, error) {
 		return 0, fmt.Errorf(testutil.ErrMsgEmptyDuration)
 	}
 
-	// Try parsing days (1d, 2d, etc.)
-	if strings.HasSuffix(s, "d") {
-		daysStr := strings.TrimSuffix(s, "d")
-		if days, err := fmt.Sscanf(daysStr, "%d", new(int)); err == nil && days == 1 {
-			var d int
-			if _, err := fmt.Sscanf(daysStr, "%d", &d); err == nil {
-				return time.Duration(d) * 24 * time.Hour, nil
-			}
-		}
+	// Try days format
+	if d, ok := parseDaysFormat(s); ok {
+		return d, nil
 	}
 
-	// Try parsing weeks (1w, 2w, etc.)
-	if strings.HasSuffix(s, "w") {
-		weeksStr := strings.TrimSuffix(s, "w")
-		if weeks, err := fmt.Sscanf(weeksStr, "%d", new(int)); err == nil && weeks == 1 {
-			var w int
-			if _, err := fmt.Sscanf(weeksStr, "%d", &w); err == nil {
-				return time.Duration(w) * 7 * 24 * time.Hour, nil
-			}
-		}
+	// Try weeks format
+	if d, ok := parseWeeksFormat(s); ok {
+		return d, nil
 	}
 
-	// Try parsing as Go duration first (45m, 1h30m, etc.)
+	// Try Go duration format
 	if d, err := time.ParseDuration(s); err == nil {
 		return d, nil
 	}
 
-	// Try parsing as HH:MM format
-	if strings.Contains(s, ":") {
-		parts := strings.Split(s, ":")
-		if len(parts) == 2 {
-			var hours, minutes int
-			_, err := fmt.Sscanf(s, "%d:%d", &hours, &minutes)
-			if err == nil {
-				return time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute, nil
-			}
-		}
+	// Try HH:MM format
+	if d, ok := parseHHMMFormat(s); ok {
+		return d, nil
 	}
 
-	// Try parsing as plain number (minutes)
-	var minutes int
-	_, err := fmt.Sscanf(s, "%d", &minutes)
-	if err == nil {
-		return time.Duration(minutes) * time.Minute, nil
+	// Try plain number (minutes)
+	if d, ok := parseMinutesFormat(s); ok {
+		return d, nil
 	}
 
 	return 0, fmt.Errorf("invalid duration format: %s", s)
+}
+
+// parseDaysFormat parses duration strings like "1d", "2d", "7d".
+func parseDaysFormat(s string) (time.Duration, bool) {
+	if !strings.HasSuffix(s, "d") {
+		return 0, false
+	}
+	daysStr := strings.TrimSuffix(s, "d")
+	var d int
+	if _, err := fmt.Sscanf(daysStr, "%d", &d); err == nil {
+		return time.Duration(d) * 24 * time.Hour, true
+	}
+	return 0, false
+}
+
+// parseWeeksFormat parses duration strings like "1w", "2w".
+func parseWeeksFormat(s string) (time.Duration, bool) {
+	if !strings.HasSuffix(s, "w") {
+		return 0, false
+	}
+	weeksStr := strings.TrimSuffix(s, "w")
+	var w int
+	if _, err := fmt.Sscanf(weeksStr, "%d", &w); err == nil {
+		return time.Duration(w) * 7 * 24 * time.Hour, true
+	}
+	return 0, false
+}
+
+// parseHHMMFormat parses duration strings like "1:30" (HH:MM).
+func parseHHMMFormat(s string) (time.Duration, bool) {
+	if !strings.Contains(s, ":") {
+		return 0, false
+	}
+	parts := strings.Split(s, ":")
+	if len(parts) != 2 {
+		return 0, false
+	}
+	var hours, minutes int
+	if _, err := fmt.Sscanf(s, "%d:%d", &hours, &minutes); err == nil {
+		return time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute, true
+	}
+	return 0, false
+}
+
+// parseMinutesFormat parses plain numbers as minutes (e.g., "90" = 90 minutes).
+func parseMinutesFormat(s string) (time.Duration, bool) {
+	var minutes int
+	if _, err := fmt.Sscanf(s, "%d", &minutes); err == nil {
+		return time.Duration(minutes) * time.Minute, true
+	}
+	return 0, false
 }
 
 // NormalizeValuesForTemplate normalizes datetime fields in a map of values.
