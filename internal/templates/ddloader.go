@@ -16,61 +16,90 @@ import (
 func LoadDDTemplates(dir string) (map[string]DataDrivenTemplate, error) {
 	out := map[string]DataDrivenTemplate{}
 
-	fi, err := os.Stat(dir)
-	if err != nil {
+	if err := validateTemplateDir(dir); err != nil {
 		if os.IsNotExist(err) {
 			return out, nil
 		}
 		return out, err
 	}
-	if !fi.IsDir() {
-		return out, nil
-	}
 
-	err = filepath.WalkDir(dir, func(p string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if d.IsDir() {
-			return nil
-		}
-
-		ext := strings.ToLower(filepath.Ext(d.Name()))
-		if !isTemplateFileExt(ext) {
-			return nil
-		}
-
-		data, err := os.ReadFile(filepath.Clean(p))
-		if err != nil {
-			return err
-		}
-
-		tmpl, err := decodeDDTemplate(data, ext)
-		if err != nil {
-			return fmt.Errorf("%s: %w", p, err)
-		}
-
-		if strings.TrimSpace(tmpl.Name) == "" {
-			base := filepath.Base(p)
-			tmpl.Name = strings.TrimSuffix(base, filepath.Ext(base))
-		}
-		if tmpl.SchemaVersion == 0 {
-			tmpl.SchemaVersion = 1
-		}
-		if tmpl.SchemaVersion != 1 {
-			return fmt.Errorf("%s: unsupported schema_version %d", p, tmpl.SchemaVersion)
-		}
-
-		tmpl.Source = p
-
-		if err := ValidateDDTemplate(&tmpl); err != nil {
-			return fmt.Errorf("%s: %w", p, err)
-		}
-
-		out[tmpl.Name] = tmpl
-		return nil
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, walkErr error) error {
+		return processTemplateFile(p, d, walkErr, out)
 	})
 	return out, err
+}
+
+// validateTemplateDir checks if the directory exists and is actually a directory.
+func validateTemplateDir(dir string) error {
+	fi, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("not a directory: %s", dir)
+	}
+	return nil
+}
+
+// processTemplateFile processes a single file during the directory walk.
+func processTemplateFile(p string, d fs.DirEntry, walkErr error, out map[string]DataDrivenTemplate) error {
+	if walkErr != nil {
+		return walkErr
+	}
+	if d.IsDir() {
+		return nil
+	}
+
+	ext := strings.ToLower(filepath.Ext(d.Name()))
+	if !isTemplateFileExt(ext) {
+		return nil
+	}
+
+	tmpl, err := loadAndDecodeTemplate(p, ext)
+	if err != nil {
+		return err
+	}
+
+	if err := normalizeTemplateMetadata(&tmpl, p); err != nil {
+		return err
+	}
+
+	if err := ValidateDDTemplate(&tmpl); err != nil {
+		return fmt.Errorf("%s: %w", p, err)
+	}
+
+	out[tmpl.Name] = tmpl
+	return nil
+}
+
+// loadAndDecodeTemplate reads and decodes a template file.
+func loadAndDecodeTemplate(path, ext string) (DataDrivenTemplate, error) {
+	data, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return DataDrivenTemplate{}, err
+	}
+
+	tmpl, err := decodeDDTemplate(data, ext)
+	if err != nil {
+		return DataDrivenTemplate{}, fmt.Errorf("%s: %w", path, err)
+	}
+	return tmpl, nil
+}
+
+// normalizeTemplateMetadata sets defaults and normalizes template metadata.
+func normalizeTemplateMetadata(tmpl *DataDrivenTemplate, path string) error {
+	if strings.TrimSpace(tmpl.Name) == "" {
+		base := filepath.Base(path)
+		tmpl.Name = strings.TrimSuffix(base, filepath.Ext(base))
+	}
+	if tmpl.SchemaVersion == 0 {
+		tmpl.SchemaVersion = 1
+	}
+	if tmpl.SchemaVersion != 1 {
+		return fmt.Errorf("%s: unsupported schema_version %d", path, tmpl.SchemaVersion)
+	}
+	tmpl.Source = path
+	return nil
 }
 
 func decodeDDTemplate(data []byte, ext string) (DataDrivenTemplate, error) {
