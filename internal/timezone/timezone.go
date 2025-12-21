@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"tempus/internal/testutil"
 )
 
 // TimezoneInfo contains information about a timezone
@@ -201,17 +203,17 @@ func (tm *TimezoneManager) loadCommonTimezones() {
 	}
 	seeds := []seed{
 		// Spain and territories (Display = city/area only; Country separate)
-		{"Europe/Madrid", "Madrid", "Spain"},
-		{"Atlantic/Canary", "Canary Islands", "Spain"},
-		{"Africa/Ceuta", "Ceuta / Melilla", "Spain"},
+		{testutil.TZEuropeMadrid, "Madrid", "Spain"},
+		{testutil.TZAtlanticCanary, "Canary Islands", "Spain"},
+		{testutil.TZAfricaCeuta, "Ceuta / Melilla", "Spain"},
 
 		// Ireland and UK
-		{"Europe/Dublin", "Dublin", "Ireland"},
-		{"Europe/London", "London", "United Kingdom"},
+		{testutil.TZEuropeDublin, "Dublin", "Ireland"},
+		{testutil.TZEuropeLondon, "London", "United Kingdom"},
 
 		// Other European capitals
-		{"Europe/Paris", "Paris", "France"},
-		{"Europe/Berlin", "Berlin", "Germany"},
+		{testutil.TZEuropeParis, "Paris", "France"},
+		{testutil.TZEuropeBerlin, "Berlin", "Germany"},
 		{"Europe/Rome", "Rome", "Italy"},
 		{"Europe/Lisbon", "Lisbon", "Portugal"},
 		{"Europe/Amsterdam", "Amsterdam", "Netherlands"},
@@ -220,12 +222,12 @@ func (tm *TimezoneManager) loadCommonTimezones() {
 		{"Europe/Zurich", "Zurich", "Switzerland"},
 
 		// Americas (incl. Brazil you asked about)
-		{"America/New_York", "New York", "United States"},
+		{testutil.TZAmericaNewYork, "New York", "United States"},
 		{"America/Los_Angeles", "Los Angeles", "United States"},
 		{"America/Chicago", "Chicago", "United States"},
 		{"America/Mexico_City", "Mexico City", "Mexico"},
-		{"America/Sao_Paulo", "São Paulo", "Brazil"},
-		{"America/Campo_Grande", "Campo Grande", "Brazil"},
+		{testutil.TZAmericaSaoPaulo, "São Paulo", "Brazil"},
+		{testutil.TZAmericaCampoGrande, "Campo Grande", "Brazil"},
 
 		// APAC
 		{"Asia/Tokyo", "Tokyo", "Japan"},
@@ -252,34 +254,34 @@ func (tm *TimezoneManager) loadCommonTimezones() {
 	alias := func(key, iana string) { tm.zones[strings.ToLower(key)] = tm.zones[iana] }
 
 	// Spain
-	alias("madrid", "Europe/Madrid")
-	alias("spain", "Europe/Madrid")
-	alias("canarias", "Atlantic/Canary")
-	alias("canary", "Atlantic/Canary")
-	alias("ceuta", "Africa/Ceuta")
-	alias("melilla", "Africa/Ceuta")
+	alias("madrid", testutil.TZEuropeMadrid)
+	alias("spain", testutil.TZEuropeMadrid)
+	alias("canarias", testutil.TZAtlanticCanary)
+	alias("canary", testutil.TZAtlanticCanary)
+	alias("ceuta", testutil.TZAfricaCeuta)
+	alias("melilla", testutil.TZAfricaCeuta)
 
 	// Ireland / UK
-	alias("dublin", "Europe/Dublin")
-	alias("ireland", "Europe/Dublin")
-	alias("london", "Europe/London")
-	alias("uk", "Europe/London")
+	alias("dublin", testutil.TZEuropeDublin)
+	alias("ireland", testutil.TZEuropeDublin)
+	alias("london", testutil.TZEuropeLondon)
+	alias("uk", testutil.TZEuropeLondon)
 
 	// Brazil (requested)
-	alias("sao paulo", "America/Sao_Paulo")
-	alias("são paulo", "America/Sao_Paulo")
-	alias("porto alegre", "America/Sao_Paulo")
-	alias("pelotas", "America/Sao_Paulo")
-	alias("florianopolis", "America/Sao_Paulo")
-	alias("florianópolis", "America/Sao_Paulo")
-	alias("rio", "America/Sao_Paulo")
-	alias("rio de janeiro", "America/Sao_Paulo")
-	alias("campo grande", "America/Campo_Grande")
-	alias("campo_grande", "America/Campo_Grande")
-	alias("ponta pora", "America/Campo_Grande")
-	alias("ponta porã", "America/Campo_Grande")
-	alias("ponta-pora", "America/Campo_Grande")
-	alias("dourados", "America/Campo_Grande")
+	alias("sao paulo", testutil.TZAmericaSaoPaulo)
+	alias("são paulo", testutil.TZAmericaSaoPaulo)
+	alias("porto alegre", testutil.TZAmericaSaoPaulo)
+	alias("pelotas", testutil.TZAmericaSaoPaulo)
+	alias("florianopolis", testutil.TZAmericaSaoPaulo)
+	alias("florianópolis", testutil.TZAmericaSaoPaulo)
+	alias("rio", testutil.TZAmericaSaoPaulo)
+	alias("rio de janeiro", testutil.TZAmericaSaoPaulo)
+	alias("campo grande", testutil.TZAmericaCampoGrande)
+	alias("campo_grande", testutil.TZAmericaCampoGrande)
+	alias("ponta pora", testutil.TZAmericaCampoGrande)
+	alias("ponta porã", testutil.TZAmericaCampoGrande)
+	alias("ponta-pora", testutil.TZAmericaCampoGrande)
+	alias("dourados", testutil.TZAmericaCampoGrande)
 
 	// Common references
 	alias("utc", "UTC")
@@ -348,29 +350,29 @@ func hasDST(tzName string) bool {
 func (tm *TimezoneManager) GetFlightTimezones() map[string][]string {
 	return map[string][]string{
 		"Spain to Ireland/UK": {
-			"Europe/Madrid", "Europe/Dublin",
-			"Europe/Madrid", "Europe/London",
-			"Atlantic/Canary", "Europe/Dublin",
-			"Atlantic/Canary", "Europe/London",
+			testutil.TZEuropeMadrid, testutil.TZEuropeDublin,
+			testutil.TZEuropeMadrid, testutil.TZEuropeLondon,
+			testutil.TZAtlanticCanary, testutil.TZEuropeDublin,
+			testutil.TZAtlanticCanary, testutil.TZEuropeLondon,
 		},
 		"Spain to Europe": {
-			"Europe/Madrid", "Europe/Paris",
-			"Europe/Madrid", "Europe/Berlin",
-			"Europe/Madrid", "Europe/Rome",
+			testutil.TZEuropeMadrid, testutil.TZEuropeParis,
+			testutil.TZEuropeMadrid, testutil.TZEuropeBerlin,
+			testutil.TZEuropeMadrid, "Europe/Rome",
 		},
 		"Ireland/UK to Europe": {
-			"Europe/Dublin", "Europe/Paris",
-			"Europe/London", "Europe/Berlin",
-			"Europe/Dublin", "Europe/Madrid",
+			testutil.TZEuropeDublin, testutil.TZEuropeParis,
+			testutil.TZEuropeLondon, testutil.TZEuropeBerlin,
+			testutil.TZEuropeDublin, testutil.TZEuropeMadrid,
 		},
 		"Ireland to Brazil": {
-			"Europe/Dublin", "America/Sao_Paulo",
-			"Europe/Dublin", "America/Campo_Grande",
+			testutil.TZEuropeDublin, testutil.TZAmericaSaoPaulo,
+			testutil.TZEuropeDublin, testutil.TZAmericaCampoGrande,
 		},
 		"Transatlantic": {
-			"Europe/Madrid", "America/New_York",
-			"Europe/Dublin", "America/New_York",
-			"Europe/London", "America/New_York",
+			testutil.TZEuropeMadrid, testutil.TZAmericaNewYork,
+			testutil.TZEuropeDublin, testutil.TZAmericaNewYork,
+			testutil.TZEuropeLondon, testutil.TZAmericaNewYork,
 		},
 	}
 }
@@ -385,17 +387,17 @@ func (tm *TimezoneManager) IsEuropeanTimezone(tz string) bool {
 // GetTimezoneAbbreviation returns a typical abbreviation for a timezone
 func (tm *TimezoneManager) GetTimezoneAbbreviation(tz string) string {
 	abbreviations := map[string]string{
-		"Europe/Madrid":        "CET/CEST",
-		"Europe/Dublin":        "GMT/IST",
-		"Europe/London":        "GMT/BST",
-		"Atlantic/Canary":      "WET/WEST",
-		"Europe/Paris":         "CET/CEST",
-		"Europe/Berlin":        "CET/CEST",
-		"America/New_York":     "EST/EDT",
-		"America/Los_Angeles":  "PST/PDT",
-		"America/Chicago":      "CST/CDT",
-		"America/Sao_Paulo":    "BRT", // Brazil (no DST currently)
-		"America/Campo_Grande": "AMT",
+		testutil.TZEuropeMadrid:        "CET/CEST",
+		testutil.TZEuropeDublin:        "GMT/IST",
+		testutil.TZEuropeLondon:        "GMT/BST",
+		testutil.TZAtlanticCanary:      "WET/WEST",
+		testutil.TZEuropeParis:         "CET/CEST",
+		testutil.TZEuropeBerlin:        "CET/CEST",
+		testutil.TZAmericaNewYork:      "EST/EDT",
+		"America/Los_Angeles":          "PST/PDT",
+		"America/Chicago":              "CST/CDT",
+		testutil.TZAmericaSaoPaulo:     "BRT", // Brazil (no DST currently)
+		testutil.TZAmericaCampoGrande:  "AMT",
 		"Asia/Tokyo":           "JST",
 		"Asia/Shanghai":        "CST",
 		"Australia/Sydney":     "AEST/AEDT",

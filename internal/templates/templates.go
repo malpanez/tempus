@@ -175,8 +175,8 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 			{Key: "flight_number", Name: "Flight Number", Type: "text", Required: true},
 			{Key: "from", Name: "From", Type: "text", Required: true},
 			{Key: "to", Name: "To", Type: "text", Required: true},
-			{Key: "departure_time", Name: "Departure Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
-			{Key: "arrival_time", Name: "Arrival Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
+			{Key: "departure_time", Name: "Departure Time " + testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
+			{Key: "arrival_time", Name: "Arrival Time " + testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
 			{Key: "departure_tz", Name: "Departure Timezone", Type: "timezone", Required: false, Default: "UTC"},
 			{Key: "arrival_tz", Name: "Arrival Timezone", Type: "timezone", Required: false, Default: "UTC"},
 			{Key: "airline", Name: "Airline", Type: "text", Required: false},
@@ -192,8 +192,8 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 		Description: "Business meeting",
 		Fields: []Field{
 			{Key: "title", Name: "Meeting Title", Type: "text", Required: true},
-			{Key: "start_time", Name: "Start Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
-			{Key: "end_time", Name: "End Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: false},
+			{Key: "start_time", Name: testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
+			{Key: "end_time", Name: "End Time " + testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: false},
 			{Key: "duration", Name: "Duration (e.g. 30, 45m, 1h, 1h30m)", Type: "text", Required: false, Default: "60m"},
 			{Key: "location", Name: "Location", Type: "text", Required: false},
 			{Key: "timezone", Name: "Timezone", Type: "timezone", Required: false, Default: "UTC"},
@@ -225,7 +225,7 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 		Description: "Deep focus time block (ADHD-friendly)",
 		Fields: []Field{
 			{Key: "task", Name: "Task/Project", Type: "text", Required: true},
-			{Key: "start_time", Name: "Start Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
+			{Key: "start_time", Name: testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
 			{Key: "duration", Name: "Duration (e.g. 30, 45m, 1h, 2h)", Type: "text", Required: false, Default: "90m"},
 			{Key: "timezone", Name: "Timezone", Type: "timezone", Required: false, Default: "UTC"},
 			{Key: "notes", Name: "Notes/Subtasks", Type: "text", Required: false},
@@ -239,7 +239,7 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 		Description: "Medication reminder (ADHD-friendly)",
 		Fields: []Field{
 			{Key: "medication_name", Name: "Medication Name", Type: "text", Required: true},
-			{Key: "time", Name: "Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
+			{Key: "time", Name: "Time " + testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
 			{Key: "dosage", Name: "Dosage (e.g. 20mg, 1 pill)", Type: "text", Required: true},
 			{Key: "timezone", Name: "Timezone", Type: "timezone", Required: false, Default: "UTC"},
 			{Key: "instructions", Name: "Instructions (e.g. with food)", Type: "text", Required: false},
@@ -255,7 +255,7 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 		Fields: []Field{
 			{Key: "title", Name: "Appointment Type (e.g. Doctor, Therapy)", Type: "text", Required: true},
 			{Key: "provider", Name: "Provider Name", Type: "text", Required: false},
-			{Key: "start_time", Name: "Appointment Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
+			{Key: "start_time", Name: "Appointment Time " + testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
 			{Key: "duration", Name: "Duration (e.g. 30, 45m, 1h)", Type: "text", Required: false, Default: "30m"},
 			{Key: "travel_time", Name: "Travel Time Before (e.g. 15m, 30m)", Type: "text", Required: false, Default: "15m"},
 			{Key: "location", Name: "Location/Address", Type: "text", Required: false},
@@ -272,7 +272,7 @@ func (tm *TemplateManager) registerBuiltinTemplates() {
 		Fields: []Field{
 			{Key: "from_activity", Name: "From Activity", Type: "text", Required: true},
 			{Key: "to_activity", Name: "To Activity", Type: "text", Required: true},
-			{Key: "start_time", Name: "Start Time (YYYY-MM-DD HH:MM)", Type: "datetime", Required: true},
+			{Key: "start_time", Name: testutil.ErrMsgStartTimePrompt, Type: "datetime", Required: true},
 			{Key: "duration", Name: "Duration (e.g. 10m, 15m, 30m)", Type: "text", Required: false, Default: "15m"},
 			{Key: "timezone", Name: "Timezone", Type: "timezone", Required: false, Default: "UTC"},
 		},
@@ -325,18 +325,18 @@ func generateFlightEvent(data map[string]string, translator *i18n.Translator) (*
 
 	// Build description
 	var description string
-	description += fmt.Sprintf("%s: %s\n", translator.T(i18n.KeyFlightNumber), flightNumber)
-	description += fmt.Sprintf("%s: %s\n", translator.T(i18n.KeyFlightFrom), from)
-	description += fmt.Sprintf("%s: %s\n", translator.T(i18n.KeyFlightTo), to)
+	description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T(i18n.KeyFlightNumber), flightNumber)
+	description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T(i18n.KeyFlightFrom), from)
+	description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T(i18n.KeyFlightTo), to)
 
 	if airline := data["airline"]; airline != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("airline"), airline)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("airline"), airline)
 	}
 	if seat := data["seat"]; seat != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("seat"), seat)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("seat"), seat)
 	}
 	if gate := data["gate"]; gate != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("gate"), gate)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("gate"), gate)
 	}
 
 	event.Description = description
@@ -400,10 +400,10 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	// Build description
 	var description string
 	if agenda := data["agenda"]; agenda != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T(i18n.KeyMeetingTopic), agenda)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T(i18n.KeyMeetingTopic), agenda)
 	}
 	if meetingURL := data["meeting_url"]; meetingURL != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("meeting_url"), meetingURL)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("meeting_url"), meetingURL)
 	}
 
 	event.Description = description
@@ -440,13 +440,13 @@ func generateHolidayEvent(data map[string]string, translator *i18n.Translator) (
 
 	// Build description
 	var description string
-	description += fmt.Sprintf("%s: %s\n", translator.T(i18n.KeyHolidayDestination), destination)
+	description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T(i18n.KeyHolidayDestination), destination)
 
 	if accommodation := data["accommodation"]; accommodation != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("accommodation"), accommodation)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("accommodation"), accommodation)
 	}
 	if notes := data["notes"]; notes != "" {
-		description += fmt.Sprintf("%s: %s\n", translator.T("notes"), notes)
+		description += fmt.Sprintf(testutil.ErrMsgKeyValueFormat, translator.T("notes"), notes)
 	}
 
 	event.Description = description
