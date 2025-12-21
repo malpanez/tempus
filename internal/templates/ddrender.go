@@ -112,76 +112,19 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 
 	out := dd.Output
 
-	// Resolve time zone names (strings). We label DTSTART/DTEND with these TZIDs.
-	startTzName := strings.TrimSpace(values[out.StartTZField])
-	endTzName := strings.TrimSpace(values[out.EndTZField])
-	if startTzName == "" && endTzName != "" {
-		startTzName = endTzName
-	}
-	if endTzName == "" && startTzName != "" {
-		endTzName = startTzName
-	}
+	// Resolve time zones
+	startTzName, endTzName := resolveTimezones(values, out)
 
-	// Parse start
-	startStr := strings.TrimSpace(values[out.StartField])
-	if startStr == "" {
-		return nil, fmt.Errorf("missing required start field %q", out.StartField)
-	}
-	startTime, allDayStart, err := parseDateOrDateTimeInLocation(startStr, startTzName)
+	// Parse start time
+	startTime, allDay, err := parseStartTime(values, out, startTzName)
 	if err != nil {
-		return nil, fmt.Errorf("invalid start time %q: %w", startStr, err)
+		return nil, err
 	}
 
-	// Decide all-day for this event (template setting wins; if not set, infer from start format)
-	allDay := out.AllDay || allDayStart
-
-	// Choose end:
-	var endTime time.Time
-	endStr := strings.TrimSpace(values[out.EndField])
-
-	if allDay {
-		// Expect date only; if not provided, default to next day
-		if endStr == "" {
-			endTime = startTime.AddDate(0, 0, 1) // all-day DTEND is exclusive
-		} else {
-			et, isDateOnly, eErr := parseDateOrDateTimeInLocation(endStr, endTzName)
-			if eErr != nil {
-				return nil, fmt.Errorf("invalid end date %q: %w", endStr, eErr)
-			}
-			if !isDateOnly {
-				// Normalize to midnight if time was provided
-				et = time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, et.Location())
-			}
-			endTime = et.AddDate(0, 0, 1) // exclusive
-		}
-	} else {
-		// Timed event:
-		switch {
-		case endStr != "":
-			et, _, eErr := parseDateOrDateTimeInLocation(endStr, endTzName)
-			if eErr != nil {
-				return nil, fmt.Errorf("invalid end time %q: %w", endStr, eErr)
-			}
-			endTime = et
-
-		case strings.TrimSpace(values[out.DurationField]) != "":
-			durStr := strings.TrimSpace(values[out.DurationField])
-			dur, dErr := parseHumanDuration(durStr)
-			if dErr != nil {
-				return nil, fmt.Errorf("invalid duration %q: %w", durStr, dErr)
-			}
-			if dur <= 0 {
-				return nil, fmt.Errorf("duration must be > 0: %s", durStr)
-			}
-			endTime = startTime.Add(dur)
-
-		default:
-			endTime = startTime.Add(1 * time.Hour)
-		}
-
-		if !endTime.After(startTime) {
-			return nil, fmt.Errorf("end time must be after start time")
-		}
+	// Calculate end time
+	endTime, err := calculateEndTime(values, out, startTime, allDay, endTzName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Build the event
@@ -197,6 +140,7 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 	if description != "" {
 		ev.Description = description
 	}
+
 	// Label with TZID (do not shift wall times)
 	if startTzName != "" {
 		ev.SetStartTimezone(startTzName)
@@ -205,6 +149,102 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 		ev.SetEndTimezone(endTzName)
 	}
 
+	// Apply metadata (categories, priority)
+	applyEventMetadata(ev, dd, values, tr)
+
+	// Apply recurrence rules (rrule, exdates, alarms)
+	if err := applyRecurrence(ev, out, values, startTime, allDay, startTzName, endTzName); err != nil {
+		return nil, err
+	}
+
+	return ev, nil
+}
+
+// resolveTimezones extracts and normalizes timezone values from user input.
+// If only one timezone is provided, it's used for both start and end.
+func resolveTimezones(values map[string]string, out OutputTemplate) (startTZ, endTZ string) {
+	startTZ = strings.TrimSpace(values[out.StartTZField])
+	endTZ = strings.TrimSpace(values[out.EndTZField])
+	if startTZ == "" && endTZ != "" {
+		startTZ = endTZ
+	}
+	if endTZ == "" && startTZ != "" {
+		endTZ = startTZ
+	}
+	return startTZ, endTZ
+}
+
+// parseStartTime parses the start time field and determines if the event is all-day.
+// Returns the start time, all-day flag (combining template setting and parsed format), and any error.
+func parseStartTime(values map[string]string, out OutputTemplate, startTZ string) (time.Time, bool, error) {
+	startStr := strings.TrimSpace(values[out.StartField])
+	if startStr == "" {
+		return time.Time{}, false, fmt.Errorf("missing required start field %q", out.StartField)
+	}
+	startTime, allDayStart, err := parseDateOrDateTimeInLocation(startStr, startTZ)
+	if err != nil {
+		return time.Time{}, false, fmt.Errorf("invalid start time %q: %w", startStr, err)
+	}
+	// Template setting wins; if not set, infer from start format
+	allDay := out.AllDay || allDayStart
+	return startTime, allDay, nil
+}
+
+// calculateEndTime determines the event end time based on end field, duration field, or defaults.
+// For all-day events, returns the exclusive end date. For timed events, validates end > start.
+func calculateEndTime(values map[string]string, out OutputTemplate, startTime time.Time, allDay bool, endTZ string) (time.Time, error) {
+	endStr := strings.TrimSpace(values[out.EndField])
+
+	if allDay {
+		// Expect date only; if not provided, default to next day
+		if endStr == "" {
+			return startTime.AddDate(0, 0, 1), nil // all-day DTEND is exclusive
+		}
+		et, isDateOnly, err := parseDateOrDateTimeInLocation(endStr, endTZ)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid end date %q: %w", endStr, err)
+		}
+		if !isDateOnly {
+			// Normalize to midnight if time was provided
+			et = time.Date(et.Year(), et.Month(), et.Day(), 0, 0, 0, 0, et.Location())
+		}
+		return et.AddDate(0, 0, 1), nil // exclusive
+	}
+
+	// Timed event:
+	var endTime time.Time
+	switch {
+	case endStr != "":
+		et, _, err := parseDateOrDateTimeInLocation(endStr, endTZ)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid end time %q: %w", endStr, err)
+		}
+		endTime = et
+
+	case strings.TrimSpace(values[out.DurationField]) != "":
+		durStr := strings.TrimSpace(values[out.DurationField])
+		dur, err := parseHumanDuration(durStr)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("invalid duration %q: %w", durStr, err)
+		}
+		if dur <= 0 {
+			return time.Time{}, fmt.Errorf("duration must be > 0: %s", durStr)
+		}
+		endTime = startTime.Add(dur)
+
+	default:
+		endTime = startTime.Add(1 * time.Hour)
+	}
+
+	if !endTime.After(startTime) {
+		return time.Time{}, fmt.Errorf("end time must be after start time")
+	}
+	return endTime, nil
+}
+
+// applyEventMetadata applies categories and priority from the template to the event.
+func applyEventMetadata(ev *calendar.Event, dd *DataDrivenTemplate, values map[string]string, tr *i18n.Translator) {
+	out := dd.Output
 	for _, c := range out.Categories {
 		if strings.TrimSpace(c) != "" {
 			ev.AddCategory(c)
@@ -213,7 +253,10 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 	if out.Priority > 0 {
 		ev.Priority = out.Priority
 	}
+}
 
+// applyRecurrence applies recurrence rules, exception dates, and alarms to the event.
+func applyRecurrence(ev *calendar.Event, out OutputTemplate, values map[string]string, startTime time.Time, allDay bool, startTZ, endTZ string) error {
 	// Optional recurrence
 	if field := strings.TrimSpace(out.RRuleField); field != "" {
 		if val := strings.TrimSpace(values[field]); val != "" {
@@ -224,9 +267,9 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 	// Optional exclusions
 	if field := strings.TrimSpace(out.ExDatesField); field != "" {
 		if raw := strings.TrimSpace(values[field]); raw != "" {
-			exDates, err := parseDDExDates(raw, startTime, allDay, startTzName)
+			exDates, err := parseDDExDates(raw, startTime, allDay, startTZ)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if len(exDates) > 0 {
 				ev.ExDates = append(ev.ExDates, exDates...)
@@ -239,20 +282,20 @@ func (tm *TemplateManager) renderDDToEvent(dd *DataDrivenTemplate, values map[st
 		if raw := strings.TrimSpace(values[field]); raw != "" {
 			specs := calendar.SplitAlarmInput(raw)
 			if len(specs) > 0 {
-				defaultAlarmTZ := strings.TrimSpace(startTzName)
+				defaultAlarmTZ := strings.TrimSpace(startTZ)
 				if defaultAlarmTZ == "" {
-					defaultAlarmTZ = strings.TrimSpace(endTzName)
+					defaultAlarmTZ = strings.TrimSpace(endTZ)
 				}
 				parsed, err := calendar.ParseAlarmSpecs(specs, defaultAlarmTZ)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				ev.Alarms = append(ev.Alarms, parsed...)
 			}
 		}
 	}
 
-	return ev, nil
+	return nil
 }
 
 func parseDDExDates(raw string, start time.Time, allDay bool, tzName string) ([]time.Time, error) {
