@@ -877,7 +877,10 @@ Comprehensive guides for all user types:
   - Perfect for ADHD/ASD/Dyslexia users
   - ASCII diagrams and decision trees
   - Common patterns with visual examples
-  - Troubleshooting with clear solutions
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Visual error diagnosis and solutions
+  - Decision trees for quick problem identification
+  - Common errors with clear fixes
+  - Step-by-step debugging workflows
 
 ### Feature Guides
 - **[Neurodivergent Features Guide](docs/NEURODIVERGENT_FEATURES.md)** - Complete feature documentation
