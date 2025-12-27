@@ -95,9 +95,30 @@ const (
 	// Common description strings
 	DescriptionMeetingNotes = "Meeting notes"
 	DescriptionDeepWork     = "deep work"
+	DescriptionLine1Line2   = "Line1\\nLine2"
+	DescriptionLine1NLine2  = "Line1\nLine2"
+	DescriptionABC          = "A\nB\nC"
 
 	// Common recurrence rules
 	RRuleDaily5Count = "FREQ=DAILY;COUNT=5"
+
+	// Common test strings
+	StrWithPlus          = "with plus"
+	StrOptionB           = "Option B"
+	StrOptionC           = "Option C"
+	StrFocusBlock        = "focus-block"
+	StrNonExistent       = "non-existent template"
+	StrRequiredMissing   = "required field missing"
+	StrLocationFormat    = "location = %q, want %q"
+	StrUnexpectedError   = "unexpected error: %v"
+	StrInvalidDate       = "invalid date"
+	StrZeroDuration      = "zero duration"
+	StrFailedToGet       = "failed to get template: %v"
+	StrGeneratorFailed   = "generator failed: %v"
+	StrTemplateNameCond  = "{{#name}}Hello {{name}}{{/name}}"
+	StrDateTime20251201  = "2025-12-01 10:00"
+	StrTemplatesDir      = "templates-dir"
+	StrAmericaSaoPaulo   = "America/Sao_Paulo"
 
 	// Common error message formats
 	ErrMsgEventIsNil                 = "event is nil"
