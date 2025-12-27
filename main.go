@@ -16,6 +16,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/config"
+	"tempus/internal/constants"
 	"tempus/internal/i18n"
 	"tempus/internal/normalizer"
 	"tempus/internal/prompts"
@@ -155,8 +156,8 @@ func applyTimezoneToDetails(details *quickParsedEvent, tz string) {
 func confirmQuickEvent(details quickParsedEvent, tz string) bool {
 	fmt.Println("I understood the following event:")
 	fmt.Printf("  Summary:   %s\n", details.Summary)
-	fmt.Printf("  Start:     %s\n", details.StartTime.Format("Mon, 02 Jan 2006 15:04 MST"))
-	fmt.Printf("  End:       %s\n", details.EndTime.Format("Mon, 02 Jan 2006 15:04 MST"))
+	fmt.Printf("  Start:     %s\n", details.StartTime.Format(constants.DateTimeFormatRFC1123))
+	fmt.Printf("  End:       %s\n", details.EndTime.Format(constants.DateTimeFormatRFC1123))
 	if details.Location != "" {
 		fmt.Printf("  Location:  %s\n", details.Location)
 	}
@@ -205,10 +206,10 @@ func writeQuickCalendar(details quickParsedEvent, tz, output string) error {
 	icsContent := cal.ToICS()
 
 	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
-		printErr("failed to write file: %v\n", err)
+		printErr(constants.ErrMsgFailedToWriteFile, err)
 		return err
 	}
-	printOK("Created: %s\n", output)
+	printOK(constants.MsgCreatedFile, output)
 
 	return nil
 }
@@ -560,10 +561,10 @@ func writeCalendarOutput(cal *calendar.Calendar, output string) error {
 	}
 
 	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
-		printErr("failed to write file: %v\n", err)
+		printErr(constants.ErrMsgFailedToWriteFile, err)
 		return err
 	}
-	printOK("Created: %s\n", output)
+	printOK(constants.MsgCreatedFile, output)
 	return nil
 }
 
@@ -2780,7 +2781,7 @@ func runTemplateCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if err := os.WriteFile(finalName, []byte(cal.ToICS()), 0600); err != nil {
-		printErr("failed to write file: %v\n", err)
+		printErr(constants.ErrMsgFailedToWriteFile, err)
 		return err
 	}
 	printOK("Created: %s\n", finalName)
@@ -3798,7 +3799,7 @@ func runTZInfo(_ *cobra.Command, args []string) error {
 	}
 
 	now := time.Now().In(loc)
-	printZoneInfo(zone, now.Format("2006-01-02 15:04:05"), now.Format("Mon, 02 Jan 2006 15:04 MST"))
+	printZoneInfo(zone, now.Format(constants.DateTimeFormatISOSeconds), now.Format(constants.DateTimeFormatRFC1123))
 	return nil
 }
 

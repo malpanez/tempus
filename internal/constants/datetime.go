@@ -14,8 +14,9 @@ const (
 	TimeFormatHHMMSS = "15:04:05" // 24-hour time with seconds
 
 	// Combined date-time formats
-	DateTimeFormatISO        = "2006-01-02 15:04"    // ISO date + time
-	DateTimeFormatISOSeconds = "2006-01-02 15:04:05" // ISO with seconds
+	DateTimeFormatISO        = "2006-01-02 15:04"           // ISO date + time
+	DateTimeFormatISOSeconds = "2006-01-02 15:04:05"        // ISO with seconds
+	DateTimeFormatRFC1123    = "Mon, 02 Jan 2006 15:04 MST" // RFC 1123-like format
 
 	// ICS/iCalendar specific formats (RFC 5545)
 	ICSFormatUTC      = "20060102T150405Z" // UTC time in ICS format
