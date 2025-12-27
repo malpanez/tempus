@@ -14,7 +14,7 @@ Create [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545)-compliant ICS calendar
 [![Go Version](https://img.shields.io/github/go-mod/go-version/malpanez/tempus)](go.mod)
 [![Latest Release](https://img.shields.io/github/v/release/malpanez/tempus)](https://github.com/malpanez/tempus/releases/latest)
 
-[Why Tempus?](#-why-tempus) • [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
+[Why Tempus?](#-why-tempus) • [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Commands](#-command-reference) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 ---
 
@@ -415,6 +415,340 @@ Copy this into your batch files or use with `--rrule` flag.
 
 ---
 
+## 📘 Command Reference
+
+### `tempus create` - Single Event Creation
+
+Create a single calendar event with full control over all properties.
+
+**Basic usage:**
+```bash
+tempus create "Event Name" \
+  --start "2025-03-15 10:00" \
+  --duration "1h" \
+  --start-tz "Europe/Madrid" \
+  -o event.ics
+```
+
+**All flags:**
+- `--start`, `-s` **(required)**: Start date/time (YYYY-MM-DD HH:MM) or time-only (HH:MM for today)
+- `--end`, `-e`: End date/time OR duration (e.g. 1h30m, 90m, 1:15)
+- `--duration`: Duration (alternative to --end, e.g. 45m, 1h30m, 90)
+- `--start-tz`: Start timezone (e.g. Europe/Madrid, America/New_York)
+- `--end-tz`: End timezone (for events spanning multiple timezones)
+- `--all-day`, `-a`: All-day event (ignores time components)
+- `--location`, `-L`: Event location
+- `--description`, `-d`: Event description (multi-line supported with \n)
+- `--category`: Category labels (repeat flag for multiple, e.g. --category work --category meeting)
+- `--attendee`: Attendee email addresses (repeat for multiple)
+- `--alarm`: Reminders (repeat for multiple, see alarm formats below)
+- `--rrule`: Recurrence rule (e.g. FREQ=WEEKLY;COUNT=10)
+- `--exdate`: Exclude specific dates (repeat for multiple)
+- `--priority`: Event priority (1-9, where 1=highest)
+- `--interactive`, `-i`: Launch interactive mode with prompts
+- `--output`, `-o`: Output file path (default: stdout)
+
+**Alarm formats:**
+```bash
+# Simple duration before event
+--alarm 15m        # 15 minutes before
+--alarm 1h         # 1 hour before
+--alarm 1d         # 1 day before
+
+# With custom description
+--alarm "trigger=-30m,description=Boarding Pass"
+
+# Absolute time
+--alarm "trigger=2025-03-01 09:15,description=Check-in"
+
+# After event (positive trigger)
+--alarm "trigger=+10m,description=Wrap up"
+```
+
+**Examples:**
+
+Time-only input (defaults to today):
+```bash
+tempus create "Focus Block" \
+  --start "10:30" \
+  --duration "2h" \
+  --start-tz "Europe/Dublin" \
+  -o focus.ics
+```
+
+All-day event:
+```bash
+tempus create "Holiday" \
+  --start "2025-07-01" \
+  --end   "2025-07-03" \
+  --all-day \
+  --start-tz "Europe/Dublin" \
+  -o holiday.ics
+```
+
+Multi-timezone event (flight):
+```bash
+tempus create "Flight MAD→NYC" \
+  --start "2025-03-15 10:00" \
+  --start-tz "Europe/Madrid" \
+  --end "2025-03-15 13:00" \
+  --end-tz "America/New_York" \
+  --location "Airport" \
+  -o flight.ics
+```
+
+Weekly recurring with exceptions:
+```bash
+tempus create "Weekly Retro" \
+  --start "2025-04-01 16:00" \
+  --duration "1h" \
+  --start-tz "Europe/Madrid" \
+  --rrule "FREQ=WEEKLY;COUNT=6" \
+  --exdate "2025-04-29 16:00" \
+  --alarm 15m \
+  -o retro.ics
+```
+
+Interactive mode (prompts for all fields):
+```bash
+tempus create --interactive
+```
+
+---
+
+### `tempus lint` - Validate ICS Files
+
+Validate ICS calendar files for common issues and RFC 5545 compliance.
+
+**Usage:**
+```bash
+tempus lint --file calendar.ics
+```
+
+**Multiple files:**
+```bash
+tempus lint --file calendar1.ics --file calendar2.ics --file events.ics
+```
+
+**What it checks:**
+- RFC 5545 compliance (required fields, proper formatting)
+- Valid timezone identifiers (TZID)
+- Proper date/time formats
+- Valid RRULE syntax
+- VALARM consistency
+- Line folding correctness
+
+**Example output:**
+```
+✅ calendar.ics: Valid (12 events, 0 errors, 0 warnings)
+
+⚠️  events.ics: Issues found
+  Line 15: Invalid TZID "US/Eastern" - use "America/New_York"
+  Line 42: RRULE missing required FREQ parameter
+  Line 58: VALARM trigger format invalid
+
+❌ broken.ics: Critical errors
+  Missing required VCALENDAR component
+  Invalid VEVENT: missing DTSTART
+```
+
+---
+
+### `tempus locale` - Inspect Available Locales
+
+View available languages and locale information.
+
+**List all available locales:**
+```bash
+tempus locale list
+```
+
+**Example output:**
+```
+Available locales:
+  en - English
+  es - Spanish (Español)
+  pt - Portuguese (Português)
+  ga - Irish (Gaeilge)
+
+Current locale: en
+
+To change language:
+  tempus config set language es
+  # or use --language flag:
+  tempus create --language es ...
+```
+
+**Use different language for a single command:**
+```bash
+tempus create "Reunión" --start "2025-03-15 10:00" --language es
+tempus template create meeting --language pt
+```
+
+---
+
+### `tempus version` - Show Version Information
+
+Display version information and build details.
+
+**Usage:**
+```bash
+tempus version
+```
+
+**Example output:**
+```
+tempus version 0.5.0
+Built: 2025-03-14 10:23:45
+Commit: a1b2c3d
+Go: go1.24.0
+Platform: linux/amd64
+```
+
+---
+
+### `tempus completion` - Shell Autocompletion
+
+Generate shell completion scripts for faster command-line usage.
+
+**Bash:**
+```bash
+# Generate completion script
+tempus completion bash > /etc/bash_completion.d/tempus
+
+# Or add to your ~/.bashrc:
+source <(tempus completion bash)
+```
+
+**Zsh:**
+```bash
+# Generate completion script
+tempus completion zsh > "${fpath[1]}/_tempus"
+
+# Or add to your ~/.zshrc:
+source <(tempus completion zsh)
+```
+
+**Fish:**
+```bash
+tempus completion fish > ~/.config/fish/completions/tempus.fish
+```
+
+**PowerShell (Windows):**
+```powershell
+tempus completion powershell | Out-String | Invoke-Expression
+
+# Or add to your PowerShell profile:
+tempus completion powershell >> $PROFILE
+```
+
+**What autocompletion provides:**
+- Tab-complete command names (`tempus cre<TAB>` → `tempus create`)
+- Tab-complete flag names (`--sta<TAB>` → `--start`)
+- Timezone suggestions (`--start-tz Europe/<TAB>` shows European timezones)
+- Template name completion
+- File path completion
+
+---
+
+### `tempus config` - Manage Configuration
+
+Manage persistent configuration settings (stored in `~/.config/tempus/config.yaml`).
+
+**List all configuration:**
+```bash
+tempus config list
+```
+
+**Example output:**
+```
+Configuration:
+  timezone: Europe/Madrid
+  language: es
+
+Config file: /home/user/.config/tempus/config.yaml
+```
+
+**Set configuration values:**
+```bash
+# Set default timezone (like git config)
+tempus config set timezone "Europe/Madrid"
+
+# Set default language
+tempus config set language "es"
+
+# Values persist across all tempus commands
+```
+
+**View available alarm profiles:**
+```bash
+tempus config alarm-profiles
+```
+
+**Example output:**
+```
+Available alarm profiles:
+
+  adhd-default:
+    -2h, -1h, -30m, -10m
+    (Optimal spacing for regular events - recommended)
+
+  adhd-countdown:
+    -1d, -1h, -15m, -5m
+    (For important deadlines/appointments)
+
+  medication:
+    -5m, -1m, 0m
+    (Triple reminder for medication adherence)
+
+  single:
+    -15m
+    (Standard single reminder)
+
+  none:
+    (No alarms)
+
+Use in batch files: alarms: [profile:adhd-default]
+```
+
+**Advanced configuration (manual editing):**
+
+For advanced settings, edit `~/.config/tempus/config.yaml` directly:
+
+```yaml
+# Default settings
+timezone: Europe/Madrid
+language: es
+
+# Custom alarm profiles
+alarm_profiles:
+  my-default: ["-15m", "-5m", "-1m"]
+  urgent: ["-1d", "-12h", "-1h", "-15m", "-5m"]
+
+# Custom spell corrections
+spell_corrections:
+  # Built-in corrections are included automatically
+  # Add your own:
+  focusblock: focus block
+  standup: stand-up
+  tmrw: tomorrow
+  # Language-specific:
+  reunión: reunion
+  médico: medico
+```
+
+**Configuration file locations:**
+- Linux/macOS: `~/.config/tempus/config.yaml`
+- Windows: `%APPDATA%\tempus\config.yaml`
+
+**Priority order (highest to lowest):**
+1. Command-line flags (`--timezone`, `--language`)
+2. Environment variables (`TEMPUS_TIMEZONE`, `TEMPUS_LANGUAGE`)
+3. Config file (`~/.config/tempus/config.yaml`)
+4. Built-in defaults
+
+---
+
 ## Importing to Calendar Apps
 
 Tempus generates standard ICS files that work with any calendar application. Simply import the `.ics` file:
@@ -531,6 +865,39 @@ feature/fix branch --> develop --> main
 - All PRs must pass CI before merging
 - Branch protection on `main` and `develop`
 - Renovate bot for automatic dependency updates
+
+---
+
+## 📚 Documentation
+
+Comprehensive guides for all user types:
+
+### Getting Started
+- **[Quick Start Guide](docs/QUICK_START.md)** - Visual, step-by-step guide with diagrams and flowcharts
+  - Perfect for ADHD/ASD/Dyslexia users
+  - ASCII diagrams and decision trees
+  - Common patterns with visual examples
+  - Troubleshooting with clear solutions
+
+### Feature Guides
+- **[Neurodivergent Features Guide](docs/NEURODIVERGENT_FEATURES.md)** - Complete feature documentation
+  - Conflict detection and overwhelm prevention
+  - Input normalization and spell checking
+  - Alarm profiles and smart defaults
+  - Visual aids and batch templates
+  - Configuration examples
+
+### Reference
+- **[Command Reference](#-command-reference)** - Complete command documentation (this README)
+  - All commands with flags and examples
+  - `create`, `batch`, `quick`, `template`, `rrule`, `timezone`, `lint`, `locale`, `config`, `version`, `completion`
+- **[Configuration Example](config.example.yaml)** - YAML config template with comments
+- **[Batch Examples](examples/README.md)** - Ready-to-use CSV/JSON/YAML templates
+
+### Advanced Topics
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development guidelines
+- **[SECURITY.md](SECURITY.md)** - Security policy and responsible disclosure
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community guidelines
 
 ---
 
