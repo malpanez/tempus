@@ -108,7 +108,6 @@ jobs:
         with:
           languages: go
           queries: security-extended,security-and-quality
-          tools: linked
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@4f3212b61783c3c68e8309a0f18a699764811cda # v4
