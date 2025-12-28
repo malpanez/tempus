@@ -13,7 +13,7 @@ on:
 jobs:
   gosec:
     name: GoSec Security Scanner
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       security-events: write
@@ -51,7 +51,7 @@ jobs:
 
   dependency-review:
     name: Dependency Review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     if: github.event_name == 'pull_request'
 
     steps:
@@ -65,7 +65,7 @@ jobs:
 
   govulncheck:
     name: Go Vulnerability Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout
@@ -85,7 +85,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       security-events: write
@@ -111,7 +111,7 @@ jobs:
 
   secrets-scan:
     name: Secret Scanning
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout
@@ -137,7 +137,7 @@ jobs:
 
   dependency-check:
     name: Dependency Vulnerability Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout
@@ -156,7 +156,7 @@ jobs:
 
   security-summary:
     name: Security Summary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [gosec, govulncheck, codeql, secrets-scan, dependency-check]
     if: always()
 
