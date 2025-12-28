@@ -13,7 +13,7 @@ on:
 jobs:
   gosec:
     name: GoSec Security Scanner
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
@@ -85,7 +85,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
@@ -111,7 +111,7 @@ jobs:
 
   secrets-scan:
     name: Secret Scanning
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
