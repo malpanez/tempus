@@ -29,7 +29,7 @@ jobs:
           cache: true
 
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@538a05cc5d6eb7bb41624e48f6e5019cccb1a2b8 # master
         with:
           args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
 
@@ -124,7 +124,7 @@ jobs:
 
       - name: TruffleHog OSS (PR only)
         if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@a633174c3b2242aa1b6f8941d2ad6a99e0305964 # main
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
@@ -133,7 +133,7 @@ jobs:
 
       - name: TruffleHog OSS (Push/Schedule - full scan)
         if: github.event_name != 'pull_request'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@a633174c3b2242aa1b6f8941d2ad6a99e0305964 # main
         with:
           path: ./
           extra_args: --only-verified
