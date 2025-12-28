@@ -25,7 +25,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.24'
+          go-version: '1.23'
           cache: true
 
       - name: Run Gosec Security Scanner
@@ -75,7 +75,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.24'
+          go-version: '1.23'
           cache: true
 
       - name: Install govulncheck
@@ -100,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.24'
+          go-version: '1.23'
           cache: true
 
       - name: Initialize CodeQL
@@ -108,7 +108,7 @@ jobs:
         with:
           languages: go
           queries: security-extended,security-and-quality
-          tools: latest
+          tools: linked
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@4f3212b61783c3c68e8309a0f18a699764811cda # v4
@@ -155,7 +155,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.24'
+          go-version: '1.23'
           cache: true
 
       - name: Check for known vulnerabilities in dependencies
