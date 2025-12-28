@@ -7,13 +7,12 @@ on:
   # Allow manual triggering for testing
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build-and-release:
     name: Build and Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout

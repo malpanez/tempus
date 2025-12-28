@@ -439,35 +439,10 @@ func parseHhMmCompact(s string) (time.Duration, error) {
 	if s == "" {
 		return 0, fmt.Errorf("invalid duration")
 	}
-	var hours, mins int
-	var err error
 
-	if strings.Contains(s, "h") {
-		parts := strings.SplitN(s, "h", 2)
-		if parts[0] != "" {
-			hours, err = strconv.Atoi(parts[0])
-			if err != nil {
-				return 0, fmt.Errorf("invalid hours in duration")
-			}
-		}
-		s = parts[1]
-	}
-	if strings.HasSuffix(s, "m") {
-		mstr := strings.TrimSuffix(s, "m")
-		if mstr != "" {
-			m, err := strconv.Atoi(mstr)
-			if err != nil {
-				return 0, fmt.Errorf("invalid minutes in duration")
-			}
-			mins = m
-		}
-	} else if s != "" {
-		// If no trailing 'm' but digits remain, treat as minutes
-		m, err := strconv.Atoi(s)
-		if err != nil {
-			return 0, fmt.Errorf("invalid duration tail: %s", s)
-		}
-		mins = m
+	hours, mins, err := parseHoursAndMinutes(s)
+	if err != nil {
+		return 0, err
 	}
 
 	total := time.Duration(hours)*time.Hour + time.Duration(mins)*time.Minute
@@ -475,6 +450,67 @@ func parseHhMmCompact(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("duration must be > 0")
 	}
 	return total, nil
+}
+
+func parseHoursAndMinutes(s string) (hours, mins int, err error) {
+	remainder := s
+
+	if hours, remainder, err = extractHours(s); err != nil {
+		return 0, 0, err
+	}
+
+	if mins, err = extractMinutes(remainder); err != nil {
+		return 0, 0, err
+	}
+
+	return hours, mins, nil
+}
+
+func extractHours(s string) (hours int, remainder string, err error) {
+	if !strings.Contains(s, "h") {
+		return 0, s, nil
+	}
+
+	parts := strings.SplitN(s, "h", 2)
+	if parts[0] != "" {
+		hours, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return 0, "", fmt.Errorf("invalid hours in duration")
+		}
+	}
+	return hours, parts[1], nil
+}
+
+func extractMinutes(s string) (int, error) {
+	if s == "" {
+		return 0, nil
+	}
+
+	if strings.HasSuffix(s, "m") {
+		return parseMinutesWithSuffix(s)
+	}
+	return parseMinutesWithoutSuffix(s)
+}
+
+func parseMinutesWithSuffix(s string) (int, error) {
+	mstr := strings.TrimSuffix(s, "m")
+	if mstr == "" {
+		return 0, nil
+	}
+
+	mins, err := strconv.Atoi(mstr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid minutes in duration")
+	}
+	return mins, nil
+}
+
+func parseMinutesWithoutSuffix(s string) (int, error) {
+	mins, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("invalid duration tail: %s", s)
+	}
+	return mins, nil
 }
 
 // ParseDurationString exposes the duration parser for other packages.

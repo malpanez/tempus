@@ -10,14 +10,13 @@ on:
   # Allow manual triggering
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-
 jobs:
   gosec:
     name: GoSec Security Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout

@@ -386,17 +386,28 @@ func (tm *TimezoneManager) IsEuropeanTimezone(tz string) bool {
 
 // GetTimezoneAbbreviation returns a typical abbreviation for a timezone
 func (tm *TimezoneManager) GetTimezoneAbbreviation(tz string) string {
+	const (
+		abbrCETCEST = "CET/CEST"
+		abbrGMTIST  = "GMT/IST"
+		abbrGMTBST  = "GMT/BST"
+		abbrWETWEST = "WET/WEST"
+		abbrESTEDT  = "EST/EDT"
+		abbrPSTPDT  = "PST/PDT"
+		abbrCSTCDT  = "CST/CDT"
+		abbrBRT     = "BRT"
+	)
+
 	abbreviations := map[string]string{
-		testutil.TZEuropeMadrid:       "CET/CEST",
-		testutil.TZEuropeDublin:       "GMT/IST",
-		testutil.TZEuropeLondon:       "GMT/BST",
-		testutil.TZAtlanticCanary:     "WET/WEST",
-		testutil.TZEuropeParis:        "CET/CEST",
-		testutil.TZEuropeBerlin:       "CET/CEST",
-		testutil.TZAmericaNewYork:     "EST/EDT",
-		"America/Los_Angeles":         "PST/PDT",
-		"America/Chicago":             "CST/CDT",
-		testutil.TZAmericaSaoPaulo:    "BRT", // Brazil (no DST currently)
+		testutil.TZEuropeMadrid:       abbrCETCEST,
+		testutil.TZEuropeDublin:       abbrGMTIST,
+		testutil.TZEuropeLondon:       abbrGMTBST,
+		testutil.TZAtlanticCanary:     abbrWETWEST,
+		testutil.TZEuropeParis:        abbrCETCEST,
+		testutil.TZEuropeBerlin:       abbrCETCEST,
+		testutil.TZAmericaNewYork:     abbrESTEDT,
+		"America/Los_Angeles":         abbrPSTPDT,
+		"America/Chicago":             abbrCSTCDT,
+		testutil.TZAmericaSaoPaulo:    abbrBRT, // Brazil (no DST currently)
 		testutil.TZAmericaCampoGrande: "AMT",
 		"Asia/Tokyo":                  "JST",
 		"Asia/Shanghai":               "CST",
