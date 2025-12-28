@@ -453,7 +453,7 @@ func parseHhMmCompact(s string) (time.Duration, error) {
 }
 
 func parseHoursAndMinutes(s string) (hours, mins int, err error) {
-	remainder := s
+	var remainder string
 
 	if hours, remainder, err = extractHours(s); err != nil {
 		return 0, 0, err
