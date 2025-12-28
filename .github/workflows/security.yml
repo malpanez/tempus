@@ -86,6 +86,9 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
@@ -96,6 +99,7 @@ jobs:
         with:
           languages: go
           queries: security-extended,security-and-quality
+          tools: latest
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@4f3212b61783c3c68e8309a0f18a699764811cda # v4
