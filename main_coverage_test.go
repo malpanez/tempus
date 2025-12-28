@@ -46,7 +46,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "no warnings - check conflicts disabled",
 			events: []calendar.Event{ev1, ev2},
 			opts: &batchOptions{
-				checkConflicts: false,
+				checkConflicts:  false,
 				maxEventsPerDay: 0,
 				dryRun:          false,
 			},
@@ -57,7 +57,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "detect conflicts when enabled",
 			events: []calendar.Event{ev1, ev2},
 			opts: &batchOptions{
-				checkConflicts: true,
+				checkConflicts:  true,
 				maxEventsPerDay: 0,
 				dryRun:          false,
 			},
@@ -68,7 +68,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "detect conflicts in dry-run mode",
 			events: []calendar.Event{ev1, ev2},
 			opts: &batchOptions{
-				checkConflicts: false,
+				checkConflicts:  false,
 				maxEventsPerDay: 0,
 				dryRun:          true,
 			},
@@ -79,7 +79,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "detect overwhelm when max events exceeded",
 			events: []calendar.Event{ev1, ev2, ev3},
 			opts: &batchOptions{
-				checkConflicts: false,
+				checkConflicts:  false,
 				maxEventsPerDay: 2, // 3 events on same day
 				dryRun:          false,
 			},
@@ -90,7 +90,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "detect overwhelm in dry-run mode",
 			events: []calendar.Event{ev3}, // Non-overlapping event
 			opts: &batchOptions{
-				checkConflicts: false,
+				checkConflicts:  false,
 				maxEventsPerDay: 0,
 				dryRun:          true, // Auto-checks with default threshold
 			},
@@ -101,7 +101,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "both conflicts and overwhelm",
 			events: []calendar.Event{ev1, ev2, ev3},
 			opts: &batchOptions{
-				checkConflicts: true,
+				checkConflicts:  true,
 				maxEventsPerDay: 2,
 				dryRun:          false,
 			},
@@ -112,7 +112,7 @@ func TestCollectBatchWarnings(t *testing.T) {
 			name:   "no events",
 			events: []calendar.Event{},
 			opts: &batchOptions{
-				checkConflicts: true,
+				checkConflicts:  true,
 				maxEventsPerDay: 5,
 				dryRun:          false,
 			},
@@ -460,4 +460,3 @@ func TestParseDurationEnd(t *testing.T) {
 		})
 	}
 }
-
