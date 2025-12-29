@@ -135,6 +135,9 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
