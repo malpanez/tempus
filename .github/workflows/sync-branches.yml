@@ -9,6 +9,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-slim
+    permissions:
+      contents: write
     if: |
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
