@@ -698,6 +698,122 @@ func TestGetBatchTemplateContent(t *testing.T) {
 }
 
 // ============================================================================
+// parseAllDayTimes (0% coverage)
+// ============================================================================
+
+func TestParseAllDayTimes(t *testing.T) {
+	tests := []struct {
+		name      string
+		startStr  string
+		endStr    string
+		wantErr   bool
+		wantStart string
+		wantEnd   string
+	}{
+		{"valid single day", "2025-06-15", "", false, "2025-06-15", "2025-06-16"},
+		{"valid range", "2025-06-15", "2025-06-17", false, "2025-06-15", "2025-06-18"},
+		{"invalid start", "not-a-date", "", true, "", ""},
+		{"invalid end", "2025-06-15", "bad-date", true, "", ""},
+		{"end before start", "2025-06-15", "2025-06-14", true, "", ""},
+		{"same day range", "2025-06-15", "2025-06-15", false, "2025-06-15", "2025-06-16"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			start, end, err := parseAllDayTimes(tt.startStr, tt.endStr)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("parseAllDayTimes(%q, %q) error = %v, wantErr %v", tt.startStr, tt.endStr, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			gotStart := start.Format("2006-01-02")
+			gotEnd := end.Format("2006-01-02")
+			if gotStart != tt.wantStart {
+				t.Errorf("start = %q, want %q", gotStart, tt.wantStart)
+			}
+			if gotEnd != tt.wantEnd {
+				t.Errorf("end = %q, want %q", gotEnd, tt.wantEnd)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// addEmojiToSummary keyword paths (coverage uplift)
+// ============================================================================
+
+func TestAddEmojiToSummaryKeywords(t *testing.T) {
+	tests := []struct {
+		name      string
+		summary   string
+		wantEmoji string
+	}{
+		{"pill keyword", "Take pill", "\U0001f48a"},
+		{"breakfast keyword", "Eat breakfast", "\U0001f37d\ufe0f"},
+		{"lunch keyword", "Lunch break", "\U0001f37d\ufe0f"},
+		{"dinner keyword", "Dinner with family", "\U0001f37d\ufe0f"},
+		{"doctor keyword", "See doctor", "\U0001f3e5"},
+		{"dentist keyword", "Dentist appointment", "\U0001f3e5"},
+		{"meeting keyword", "Team meeting", "\U0001f4bc"},
+		{"focus keyword", "Focus time", "\U0001f3af"},
+		{"no keyword match", "Random event", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := addEmojiToSummary(tt.summary, nil)
+			if tt.wantEmoji == "" {
+				if got != tt.summary {
+					t.Errorf("addEmojiToSummary(%q, nil) = %q, want unchanged", tt.summary, got)
+				}
+				return
+			}
+			if !strings.HasPrefix(got, tt.wantEmoji) {
+				t.Errorf("addEmojiToSummary(%q, nil) = %q, want prefix %q", tt.summary, got, tt.wantEmoji)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// Category-based emoji paths (coverage uplift for addEmojiToSummary switch cases)
+// ============================================================================
+
+func TestAddEmojiToSummaryCategoryPaths(t *testing.T) {
+	tests := []struct {
+		name       string
+		categories []string
+		wantPrefix string
+	}{
+		{"therapy", []string{"therapy"}, "\U0001f9e0"},
+		{"exercise", []string{"exercise"}, "\U0001f4aa"},
+		{"travel", []string{"travel"}, "\u2708\ufe0f"},
+		{"accommodation", []string{"accommodation"}, "\U0001f3e8"},
+		{"focus", []string{"focus"}, "\U0001f3af"},
+		{"break", []string{"break"}, "\u2615"},
+		{"transition", []string{"transition"}, "\U0001f504"},
+		{"family", []string{"family"}, "\U0001f468\u200d\U0001f469\u200d\U0001f467"},
+		{"personal", []string{"personal"}, "\U0001f31f"},
+		{"urgent", []string{"urgent"}, "\U0001f525"},
+		{"fun", []string{"fun"}, "\U0001f389"},
+		{"learning", []string{"learning"}, "\U0001f4da"},
+		{"sleep", []string{"sleep"}, "\U0001f634"},
+		{"food", []string{"food"}, "\U0001f37d\ufe0f"},
+		{"meds", []string{"meds"}, "\U0001f48a"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := addEmojiToSummary("Event", tt.categories)
+			if !strings.HasPrefix(got, tt.wantPrefix) {
+				t.Errorf("addEmojiToSummary(\"Event\", %v) = %q, want prefix %q", tt.categories, got, tt.wantPrefix)
+			}
+		})
+	}
+}
+
+// ============================================================================
 // RRULE interpretation (0% coverage)
 // ============================================================================
 
