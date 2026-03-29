@@ -2073,3 +2073,86 @@ func TestCSVValue(t *testing.T) {
 		t.Errorf("csvValue() with out of range index = %q, want empty", result)
 	}
 }
+
+func TestNormalizeDateTimeInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty", "", ""},
+		{"already normalized datetime", "2025-12-16 14:00", "2025-12-16 14:00"},
+		{"already normalized date", "2025-12-16", "2025-12-16"},
+		{"slash separators datetime", "2025/12/16 14:00", "2025-12-16 14:00"},
+		{"slash separators date only", "2025/12/16", "2025-12-16"},
+		{"missing leading zeros", "2025-1-5 9:00", "2025-01-05 09:00"},
+		{"missing leading zeros date only", "2025-1-5", "2025-01-05"},
+		{"time without colon", "2025-01-05 0900", "2025-01-05 09:00"},
+		{"slash and missing zeros", "2025/1/5 9:00", "2025-01-05 09:00"},
+		{"whitespace padding", "  2025-12-16 14:00  ", "2025-12-16 14:00"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeDateTimeInput(tt.input)
+			if got != tt.want {
+				t.Errorf("normalizeDateTimeInput(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseTimedEventTimesNormalization(t *testing.T) {
+	tests := []struct {
+		name     string
+		startStr string
+		durStr   string
+		wantYear int
+		wantMon  time.Month
+		wantDay  int
+		wantHour int
+		wantMin  int
+	}{
+		{"slash separators", "2025/12/16 14:00", "1h", 2025, time.December, 16, 14, 0},
+		{"missing leading zeros", "2025-1-5 9:00", "1h", 2025, time.January, 5, 9, 0},
+		{"standard format", "2025-12-16 14:00", "1h", 2025, time.December, 16, 14, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			start, _, err := parseTimedEventTimes(tt.startStr, "", tt.durStr)
+			if err != nil {
+				t.Fatalf("parseTimedEventTimes(%q, \"\", %q) error: %v", tt.startStr, tt.durStr, err)
+			}
+			if start.Year() != tt.wantYear || start.Month() != tt.wantMon || start.Day() != tt.wantDay ||
+				start.Hour() != tt.wantHour || start.Minute() != tt.wantMin {
+				t.Errorf("parseTimedEventTimes(%q) start = %v, want %d-%02d-%02d %02d:%02d",
+					tt.startStr, start, tt.wantYear, tt.wantMon, tt.wantDay, tt.wantHour, tt.wantMin)
+			}
+		})
+	}
+}
+
+func TestParseAllDayTimesNormalization(t *testing.T) {
+	tests := []struct {
+		name     string
+		startStr string
+		wantYear int
+		wantMon  time.Month
+		wantDay  int
+	}{
+		{"slash separators", "2025/12/16", 2025, time.December, 16},
+		{"missing leading zeros", "2025-1-5", 2025, time.January, 5},
+		{"standard format", "2025-12-16", 2025, time.December, 16},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			start, _, err := parseAllDayTimes(tt.startStr, "")
+			if err != nil {
+				t.Fatalf("parseAllDayTimes(%q, \"\") error: %v", tt.startStr, err)
+			}
+			if start.Year() != tt.wantYear || start.Month() != tt.wantMon || start.Day() != tt.wantDay {
+				t.Errorf("parseAllDayTimes(%q) start = %v, want %d-%02d-%02d",
+					tt.startStr, start, tt.wantYear, tt.wantMon, tt.wantDay)
+			}
+		})
+	}
+}
