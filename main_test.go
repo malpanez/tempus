@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/i18n"
 
 	"github.com/spf13/cobra"
 )
@@ -1958,6 +1959,37 @@ func TestLabelForField(t *testing.T) {
 func TestIsAlarmField(t *testing.T) {
 	// This requires internal template structures
 	t.Skip(testutil.ErrMsgRequiresInternalStructures)
+}
+
+func TestAlarmPromptI18nKeys(t *testing.T) {
+	keys := []string{
+		"alarm_prompt_suggested",
+		"alarm_prompt_keep_or_change",
+		"alarm_prompt_yes_short",
+		"alarm_prompt_yes_long",
+		"alarm_prompt_add_up_to",
+		"alarm_prompt_help_hint",
+		"alarm_prompt_reminder_n",
+		"alarm_prompt_examples_header",
+		"alarm_prompt_example_before",
+		"alarm_prompt_example_after",
+		"alarm_prompt_example_trigger",
+		"alarm_prompt_example_absolute",
+		"alarm_prompt_optional_desc",
+	}
+	locales := []string{"en", "es", "pt", "ga"}
+	for _, lang := range locales {
+		tr, err := i18n.NewTranslator(lang)
+		if err != nil {
+			t.Fatalf("failed to create translator for %s: %v", lang, err)
+		}
+		for _, key := range keys {
+			val := tr.T(key)
+			if val == key || val == "" {
+				t.Errorf("locale %s: key %q not translated (got %q)", lang, key, val)
+			}
+		}
+	}
 }
 
 func TestCleanDisplay(t *testing.T) {
