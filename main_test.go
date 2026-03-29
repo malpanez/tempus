@@ -1895,39 +1895,56 @@ func TestNormalizeEndTimeFromDuration(t *testing.T) {
 
 func TestCityToIANA(t *testing.T) {
 	tests := []struct {
-		city string
-		want string
+		city    string
+		want    string
+		wantErr bool
 	}{
 		// Spain
-		{"madrid", testutil.TZEuropeMadrid},
-		{"barcelona", testutil.TZEuropeMadrid},
-		{"melilla", testutil.TZAfricaCeuta},
-		{"ceuta", testutil.TZAfricaCeuta},
-		{"canarias", testutil.TZAtlanticCanary},
-		{"tenerife", testutil.TZAtlanticCanary},
+		{"madrid", testutil.TZEuropeMadrid, false},
+		{"barcelona", testutil.TZEuropeMadrid, false},
+		{"melilla", testutil.TZAfricaCeuta, false},
+		{"ceuta", testutil.TZAfricaCeuta, false},
+		{"canarias", testutil.TZAtlanticCanary, false},
+		{"tenerife", testutil.TZAtlanticCanary, false},
 
 		// Brazil
-		{"pelotas", testutil.TZAmericaSaoPaulo},
-		{"porto alegre", testutil.TZAmericaSaoPaulo},
-		{"campo grande", testutil.TZAmericaCampoGrande},
-		{"manaus", "America/Manaus"},
-		{"rio", testutil.TZAmericaSaoPaulo},
-		{"sao paulo", testutil.TZAmericaSaoPaulo},
+		{"pelotas", testutil.TZAmericaSaoPaulo, false},
+		{"porto alegre", testutil.TZAmericaSaoPaulo, false},
+		{"campo grande", testutil.TZAmericaCampoGrande, false},
+		{"manaus", "America/Manaus", false},
+		{"rio", testutil.TZAmericaSaoPaulo, false},
+		{"sao paulo", testutil.TZAmericaSaoPaulo, false},
 
 		// Ireland/UK
-		{"dublin", testutil.TZEuropeDublin},
-		{"london", testutil.TZEuropeLondon},
+		{"dublin", testutil.TZEuropeDublin, false},
+		{"london", testutil.TZEuropeLondon, false},
 
-		// Unknown
-		{"unknown", ""},
-		{"", ""},
+		// Unknown -- should error
+		{"unknown", "", true},
+		{"", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.city, func(t *testing.T) {
-			got := cityToIANA(tt.city)
-			if got != tt.want {
-				t.Errorf("cityToIANA(%q) = %q, want %q", tt.city, got, tt.want)
+			got, err := cityToIANA(tt.city)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("cityToIANA(%q) expected error, got nil", tt.city)
+				} else {
+					if !strings.Contains(err.Error(), "Unknown city") {
+						t.Errorf("cityToIANA(%q) error = %q, want substring %q", tt.city, err.Error(), "Unknown city")
+					}
+					if !strings.Contains(err.Error(), "tempus timezone list --search") {
+						t.Errorf("cityToIANA(%q) error = %q, want substring %q", tt.city, err.Error(), "tempus timezone list --search")
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("cityToIANA(%q) unexpected error: %v", tt.city, err)
+				}
+				if got != tt.want {
+					t.Errorf("cityToIANA(%q) = %q, want %q", tt.city, got, tt.want)
+				}
 			}
 		})
 	}

@@ -8,6 +8,37 @@ import (
 	"testing"
 )
 
+func TestExpandAlarmProfiles(t *testing.T) {
+	tests := []struct {
+		name      string
+		specs     []string
+		wantErr   bool
+		errSubstr string
+	}{
+		{"empty input", []string{}, false, ""},
+		{"non-profile spec passthrough", []string{"-15m", "+5m"}, false, ""},
+		{"unknown profile", []string{"profile:nonexistent"}, true, "not found"},
+		{"unknown profile lists available", []string{"profile:nonexistent"}, true, "Available:"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := expandAlarmProfiles(tt.specs)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expandAlarmProfiles(%v) expected error, got nil", tt.specs)
+				} else if !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("expandAlarmProfiles(%v) error = %q, want substring %q", tt.specs, err.Error(), tt.errSubstr)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expandAlarmProfiles(%v) unexpected error: %v", tt.specs, err)
+				}
+				_ = result
+			}
+		})
+	}
+}
+
 func TestCreateSupportsAlarms(t *testing.T) {
 	cmd := newCreateCmd()
 
