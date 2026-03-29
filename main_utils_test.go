@@ -82,7 +82,10 @@ func TestStripEmoji(t *testing.T) {
 		{"emoji in middle", "Take 💊 medicine", "Take 💊 medicine"}, // Middle emoji not stripped
 		{testutil.TestNameEmptyString, "", ""},
 		{"leading spaces after emoji", "💊  Medication", "Medication"},
-		{"leading high unicode", "¡Hola", "Hola"}, // Strips first char if > 127
+		{"leading high unicode", "¡Hola", "¡Hola"},
+		{"accented e", "Reuni\u00f3n con equipo", "Reuni\u00f3n con equipo"},
+		{"n tilde", "Ni\u00f1os al colegio", "Ni\u00f1os al colegio"},
+		{"umlaut", "\u00fcber fahrt", "\u00fcber fahrt"},
 	}
 
 	for _, tt := range tests {
@@ -492,6 +495,7 @@ func TestAddEmojiToSummary(t *testing.T) {
 		{"already has emoji", "💊 Medicine", []string{"medication"}, false},
 		{"multiple categories", "Event", []string{"work", "meeting"}, true},
 		{"empty summary", "", []string{"work"}, true},
+		{"accented start gets emoji", "\u00c1rea de trabajo", []string{"work"}, true},
 	}
 
 	for _, tt := range tests {

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"tempus/internal/calendar"
 	"tempus/internal/config"
@@ -1427,9 +1428,11 @@ func min(a, b, c int) int {
 // Only adds emoji if the summary doesn't already start with one.
 // This provides visual cues that help neurodivergent users quickly scan their calendar.
 func addEmojiToSummary(summary string, categories []string) string {
-	// Skip if summary already starts with an emoji (rough check for non-ASCII)
-	if len(summary) > 0 && summary[0] > 127 {
-		return summary
+	if len(summary) > 0 {
+		firstRune := []rune(summary)[0]
+		if unicode.Is(unicode.So, firstRune) {
+			return summary
+		}
 	}
 
 	// Map categories to emojis
@@ -1692,12 +1695,10 @@ func containsAny(text string, keywords []string) bool {
 
 // stripEmoji removes emoji from event summary for prep event names
 func stripEmoji(s string) string {
-	// Remove common emoji prefixes
 	s = strings.TrimSpace(s)
 	if len(s) > 0 {
-		// Simple approach: if starts with emoji (unicode > 127), skip first char
 		firstRune := []rune(s)[0]
-		if firstRune > 127 {
+		if unicode.Is(unicode.So, firstRune) {
 			runes := []rune(s)
 			if len(runes) > 1 {
 				return strings.TrimSpace(string(runes[1:]))
