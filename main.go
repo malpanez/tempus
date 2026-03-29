@@ -379,6 +379,7 @@ func parseCreateTimes(opts *createOptions) (startTime, endTime time.Time, err er
 }
 
 func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, err error) {
+	startStr = normalizeDateTimeInput(startStr)
 	startTime, err = time.Parse("2006-01-02", startStr)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid start date: %w", err)
@@ -387,6 +388,7 @@ func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, er
 	if strings.TrimSpace(endStr) == "" {
 		endTime = startTime.AddDate(0, 0, 1)
 	} else {
+		endStr = normalizeDateTimeInput(endStr)
 		endDate, parseErr := time.Parse("2006-01-02", endStr)
 		if parseErr != nil {
 			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date: %w", parseErr)
@@ -405,6 +407,7 @@ func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, er
 }
 
 func parseTimedEventTimes(startStr, endStr, durStr string) (startTime, endTime time.Time, err error) {
+	startStr = normalizeDateTimeInput(startStr)
 	startTime, err = time.Parse("2006-01-02 15:04", startStr)
 	if err != nil {
 		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
@@ -438,6 +441,7 @@ func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
 		return startTime.Add(d), nil
 	}
 
+	endStr = normalizeDateTimeInput(endStr)
 	endTime, err := time.Parse("2006-01-02 15:04", endStr)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid end time: %w", err)
