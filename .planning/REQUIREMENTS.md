@@ -11,7 +11,7 @@
 - [ ] **BUG-02**: El prompt interactivo de alarmas respeta el idioma configurado (`--language`) — `promptAlarmField()` usa el sistema i18n existente con ~15 claves nuevas en los 4 locales
 - [ ] **BUG-03**: Cuando un alarm profile referenciado no existe, el usuario recibe un error claro con sugerencias — `expandAlarmProfiles()` retorna `([]string, error)` en lugar de pasar el literal `"profile:name"`
 - [ ] **BUG-04**: Cuando el usuario escribe una ciudad no reconocida como timezone, recibe un error útil con instrucciones — `cityToIANA()` retorna error explícito con sugerencia de `tempus timezone list --search <name>`
-- [ ] **BUG-05**: El usuario puede usar `2025/12/16`, `2025-1-5`, y `09:00` en `tempus create` igual que en batch — `normalizeDateTimeInput()` se aplica en `parseCreateTimes()`
+- [x] **BUG-05**: El usuario puede usar `2025/12/16`, `2025-1-5`, y `09:00` en `tempus create` igual que en batch — `normalizeDateTimeInput()` se aplica en `parseCreateTimes()`
 
 ### UX — Primera Experiencia
 
@@ -35,7 +35,7 @@
 ### Refactor — Mantenibilidad
 
 - [ ] **REF-01**: El código de cada comando Cobra vive en `internal/cli/<command>.go` con un `App` struct que provee config/translator via `PersistentPreRunE` — `main.go` queda en ~100 líneas
-- [ ] **REF-02**: Las 13 funciones de parsing de fechas se unifican en `internal/parsing.Parse(ParseOptions)` — mismo comportamiento, un punto de entrada
+- [x] **REF-02**: Las 13 funciones de parsing de fechas se unifican en `internal/parsing.Parse(ParseOptions)` — mismo comportamiento, un punto de entrada
 - [ ] **REF-03**: Las features neurodivergentes (spellcheck, conflictos, prep time, emoji) viven en `internal/nd/` — extraídas con tests migrados sin pérdida de cobertura
 - [ ] **REF-04**: La detección de conflictos usa algoritmo sweep-line O(n log n) en lugar de O(n²)
 - [ ] **REF-05**: El spell checking en batch precalcula la matriz de distancias una vez, no por cada registro (~100x menos comparaciones)
@@ -78,8 +78,8 @@
 | BUG-02 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
 | BUG-03 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
 | BUG-04 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
-| BUG-05 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
-| REF-02 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
+| BUG-05 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
+| REF-02 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | REF-06 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | CONF-01 | Phase 2: First-Run Experience | Pending |
 | CONF-02 | Phase 2: First-Run Experience | Pending |

@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Unicode/emoji fix (BUG-01) + testable output infrastructure (REF-06)
 - [ ] 01-02-PLAN.md — Error handling (BUG-03, BUG-04) + alarm prompt i18n (BUG-02)
-- [ ] 01-03-PLAN.md — Input normalization in create path (BUG-05, REF-02)
+- [x] 01-03-PLAN.md — Input normalization in create path (BUG-05, REF-02)
 
 **UI hint**: no
 
