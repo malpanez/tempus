@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"tempus/internal/testutil"
 	"testing"
@@ -138,11 +140,53 @@ func TestAtoiSafe(t *testing.T) {
 	}
 }
 
+func TestPrintOK(t *testing.T) {
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	printOK("test %s\n", "message")
+	got := buf.String()
+	if !strings.Contains(got, "test message") {
+		t.Errorf("printOK output = %q, want to contain 'test message'", got)
+	}
+	if !strings.HasPrefix(got, "✅") {
+		t.Errorf("printOK output = %q, want to start with checkmark emoji", got)
+	}
+}
+
 func TestPrintErr(t *testing.T) {
-	// This function prints to stderr, so we just test it doesn't panic
-	printErr("test error message")
-	printErr("")
-	printErr("error with special chars: 💊 😀")
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	printErr("error %s\n", "details")
+	got := buf.String()
+	if !strings.Contains(got, "error details") {
+		t.Errorf("printErr output = %q, want to contain 'error details'", got)
+	}
+	if !strings.HasPrefix(got, "❌") {
+		t.Errorf("printErr output = %q, want to start with cross emoji", got)
+	}
+}
+
+func TestPrintDryRunSummary(t *testing.T) {
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	records := []batchRecord{
+		{Summary: "Meeting", Start: "2025-01-01"},
+		{Summary: "Lunch", Start: "2025-01-02"},
+	}
+	printDryRunSummary(records, "input.csv", "output.ics")
+	got := buf.String()
+	if !strings.Contains(got, "Event summary:") {
+		t.Errorf("printDryRunSummary output = %q, want to contain 'Event summary:'", got)
+	}
+	if !strings.Contains(got, "Meeting") {
+		t.Errorf("printDryRunSummary output = %q, want to contain 'Meeting'", got)
+	}
 }
 
 func TestSlugify(t *testing.T) {

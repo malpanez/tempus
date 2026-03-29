@@ -200,17 +200,13 @@ func TestWriteBatchOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Capture stdout
-			oldStdout := os.Stdout
-			r, w, _ := os.Pipe()
-			os.Stdout = w
+			var buf bytes.Buffer
+			oldStdout := stdout
+			stdout = &buf
+			defer func() { stdout = oldStdout }()
 
 			err := writeBatchOutput(cal, tt.warnings, tt.output, tt.eventCount)
 
-			w.Close()
-			var buf bytes.Buffer
-			io.Copy(&buf, r)
-			os.Stdout = oldStdout
 			output := buf.String()
 
 			if (err != nil) != tt.wantErr {
@@ -285,7 +281,11 @@ func TestWriteCalendarOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Capture stdout
+			var stdoutBuf bytes.Buffer
+			oldStdoutVar := stdout
+			stdout = &stdoutBuf
+			defer func() { stdout = oldStdoutVar }()
+
 			oldStdout := os.Stdout
 			r, w, _ := os.Pipe()
 			os.Stdout = w
@@ -293,10 +293,11 @@ func TestWriteCalendarOutput(t *testing.T) {
 			err := writeCalendarOutput(cal, tt.output)
 
 			w.Close()
-			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			var osBuf bytes.Buffer
+			io.Copy(&osBuf, r)
 			os.Stdout = oldStdout
-			output := buf.String()
+			osOutput := osBuf.String()
+			varOutput := stdoutBuf.String()
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("writeCalendarOutput() error = %v, wantErr %v", err, tt.wantErr)
@@ -304,22 +305,18 @@ func TestWriteCalendarOutput(t *testing.T) {
 			}
 
 			if tt.wantStdout {
-				// Check ICS was printed to stdout
-				if !strings.Contains(output, "BEGIN:VCALENDAR") {
+				if !strings.Contains(osOutput, "BEGIN:VCALENDAR") {
 					t.Errorf("writeCalendarOutput() did not print ICS to stdout")
 				}
 			} else {
-				// Check file was created
 				if _, err := os.Stat(tt.output); os.IsNotExist(err) {
 					t.Errorf("writeCalendarOutput() did not create file %s", tt.output)
 				}
 
-				// Check success message
-				if !strings.Contains(output, "Created:") {
+				if !strings.Contains(varOutput, "Created:") {
 					t.Errorf("writeCalendarOutput() output missing success message")
 				}
 
-				// Verify file content
 				content, err := os.ReadFile(tt.output)
 				if err != nil {
 					t.Errorf("writeCalendarOutput() failed to read file: %v", err)

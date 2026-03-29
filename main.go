@@ -33,6 +33,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var stdout io.Writer = os.Stdout
+
 var (
 	scanner     *bufio.Scanner
 	clockOnlyRe = regexp.MustCompile(`^\d{1,2}:\d{2}$`)
@@ -748,7 +750,7 @@ func handleDryRun(validationErrors, warnings []string, records []batchRecord, in
 }
 
 func printDryRunSummary(records []batchRecord, input, output string) {
-	fmt.Printf("\nEvent summary:\n")
+	fmt.Fprintf(stdout, "\nEvent summary:\n")
 	for i, rec := range records {
 		summary := rec.Summary
 		if summary == "" {
@@ -758,19 +760,19 @@ func printDryRunSummary(records []batchRecord, input, output string) {
 		if start == "" {
 			start = "(no start)"
 		}
-		fmt.Printf("  %d. %s - %s\n", i+1, summary, start)
+		fmt.Fprintf(stdout, "  %d. %s - %s\n", i+1, summary, start)
 	}
-	fmt.Printf("\nTo create the calendar file, run:\n")
-	fmt.Printf("  tempus batch -i %s -o %s\n", input, output)
+	fmt.Fprintf(stdout, "\nTo create the calendar file, run:\n")
+	fmt.Fprintf(stdout, "  tempus batch -i %s -o %s\n", input, output)
 }
 
 func writeBatchOutput(cal *calendar.Calendar, warnings []string, output string, eventCount int) error {
 	if len(warnings) > 0 {
-		fmt.Printf("\n")
+		fmt.Fprintf(stdout, "\n")
 		for _, warning := range warnings {
-			fmt.Println(warning)
+			fmt.Fprintln(stdout, warning)
 		}
-		fmt.Printf("\n")
+		fmt.Fprintf(stdout, "\n")
 	}
 
 	if err := ensureDirForFile(output); err != nil {
@@ -3879,15 +3881,13 @@ func cityToIANA(s string) string {
 // ------------------------------
 
 func printOK(format string, a ...interface{}) {
-	// Leading checkmark for success
 	msg := fmt.Sprintf(format, a...)
-	fmt.Printf("✅ %s", msg)
+	fmt.Fprintf(stdout, "✅ %s", msg)
 }
 
 func printErr(format string, a ...interface{}) {
-	// Leading cross mark for errors
 	msg := fmt.Sprintf(format, a...)
-	fmt.Printf("❌ %s", msg)
+	fmt.Fprintf(stdout, "❌ %s", msg)
 }
 
 func atoiSafe(s string) int {
