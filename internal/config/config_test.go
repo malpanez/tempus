@@ -361,6 +361,112 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestGetAlarmProfile(t *testing.T) {
+	cfg := &Config{
+		AlarmProfiles: map[string][]string{
+			"adhd-default": {"-2h", "-1h", "-30m", "-10m"},
+			"medication":   {"-5m", "-1m", "0m"},
+			"none":         {},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		cfg      *Config
+		profile  string
+		expected []string
+	}{
+		{"known profile adhd-default", cfg, "adhd-default", []string{"-2h", "-1h", "-30m", "-10m"}},
+		{"known profile medication", cfg, "medication", []string{"-5m", "-1m", "0m"}},
+		{"known profile none returns empty", cfg, "none", []string{}},
+		{"unknown profile returns nil", cfg, "nonexistent", nil},
+		{"nil map returns nil", &Config{}, "anything", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.GetAlarmProfile(tt.profile)
+			if tt.expected == nil {
+				if got != nil {
+					t.Errorf("GetAlarmProfile(%q) = %v, want nil", tt.profile, got)
+				}
+				return
+			}
+			if len(got) != len(tt.expected) {
+				t.Fatalf("GetAlarmProfile(%q) len = %d, want %d", tt.profile, len(got), len(tt.expected))
+			}
+			for i, v := range got {
+				if v != tt.expected[i] {
+					t.Errorf("GetAlarmProfile(%q)[%d] = %q, want %q", tt.profile, i, v, tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
+func TestListAlarmProfiles(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       *Config
+		wantLen   int
+		wantNames []string
+	}{
+		{
+			"default profiles returns all names",
+			&Config{
+				AlarmProfiles: map[string][]string{
+					"adhd-default":   {"-2h", "-1h", "-30m", "-10m"},
+					"adhd-countdown": {"-1d", "-1h", "-15m", "-5m"},
+					"medication":     {"-5m", "-1m", "0m"},
+					"single":         {"-15m"},
+					"none":           {},
+				},
+			},
+			5,
+			[]string{"adhd-default", "adhd-countdown", "medication", "single", "none"},
+		},
+		{
+			"nil map returns empty slice",
+			&Config{},
+			0,
+			nil,
+		},
+		{
+			"single profile returns slice of length 1",
+			&Config{
+				AlarmProfiles: map[string][]string{
+					"custom": {"-10m"},
+				},
+			},
+			1,
+			[]string{"custom"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.ListAlarmProfiles()
+			if got == nil {
+				t.Fatal("ListAlarmProfiles() returned nil, want non-nil slice")
+			}
+			if len(got) != tt.wantLen {
+				t.Fatalf("ListAlarmProfiles() len = %d, want %d", len(got), tt.wantLen)
+			}
+			if tt.wantNames != nil {
+				nameSet := make(map[string]bool, len(got))
+				for _, n := range got {
+					nameSet[n] = true
+				}
+				for _, want := range tt.wantNames {
+					if !nameSet[want] {
+						t.Errorf("ListAlarmProfiles() missing expected name %q", want)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestSetAllFields(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
