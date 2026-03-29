@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"tempus/internal/testutil"
 	"testing"
@@ -80,7 +82,10 @@ func TestStripEmoji(t *testing.T) {
 		{"emoji in middle", "Take 💊 medicine", "Take 💊 medicine"}, // Middle emoji not stripped
 		{testutil.TestNameEmptyString, "", ""},
 		{"leading spaces after emoji", "💊  Medication", "Medication"},
-		{"leading high unicode", "¡Hola", "Hola"}, // Strips first char if > 127
+		{"leading high unicode", "¡Hola", "¡Hola"},
+		{"accented e", "Reuni\u00f3n con equipo", "Reuni\u00f3n con equipo"},
+		{"n tilde", "Ni\u00f1os al colegio", "Ni\u00f1os al colegio"},
+		{"umlaut", "\u00fcber fahrt", "\u00fcber fahrt"},
 	}
 
 	for _, tt := range tests {
@@ -138,11 +143,53 @@ func TestAtoiSafe(t *testing.T) {
 	}
 }
 
+func TestPrintOK(t *testing.T) {
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	printOK("test %s\n", "message")
+	got := buf.String()
+	if !strings.Contains(got, "test message") {
+		t.Errorf("printOK output = %q, want to contain 'test message'", got)
+	}
+	if !strings.HasPrefix(got, "✅") {
+		t.Errorf("printOK output = %q, want to start with checkmark emoji", got)
+	}
+}
+
 func TestPrintErr(t *testing.T) {
-	// This function prints to stderr, so we just test it doesn't panic
-	printErr("test error message")
-	printErr("")
-	printErr("error with special chars: 💊 😀")
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	printErr("error %s\n", "details")
+	got := buf.String()
+	if !strings.Contains(got, "error details") {
+		t.Errorf("printErr output = %q, want to contain 'error details'", got)
+	}
+	if !strings.HasPrefix(got, "❌") {
+		t.Errorf("printErr output = %q, want to start with cross emoji", got)
+	}
+}
+
+func TestPrintDryRunSummary(t *testing.T) {
+	var buf bytes.Buffer
+	stdout = &buf
+	defer func() { stdout = os.Stdout }()
+
+	records := []batchRecord{
+		{Summary: "Meeting", Start: "2025-01-01"},
+		{Summary: "Lunch", Start: "2025-01-02"},
+	}
+	printDryRunSummary(records, "input.csv", "output.ics")
+	got := buf.String()
+	if !strings.Contains(got, "Event summary:") {
+		t.Errorf("printDryRunSummary output = %q, want to contain 'Event summary:'", got)
+	}
+	if !strings.Contains(got, "Meeting") {
+		t.Errorf("printDryRunSummary output = %q, want to contain 'Meeting'", got)
+	}
 }
 
 func TestSlugify(t *testing.T) {
@@ -448,6 +495,7 @@ func TestAddEmojiToSummary(t *testing.T) {
 		{"already has emoji", "💊 Medicine", []string{"medication"}, false},
 		{"multiple categories", "Event", []string{"work", "meeting"}, true},
 		{"empty summary", "", []string{"work"}, true},
+		{"accented start gets emoji", "\u00c1rea de trabajo", []string{"work"}, true},
 	}
 
 	for _, tt := range tests {
