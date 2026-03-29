@@ -8,9 +8,9 @@
 ### Bug Fixes
 
 - [x] **BUG-01**: El usuario con nombre de evento acentuado (é, ñ, ü) no pierde caracteres al usar auto-emoji — `stripEmoji()` usa `unicode.Is(unicode.So, r)` en lugar de `rune > 127`
-- [ ] **BUG-02**: El prompt interactivo de alarmas respeta el idioma configurado (`--language`) — `promptAlarmField()` usa el sistema i18n existente con ~15 claves nuevas en los 4 locales
-- [ ] **BUG-03**: Cuando un alarm profile referenciado no existe, el usuario recibe un error claro con sugerencias — `expandAlarmProfiles()` retorna `([]string, error)` en lugar de pasar el literal `"profile:name"`
-- [ ] **BUG-04**: Cuando el usuario escribe una ciudad no reconocida como timezone, recibe un error útil con instrucciones — `cityToIANA()` retorna error explícito con sugerencia de `tempus timezone list --search <name>`
+- [x] **BUG-02**: El prompt interactivo de alarmas respeta el idioma configurado (`--language`) — `promptAlarmField()` usa el sistema i18n existente con ~15 claves nuevas en los 4 locales
+- [x] **BUG-03**: Cuando un alarm profile referenciado no existe, el usuario recibe un error claro con sugerencias — `expandAlarmProfiles()` retorna `([]string, error)` en lugar de pasar el literal `"profile:name"`
+- [x] **BUG-04**: Cuando el usuario escribe una ciudad no reconocida como timezone, recibe un error útil con instrucciones — `cityToIANA()` retorna error explícito con sugerencia de `tempus timezone list --search <name>`
 - [x] **BUG-05**: El usuario puede usar `2025/12/16`, `2025-1-5`, y `09:00` en `tempus create` igual que en batch — `normalizeDateTimeInput()` se aplica en `parseCreateTimes()`
 
 ### UX — Primera Experiencia
@@ -75,9 +75,9 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | BUG-01 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
-| BUG-02 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
-| BUG-03 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
-| BUG-04 | Phase 1: Bug Fixes & Test Infrastructure | Pending |
+| BUG-02 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
+| BUG-03 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
+| BUG-04 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | BUG-05 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | REF-02 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | REF-06 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
