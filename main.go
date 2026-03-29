@@ -309,7 +309,10 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cal := createCalendarWithEvent(opts, startTime, endTime)
+	cal, err := createCalendarWithEvent(opts, startTime, endTime)
+	if err != nil {
+		return err
+	}
 	return writeCalendarOutput(cal, opts.output)
 }
 
@@ -460,7 +463,7 @@ func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
 	return startTime.Add(d), nil
 }
 
-func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) *calendar.Calendar {
+func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) (*calendar.Calendar, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 	cal.Name = opts.summary
@@ -469,13 +472,15 @@ func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) 
 	}
 
 	event := calendar.NewEvent(opts.summary, startTime, endTime)
-	configureEvent(event, opts)
+	if err := configureEvent(event, opts); err != nil {
+		return nil, err
+	}
 	cal.AddEvent(event)
 
-	return cal
+	return cal, nil
 }
 
-func configureEvent(event *calendar.Event, opts *createOptions) {
+func configureEvent(event *calendar.Event, opts *createOptions) error {
 	event.AllDay = opts.allDay
 	if opts.location != "" {
 		event.Location = opts.location
@@ -491,13 +496,16 @@ func configureEvent(event *calendar.Event, opts *createOptions) {
 	}
 
 	addEventExDates(event, opts.exdates, opts.startTZ, opts.allDay)
-	addEventAlarms(event, opts.alarms, opts.startTZ)
+	if err := addEventAlarms(event, opts.alarms, opts.startTZ); err != nil {
+		return fmt.Errorf("alarm error: %w", err)
+	}
 	addEventCategories(event, opts.categories)
 	addEventAttendees(event, opts.attendees)
 
 	if opts.priority > 0 {
 		event.Priority = opts.priority
 	}
+	return nil
 }
 
 func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
@@ -527,9 +535,9 @@ func addEventExDates(event *calendar.Event, exdates []string, startTZ string, al
 	}
 }
 
-func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
+func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) error {
 	if len(alarms) == 0 {
-		return
+		return nil
 	}
 
 	defaultAlarmTZ := strings.TrimSpace(event.StartTZ)
@@ -537,10 +545,16 @@ func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
 		defaultAlarmTZ = strings.TrimSpace(startTZ)
 	}
 
-	parsed, err := calendar.ParseAlarmSpecs(alarms, defaultAlarmTZ)
-	if err == nil && len(parsed) > 0 {
-		event.Alarms = append(event.Alarms, parsed...)
+	expandedAlarms, err := expandAlarmProfiles(alarms)
+	if err != nil {
+		return err
 	}
+	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
+	if err != nil {
+		return err
+	}
+	event.Alarms = append(event.Alarms, parsed...)
+	return nil
 }
 
 func addEventCategories(event *calendar.Event, categories []string) {
@@ -1050,7 +1064,9 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, e
 
 	summaryWithEmoji := addEmojiToSummary(summary, rec.Categories)
 	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
-	configureBatchEvent(event, rec, startTZ, endTZ)
+	if err := configureBatchEvent(event, rec, startTZ, endTZ); err != nil {
+		return nil, err
+	}
 
 	return event, nil
 }
@@ -1173,7 +1189,7 @@ func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error
 	return startTime.Add(dur), nil
 }
 
-func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) {
+func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) error {
 	event.AllDay = rec.AllDay
 
 	if startTZ != "" {
@@ -1194,7 +1210,10 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 
 	addBatchCategories(event, rec.Categories)
 	addBatchExDates(event, rec.ExDates, startTZ, rec.AllDay)
-	addBatchAlarms(event, rec.Alarms, startTZ)
+	if err := addBatchAlarms(event, rec.Alarms, startTZ); err != nil {
+		return err
+	}
+	return nil
 }
 
 func addBatchCategories(event *calendar.Event, categories []string) {
@@ -1223,9 +1242,9 @@ func addBatchExDates(event *calendar.Event, exdates []string, startTZ string, al
 	}
 }
 
-func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
+func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) error {
 	if len(alarms) == 0 {
-		return
+		return nil
 	}
 
 	defaultAlarmTZ := event.StartTZ
@@ -1233,11 +1252,16 @@ func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
 		defaultAlarmTZ = startTZ
 	}
 
-	expandedAlarms := expandAlarmProfiles(alarms)
-	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
-	if err == nil {
-		event.Alarms = append(event.Alarms, parsed...)
+	expandedAlarms, err := expandAlarmProfiles(alarms)
+	if err != nil {
+		return err
 	}
+	parsed, parseErr := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
+	if parseErr != nil {
+		return parseErr
+	}
+	event.Alarms = append(event.Alarms, parsed...)
+	return nil
 }
 
 // normalizeAndSpellCheck fixes common spelling errors and normalizes text in summaries.
@@ -1747,11 +1771,10 @@ func detectOverwhelmDays(events []calendar.Event, maxPerDay int) []string {
 
 // expandAlarmProfiles replaces profile references (e.g., "profile:adhd-triple") with actual alarm triggers.
 // If a spec doesn't start with "profile:", it's returned as-is.
-func expandAlarmProfiles(alarmSpecs []string) []string {
+func expandAlarmProfiles(alarmSpecs []string) ([]string, error) {
 	cfg, err := config.Load()
 	if err != nil {
-		// If config can't be loaded, return specs unchanged
-		return alarmSpecs
+		return nil, fmt.Errorf("failed to load config for alarm profiles: %w", err)
 	}
 
 	expanded := make([]string, 0, len(alarmSpecs))
@@ -1761,7 +1784,6 @@ func expandAlarmProfiles(alarmSpecs []string) []string {
 			continue
 		}
 
-		// Check if it's a profile reference
 		if strings.HasPrefix(spec, "profile:") {
 			profileName := strings.TrimPrefix(spec, "profile:")
 			profileName = strings.TrimSpace(profileName)
@@ -1770,15 +1792,15 @@ func expandAlarmProfiles(alarmSpecs []string) []string {
 			if profile != nil {
 				expanded = append(expanded, profile...)
 			} else {
-				// Profile not found, keep original spec (will error later)
-				expanded = append(expanded, spec)
+				names := cfg.ListAlarmProfiles()
+				return nil, fmt.Errorf("profile '%s' not found. Available: %s", profileName, strings.Join(names, ", "))
 			}
 		} else {
 			expanded = append(expanded, spec)
 		}
 	}
 
-	return expanded
+	return expanded, nil
 }
 
 // ========================================================================
@@ -3776,11 +3798,12 @@ func runTZInfo(_ *cobra.Command, args []string) error {
 	// Try exact/alias/system
 	zone, err := tm.GetTimezone(query)
 	if err != nil {
-		// Try city→IANA mapping
-		if mapped := cityToIANA(query); mapped != "" {
-			if z2, err2 := tm.GetTimezone(mapped); err2 == nil {
-				zone = z2
-			}
+		mapped, cityErr := cityToIANA(query)
+		if cityErr != nil {
+			return fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", query, query)
+		}
+		if z2, err2 := tm.GetTimezone(mapped); err2 == nil {
+			zone = z2
 		}
 	}
 
@@ -3830,55 +3853,58 @@ func printZoneInfo(z *tzpkg.TimezoneInfo, local1, local2 string) {
 }
 
 // Lightweight city → IANA mapping for friendlier queries.
-func cityToIANA(s string) string {
+func cityToIANA(s string) (string, error) {
 	x := strings.ToLower(strings.TrimSpace(s))
+	if x == "" {
+		return "", fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
+	}
 
 	// Spain / territories
 	if x == "melilla" || x == "ceuta" {
-		return "Africa/Ceuta"
+		return "Africa/Ceuta", nil
 	}
 	if x == "canarias" || x == "gran canaria" || x == "tenerife" || x == "las palmas" {
-		return "Atlantic/Canary"
+		return "Atlantic/Canary", nil
 	}
 
 	// Brazil
 	switch x {
 	case "pelotas", "porto alegre", "porto-alegre", "florianopolis", "florianópolis":
-		return "America/Sao_Paulo"
+		return "America/Sao_Paulo", nil
 	case "campo grande", "campo-grande", "ponta pora", "ponta-porã", "ponta-pora", "dourados":
-		return "America/Campo_Grande"
+		return "America/Campo_Grande", nil
 	case "cuiaba", "cuiabá":
-		return "America/Cuiaba"
+		return "America/Cuiaba", nil
 	case "manaus":
-		return "America/Manaus"
+		return "America/Manaus", nil
 	case "recife":
-		return "America/Recife"
+		return "America/Recife", nil
 	case "belem", "belém":
-		return "America/Belem"
+		return "America/Belem", nil
 	case "fortaleza":
-		return "America/Fortaleza"
+		return "America/Fortaleza", nil
 	case "salvador":
-		return "America/Bahia"
+		return "America/Bahia", nil
 	case "rio", "rio de janeiro", "rio-de-janeiro", "niteroi", "niterói":
-		return "America/Sao_Paulo"
+		return "America/Sao_Paulo", nil
 	case "sao paulo", "são paulo", "sao-paulo", "campinas":
-		return "America/Sao_Paulo"
+		return "America/Sao_Paulo", nil
 	}
 
 	// Ireland / UK
 	if x == "dublin" {
-		return "Europe/Dublin"
+		return "Europe/Dublin", nil
 	}
 	if x == "london" {
-		return "Europe/London"
+		return "Europe/London", nil
 	}
 
 	// Spain common cities
 	if x == "madrid" || x == "barcelona" || x == "valencia" || x == "bilbao" || x == "sevilla" {
-		return "Europe/Madrid"
+		return "Europe/Madrid", nil
 	}
 
-	return ""
+	return "", fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
 }
 
 // ------------------------------
