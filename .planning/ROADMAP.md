@@ -76,12 +76,13 @@ Plans:
   2. All existing CLI commands (`create`, `batch`, `lint`, `config`, `template`, `timezone`, `rrule`) continue to work with identical flags and output after the monolith split
   3. `main.go` is reduced to approximately 100 lines of wiring code, with command logic in `internal/cli/<command>.go` files
   4. Test coverage remains at or above 79% after the restructure
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md — Foundation: App struct, helpers, internal/parsing/ unified API (REF-01)
+- [ ] 03-02-PLAN.md — Split batch 1: create, quick, init, config, version + huh migration + ND functions (REF-01, UX-02)
+- [ ] 03-03-PLAN.md — Split batch 2: batch, lint, template, timezone, rrule, locale + slim main.go + survey removal (REF-01)
+- [ ] 03-04-PLAN.md — Interactive wizard: 7-step huh form for `tempus create --interactive` (UX-02)
 
 **UI hint**: yes
 
@@ -132,6 +133,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Bug Fixes & Test Infrastructure | 0/3 | Complete    | 2026-03-29 |
 | 2. First-Run Experience | 0/3 | Not started | - |
-| 3. Interactive Mode & CLI Structure | 0/3 | Not started | - |
+| 3. Interactive Mode & CLI Structure | 0/4 | Not started | - |
 | 4. UX Polish | 0/2 | Not started | - |
 | 5. ND Extraction & Performance | 0/3 | Not started | - |
