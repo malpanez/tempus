@@ -17,6 +17,7 @@ import (
 	"tempus/internal/calendar"
 	"tempus/internal/cli"
 	"tempus/internal/config"
+	"tempus/internal/parsing"
 	"tempus/internal/constants"
 	"tempus/internal/i18n"
 	"tempus/internal/prompts"
@@ -360,8 +361,8 @@ func parseCreateFlags(cmd *cobra.Command, args []string) (*createOptions, error)
 }
 
 func normalizeTimeInput(timeStr, startTZ, endTZ string) string {
-	if timeStr != "" && looksLikeClock(timeStr) {
-		return prependToday(timeStr, firstNonEmpty(startTZ, endTZ, ""))
+	if timeStr != "" && cli.LooksLikeClock(timeStr) {
+		return cli.PrependToday(timeStr, cli.FirstNonEmpty(startTZ, endTZ, ""))
 	}
 	return timeStr
 }
@@ -1262,50 +1263,8 @@ func normalizeAndSpellCheck(text string) string {
 	return strings.Join(words, " ")
 }
 
-// normalizeDateTimeInput accepts various date/time formats and normalizes to standard format.
-// Handles common variations like slashes, different separators, etc.
 func normalizeDateTimeInput(input string) string {
-	if input == "" {
-		return input
-	}
-
-	input = strings.TrimSpace(input)
-
-	// Replace common separators
-	// 2025/12/16 -> 2025-12-16
-	input = strings.ReplaceAll(input, "/", "-")
-
-	// Handle missing leading zeros: 2025-1-5 -> 2025-01-05
-	parts := strings.Split(input, " ")
-	if len(parts) >= 1 {
-		datePart := parts[0]
-		dateComponents := strings.Split(datePart, "-")
-		if len(dateComponents) == 3 {
-			// Pad single digits
-			for i, comp := range dateComponents {
-				if len(comp) == 1 && i > 0 { // Don't pad year
-					dateComponents[i] = "0" + comp
-				}
-			}
-			parts[0] = strings.Join(dateComponents, "-")
-		}
-	}
-
-	// Handle time part if present
-	if len(parts) >= 2 {
-		timePart := parts[1]
-		// Handle 24h format without colon: 0900 -> 09:00
-		if len(timePart) == 4 && !strings.Contains(timePart, ":") {
-			parts[1] = timePart[:2] + ":" + timePart[2:]
-		}
-		// Pad single digit hours: 9:00 -> 09:00
-		timeComponents := strings.Split(parts[1], ":")
-		if len(timeComponents) == 2 && len(timeComponents[0]) == 1 {
-			parts[1] = "0" + parts[1]
-		}
-	}
-
-	return strings.Join(parts, " ")
+	return parsing.NormalizeDateTimeInput(input)
 }
 
 // validateCategoryWithSuggestion checks for common typos in category names and auto-corrects them.
@@ -3322,133 +3281,40 @@ func prependToday(clock, tz string) string {
 	return cli.PrependToday(clock, tz)
 }
 
-// If start or end is only HH:MM, prepend today's date in the chosen timezone (or local).
 func normalizeClockOnlyDateTimes(values map[string]string, startKey, endKey, tzKey string) {
-	if strings.TrimSpace(startKey) == "" {
-		return
-	}
-
-	tz := strings.TrimSpace(values[tzKey])
-
-	if st := strings.TrimSpace(values[startKey]); st != "" && looksLikeClock(st) {
-		values[startKey] = prependToday(st, tz)
-	}
-
-	if strings.TrimSpace(endKey) == "" {
-		return
-	}
-
-	if et := strings.TrimSpace(values[endKey]); et != "" && looksLikeClock(et) {
-		if _, err := calendar.ParseHumanDuration(et); err != nil {
-			values[endKey] = prependToday(et, tz)
-		}
-	}
+	parsing.NormalizeClockOnlyDateTimes(values, startKey, endKey, tzKey)
 }
 
-// If end is a duration or missing, compute from start and (optional) duration.
 func normalizeEndTimeFromDuration(values map[string]string, startKey, endKey, durationKey, tzKey, defaultDuration string) {
-	start := strings.TrimSpace(values[startKey])
-	if start == "" {
-		return
-	}
-
-	end := getValueIfKeyNotEmpty(values, endKey)
-	dur := getValueIfKeyNotEmpty(values, durationKey)
-	tz := strings.TrimSpace(values[tzKey])
-
-	// If user typed a duration in end_time, treat it as duration.
-	if trySetEndFromDurationInEnd(values, start, tz, end, endKey, durationKey) {
-		return
-	}
-
-	// If end is empty, try duration or default to 30m.
-	if end == "" {
-		if dur == "" {
-			dur = strings.TrimSpace(defaultDuration)
-		}
-		setEndFromDuration(values, start, tz, dur, endKey, durationKey)
-	}
+	parsing.NormalizeEndTimeFromDuration(values, startKey, endKey, durationKey, tzKey, defaultDuration)
 }
 
 func getValueIfKeyNotEmpty(values map[string]string, key string) string {
-	if strings.TrimSpace(key) != "" {
-		return strings.TrimSpace(values[key])
-	}
-	return ""
+	return parsing.GetValueIfKeyNotEmpty(values, key)
 }
 
 func trySetEndFromDurationInEnd(values map[string]string, start, tz, end, endKey, durationKey string) bool {
-	if end == "" {
-		return false
-	}
-	d, err := calendar.ParseHumanDuration(end)
-	if err != nil || d <= 0 {
-		return false
-	}
-	endDT := addDurationToStart(start, tz, d)
-	if endDT == "" {
-		return false
-	}
-	setEndAndDuration(values, endKey, durationKey, endDT, d)
-	return true
+	return parsing.TrySetEndFromDurationInEnd(values, start, tz, end, endKey, durationKey)
 }
 
 func setEndFromDuration(values map[string]string, start, tz, dur, endKey, durationKey string) {
-	d, err := calendar.ParseHumanDuration(dur)
-	if err != nil || d <= 0 {
-		return
-	}
-	endDT := addDurationToStart(start, tz, d)
-	if endDT == "" {
-		return
-	}
-	setEndAndDuration(values, endKey, durationKey, endDT, d)
+	parsing.SetEndFromDuration(values, start, tz, dur, endKey, durationKey)
 }
 
 func setEndAndDuration(values map[string]string, endKey, durationKey, endDT string, d time.Duration) {
-	if strings.TrimSpace(endKey) != "" {
-		values[endKey] = endDT
-	}
-	if strings.TrimSpace(durationKey) != "" {
-		values[durationKey] = fmtDurationHuman(d)
-	}
+	parsing.SetEndAndDuration(values, endKey, durationKey, endDT, d)
 }
 
 func addDurationToStart(start, tz string, d time.Duration) string {
-	datePart, timePart := splitDateTime(start)
-	st, err := parseDateTimeWithTZ(datePart, timePart, tz)
-	if err != nil {
-		// Fallback: try full layout directly
-		if t2, e2 := time.Parse("2006-01-02 15:04", start); e2 == nil {
-			st = t2
-		} else {
-			return ""
-		}
-	}
-	end := st.Add(d)
-	return end.Format("2006-01-02 15:04")
+	return parsing.AddDurationToStart(start, tz, d)
 }
 
 func splitDateTime(s string) (string, string) {
 	return cli.SplitDateTime(s)
 }
 
-// Local helper to avoid depending on calendar.ParseDateTime
 func parseDateTimeWithTZ(dateStr, timeStr, tz string) (time.Time, error) {
-	layout := "2006-01-02"
-	val := strings.TrimSpace(dateStr)
-	if strings.TrimSpace(timeStr) != "" {
-		layout = "2006-01-02 15:04"
-		val = fmt.Sprintf("%s %s", strings.TrimSpace(dateStr), strings.TrimSpace(timeStr))
-	}
-	if strings.TrimSpace(tz) == "" {
-		return time.ParseInLocation(layout, val, time.Local)
-	}
-	loc, err := time.LoadLocation(tz)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid timezone %q: %w", tz, err)
-	}
-	return time.ParseInLocation(layout, val, loc)
+	return parsing.ParseDateTimeWithTZ(dateStr, timeStr, tz)
 }
 
 func fmtDurationHuman(d time.Duration) string {
@@ -3456,41 +3322,7 @@ func fmtDurationHuman(d time.Duration) string {
 }
 
 func parseExDateValues(values []string, tz string, allDay bool) ([]time.Time, error) {
-	out := make([]time.Time, 0, len(values))
-	for _, raw := range values {
-		normalized := strings.TrimSpace(raw)
-		if normalized == "" {
-			continue
-		}
-		normalized = strings.ReplaceAll(normalized, "T", " ")
-
-		datePart, timePart := splitDateTime(normalized)
-		isDateOnly := strings.TrimSpace(timePart) == ""
-
-		if allDay || isDateOnly {
-			t, err := parseDateTimeWithTZ(datePart, "", tz)
-			if err != nil {
-				if fallback, err2 := time.Parse("2006-01-02", datePart); err2 == nil {
-					t = fallback
-				} else {
-					return nil, fmt.Errorf("invalid exdate %q: %w", raw, err)
-				}
-			}
-			out = append(out, t)
-			continue
-		}
-
-		t, err := parseDateTimeWithTZ(datePart, timePart, tz)
-		if err != nil {
-			if fallback, err2 := time.Parse("2006-01-02 15:04", normalized); err2 == nil {
-				t = fallback
-			} else {
-				return nil, fmt.Errorf("invalid exdate %q: %w", raw, err)
-			}
-		}
-		out = append(out, t)
-	}
-	return out, nil
+	return parsing.ParseExDateValues(values, tz, allDay)
 }
 
 // ------------------------------

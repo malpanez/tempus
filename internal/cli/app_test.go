@@ -52,3 +52,33 @@ func TestSetupPersistentPreRunE(t *testing.T) {
 		t.Fatal("app.Translator is nil after PersistentPreRunE")
 	}
 }
+
+func TestSetupPersistentPreRunEWithFlags(t *testing.T) {
+	app := &App{
+		Stdout: &bytes.Buffer{},
+		Stderr: &bytes.Buffer{},
+	}
+
+	cmd := &cobra.Command{
+		Use: "test",
+		PersistentPreRunE: SetupPersistentPreRunE(app),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	}
+	cmd.PersistentFlags().StringP("language", "l", "", "Language")
+	cmd.PersistentFlags().StringP("timezone", "t", "", "Timezone")
+	cmd.PersistentFlags().StringP("config", "c", "", "Config file path")
+
+	cmd.SetArgs([]string{"--language", "es", "--timezone", "Europe/Madrid"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if app.Config.Language != "es" {
+		t.Errorf("language = %q, want %q", app.Config.Language, "es")
+	}
+	if app.Config.Timezone != "Europe/Madrid" {
+		t.Errorf("timezone = %q, want %q", app.Config.Timezone, "Europe/Madrid")
+	}
+}
