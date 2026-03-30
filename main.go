@@ -27,6 +27,7 @@ import (
 	"tempus/internal/utils"
 
 	survey "github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/google/uuid"
 	"github.com/olebedev/when"
 	"github.com/olebedev/when/rules/en"
@@ -69,6 +70,7 @@ func newRootCmd() *cobra.Command {
 		newBatchCmd(),
 		newLintCmd(),
 		newConfigCmd(),
+		newInitCmd(),
 		newVersionCmd(),
 		newTemplateCmd(),
 		newLocaleCmd(),
@@ -77,6 +79,113 @@ func newRootCmd() *cobra.Command {
 	)
 
 	return cmd
+}
+
+func newInitCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "init",
+		Short: "Configure Tempus interactively",
+		Long:  "Run an interactive wizard to set up timezone, language, output directory, and default alarm profile.",
+		RunE:  runInit,
+	}
+}
+
+func runInit(_ *cobra.Command, _ []string) error {
+	configDir, err := config.ConfigDir()
+	if err != nil {
+		return err
+	}
+	configFile := filepath.Join(configDir, "config.yaml")
+
+	if _, err := os.Stat(configFile); err == nil {
+		var overwrite bool
+		prompt := &survey.Confirm{
+			Message: fmt.Sprintf("Config already exists at %s. Overwrite?", configFile),
+			Default: false,
+		}
+		if err := survey.AskOne(prompt, &overwrite); err != nil || !overwrite {
+			fmt.Fprintf(stdout, "Config unchanged. Use 'tempus config set <key> <value>' for individual changes.\n")
+			return nil
+		}
+	}
+
+	var timezone string
+	if err := survey.AskOne(
+		&survey.Input{Message: "Timezone:", Default: config.DetectTimezone()},
+		&timezone,
+		survey.WithValidator(func(ans interface{}) error {
+			return config.ValidateTimezone(ans.(string))
+		}),
+	); err != nil {
+		if err == terminal.InterruptErr {
+			return nil
+		}
+		return err
+	}
+
+	var language string
+	detectedLang := config.DetectLanguage()
+	if err := survey.AskOne(
+		&survey.Select{Message: "Language:", Options: []string{"en", "es", "pt", "ga"}, Default: detectedLang},
+		&language,
+	); err != nil {
+		if err == terminal.InterruptErr {
+			return nil
+		}
+		return err
+	}
+
+	var outputDir string
+	if err := survey.AskOne(
+		&survey.Input{Message: "Output directory:", Default: "."},
+		&outputDir,
+		survey.WithValidator(func(ans interface{}) error {
+			return config.ValidateOutputDir(ans.(string))
+		}),
+	); err != nil {
+		if err == terminal.InterruptErr {
+			return nil
+		}
+		return err
+	}
+
+	var alarmProfile string
+	if err := survey.AskOne(
+		&survey.Select{
+			Message: "Default alarm profile:",
+			Options: []string{"adhd-default", "adhd-countdown", "medication", "single", "none"},
+			Default: "adhd-default",
+		},
+		&alarmProfile,
+	); err != nil {
+		if err == terminal.InterruptErr {
+			return nil
+		}
+		return err
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	for _, kv := range [][2]string{
+		{"timezone", timezone},
+		{"language", language},
+		{"output_dir", outputDir},
+		{"default_alarm_profile", alarmProfile},
+	} {
+		if err := cfg.Set(kv[0], kv[1]); err != nil {
+			return err
+		}
+	}
+
+	fmt.Fprintf(stdout, "\n> Config saved to %s\n\n", configFile)
+	fmt.Fprintf(stdout, "  Timezone:      %s\n", timezone)
+	fmt.Fprintf(stdout, "  Language:      %s\n", language)
+	fmt.Fprintf(stdout, "  Output dir:    %s\n", outputDir)
+	fmt.Fprintf(stdout, "  Alarm profile: %s\n", alarmProfile)
+	fmt.Fprintf(stdout, "\nNext: tempus create --start today --duration 1h\n")
+	return nil
 }
 
 func newQuickCmd() *cobra.Command {
@@ -2562,7 +2671,7 @@ func runConfigSet(_ *cobra.Command, args []string) error {
 	if err := cfg.Set(key, value); err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stdout, "%s: %s -> %s\n", key, oldValue, value)
+	fmt.Fprintf(stdout, "%s: %s -> %s\n", key, oldValue, value)
 	return nil
 }
 

@@ -2203,6 +2203,8 @@ func TestParseAllDayTimesNormalization(t *testing.T) {
 					tt.startStr, start, tt.wantYear, tt.wantMon, tt.wantDay)
 			}
 		})
+	}
+}
 
 func TestSchoolEventTemplateCSV(t *testing.T) {
 	content := getSchoolEventTemplateCSV()
@@ -2374,3 +2376,84 @@ func TestBatchTemplateFormatInvalid(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown template type") {
 		t.Errorf("expected 'unknown template type' in error, got: %v", err)
+	}
+}
+
+// ============================================================================
+// Init command tests
+// ============================================================================
+
+func TestInitCmdRegistered(t *testing.T) {
+	root := newRootCmd()
+	var found bool
+	for _, cmd := range root.Commands() {
+		if cmd.Use == "init" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("newRootCmd() does not have 'init' subcommand registered")
+	}
+}
+
+func TestInitCmdHelp(t *testing.T) {
+	cmd := newInitCmd()
+	if cmd == nil {
+		t.Fatal("newInitCmd() returned nil")
+	}
+	if cmd.Use != "init" {
+		t.Errorf("expected Use == 'init', got %q", cmd.Use)
+	}
+	if !strings.Contains(cmd.Short, "Configure Tempus") && !strings.Contains(cmd.Short, "interactively") {
+		t.Errorf("expected Short to contain 'Configure Tempus' or 'interactively', got %q", cmd.Short)
+	}
+}
+
+func TestInitCmdExistingConfigNoOverwrite(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+
+	configDir := filepath.Join(tmpDir, "tempus")
+	if err := os.MkdirAll(configDir, 0o750); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+	configFile := filepath.Join(configDir, "config.yaml")
+	original := []byte("timezone: UTC\nlanguage: en\n")
+	if err := os.WriteFile(configFile, original, 0o600); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	if _, err := w.WriteString("N\n"); err != nil {
+		t.Fatalf("write to pipe: %v", err)
+	}
+	w.Close()
+
+	origStdin := os.Stdin
+	os.Stdin = r
+	defer func() {
+		os.Stdin = origStdin
+		r.Close()
+	}()
+
+	var outBuf strings.Builder
+	origStdout := stdout
+	stdout = &outBuf
+	defer func() { stdout = origStdout }()
+
+	if err := runInit(newInitCmd(), []string{}); err != nil {
+		t.Fatalf("runInit returned error on no-overwrite: %v", err)
+	}
+
+	after, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Fatalf("failed to read config after runInit: %v", err)
+	}
+	if string(after) != string(original) {
+		t.Errorf("config was modified on no-overwrite\nbefore: %s\nafter: %s", original, after)
+	}
+}
