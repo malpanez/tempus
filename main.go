@@ -15,15 +15,14 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/cli"
 	"tempus/internal/config"
 	"tempus/internal/constants"
 	"tempus/internal/i18n"
-	"tempus/internal/normalizer"
 	"tempus/internal/prompts"
 	tpl "tempus/internal/templates"
 	"tempus/internal/testutil"
 	tzpkg "tempus/internal/timezone"
-	"tempus/internal/utils"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/google/uuid"
@@ -34,8 +33,7 @@ import (
 )
 
 var (
-	scanner     *bufio.Scanner
-	clockOnlyRe = regexp.MustCompile(`^\d{1,2}:\d{2}$`)
+	scanner *bufio.Scanner
 )
 
 func init() {
@@ -2170,154 +2168,35 @@ func parseICSProperty(line string) (name, value string, ok bool) {
 }
 
 func ensureDirForFile(path string) error {
-	dir := strings.TrimSpace(filepath.Dir(path))
-	if dir == "" || dir == "." {
-		return nil
-	}
-	return os.MkdirAll(dir, 0o750)
+	return cli.EnsureDirForFile(path)
 }
 
 func extractDate(s string) string {
-	s = strings.TrimSpace(s)
-	if len(s) >= 10 {
-		return s[:10]
-	}
-	return s
+	return cli.ExtractDate(s)
 }
 
 func parseBoolish(s string) bool {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "1", "true", "yes", "y", "on":
-		return true
-	default:
-		return false
-	}
+	return cli.ParseBoolish(s)
 }
 
 func splitDelimited(s string) []string {
-	if strings.TrimSpace(s) == "" {
-		return nil
-	}
-	parts := strings.FieldsFunc(s, func(r rune) bool {
-		return r == ',' || r == ';' || r == '|' || r == '\n'
-	})
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
+	return cli.SplitDelimited(s)
 }
 
 func valueAsString(v interface{}) string {
-	switch x := v.(type) {
-	case nil:
-		return ""
-	case string:
-		return strings.TrimSpace(x)
-	case fmt.Stringer:
-		return strings.TrimSpace(x.String())
-	case float64:
-		return strings.TrimSpace(fmt.Sprintf("%g", x))
-	case bool:
-		if x {
-			return "true"
-		}
-		return "false"
-	default:
-		return strings.TrimSpace(fmt.Sprintf("%v", x))
-	}
+	return cli.ValueAsString(v)
 }
 
 func valueAsBool(v interface{}) bool {
-	switch x := v.(type) {
-	case nil:
-		return false
-	case bool:
-		return x
-	case float64:
-		return x != 0
-	case string:
-		return parseBoolish(x)
-	default:
-		return parseBoolish(fmt.Sprintf("%v", x))
-	}
+	return cli.ValueAsBool(v)
 }
 
 func valueAsStringSlice(v interface{}) []string {
-	if v == nil {
-		return nil
-	}
-	switch x := v.(type) {
-	case []interface{}:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			val := strings.TrimSpace(valueAsString(item))
-			if val != "" {
-				out = append(out, val)
-			}
-		}
-		return out
-	case []string:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			val := strings.TrimSpace(item)
-			if val != "" {
-				out = append(out, val)
-			}
-		}
-		return out
-	case string:
-		return splitDelimited(x)
-	default:
-		val := strings.TrimSpace(fmt.Sprintf("%v", x))
-		if val == "" {
-			return nil
-		}
-		return splitDelimited(val)
-	}
+	return cli.ValueAsStringSlice(v)
 }
 
 func valueAsAlarmSlice(v interface{}) []string {
-	if v == nil {
-		return nil
-	}
-	switch x := v.(type) {
-	case []interface{}:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			val := strings.TrimSpace(valueAsString(item))
-			if val == "" {
-				continue
-			}
-			for _, part := range calendar.SplitAlarmInput(val) {
-				if strings.TrimSpace(part) != "" {
-					out = append(out, part)
-				}
-			}
-		}
-		return out
-	case []string:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			for _, part := range calendar.SplitAlarmInput(item) {
-				if strings.TrimSpace(part) != "" {
-					out = append(out, part)
-				}
-			}
-		}
-		return out
-	case string:
-		return calendar.SplitAlarmInput(x)
-	default:
-		val := strings.TrimSpace(fmt.Sprintf("%v", x))
-		if val == "" {
-			return nil
-		}
-		return calendar.SplitAlarmInput(val)
-	}
+	return cli.ValueAsAlarmSlice(v)
 }
 
 func newConfigCmd() *cobra.Command {
@@ -3153,36 +3032,11 @@ func deriveTemplateFilename(tm *tpl.TemplateManager, templateName string, values
 }
 
 func ensureICSExtension(name string) string {
-	n := strings.TrimSpace(name)
-	if n == "" {
-		return "event.ics"
-	}
-	if strings.HasSuffix(strings.ToLower(n), ".ics") {
-		return n
-	}
-	return n + ".ics"
+	return cli.EnsureICSExtension(name)
 }
 
 func ensureUniquePath(path string) string {
-	clean := filepath.Clean(path)
-	if _, err := os.Stat(clean); errors.Is(err, os.ErrNotExist) {
-		return clean
-	}
-
-	dir := filepath.Dir(clean)
-	base := filepath.Base(clean)
-	ext := filepath.Ext(base)
-	name := strings.TrimSuffix(base, ext)
-	if ext == "" {
-		ext = ".ics"
-	}
-
-	for i := 2; ; i++ {
-		candidate := filepath.Join(dir, fmt.Sprintf("%s-%d%s", name, i, ext))
-		if _, err := os.Stat(candidate); errors.Is(err, os.ErrNotExist) {
-			return candidate
-		}
-	}
+	return cli.EnsureUniquePath(path)
 }
 
 func runTemplateValidate(cmd *cobra.Command, _ []string) error {
@@ -3369,12 +3223,7 @@ func newTranslator(lang string) (*i18n.Translator, error) {
 }
 
 func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if strings.TrimSpace(v) != "" {
-			return v
-		}
-	}
-	return ""
+	return cli.FirstNonEmpty(vals...)
 }
 
 func labelForField(f tpl.Field) string {
@@ -3399,7 +3248,7 @@ func isAlarmField(f tpl.Field) bool {
 }
 
 func slugify(s string) string {
-	return utils.Slugify(s)
+	return cli.Slugify(s)
 }
 
 func promptInput(prompt, defaultValue string) string {
@@ -3466,11 +3315,11 @@ func promptAlarmField(label, defaultValue string) string {
 // ------------------------------
 
 func looksLikeClock(s string) bool {
-	return clockOnlyRe.MatchString(strings.TrimSpace(s))
+	return cli.LooksLikeClock(s)
 }
 
 func prependToday(clock, tz string) string {
-	return normalizer.PrependToday(clock, tz)
+	return cli.PrependToday(clock, tz)
 }
 
 // If start or end is only HH:MM, prepend today's date in the chosen timezone (or local).
@@ -3581,14 +3430,7 @@ func addDurationToStart(start, tz string, d time.Duration) string {
 }
 
 func splitDateTime(s string) (string, string) {
-	parts := strings.Fields(s)
-	if len(parts) >= 2 {
-		return parts[0], parts[1]
-	}
-	if len(parts) == 1 {
-		return parts[0], ""
-	}
-	return "", ""
+	return cli.SplitDateTime(s)
 }
 
 // Local helper to avoid depending on calendar.ParseDateTime
@@ -3610,19 +3452,7 @@ func parseDateTimeWithTZ(dateStr, timeStr, tz string) (time.Time, error) {
 }
 
 func fmtDurationHuman(d time.Duration) string {
-	if d <= 0 {
-		return "0m"
-	}
-	totalMin := int(d.Minutes() + 0.5)
-	h := totalMin / 60
-	m := totalMin % 60
-	if h > 0 && m > 0 {
-		return fmt.Sprintf("%dh%dm", h, m)
-	}
-	if h > 0 {
-		return fmt.Sprintf("%dh", h)
-	}
-	return fmt.Sprintf("%dm", m)
+	return cli.FmtDurationHuman(d)
 }
 
 func parseExDateValues(values []string, tz string, allDay bool) ([]time.Time, error) {
@@ -3696,11 +3526,8 @@ func newTimezoneCmd() *cobra.Command {
 	return root
 }
 
-var reParen = regexp.MustCompile(`\s*\([^(]*\)\s*$`)
-
-// cleanDisplay removes a trailing " (…)" from DisplayName if present.
 func cleanDisplay(s string) string {
-	return reParen.ReplaceAllString(s, "")
+	return cli.CleanDisplay(s)
 }
 
 func runTZList(cmd *cobra.Command, _ []string) error {
@@ -3879,28 +3706,13 @@ func cityToIANA(s string) string {
 // ------------------------------
 
 func printOK(format string, a ...interface{}) {
-	// Leading checkmark for success
-	msg := fmt.Sprintf(format, a...)
-	fmt.Printf("✅ %s", msg)
+	cli.PrintOK(os.Stdout, format, a...)
 }
 
 func printErr(format string, a ...interface{}) {
-	// Leading cross mark for errors
-	msg := fmt.Sprintf(format, a...)
-	fmt.Printf("❌ %s", msg)
+	cli.PrintErr(os.Stdout, format, a...)
 }
 
 func atoiSafe(s string) int {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return 0
-	}
-	n := 0
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return 0
-		}
-		n = n*10 + int(r-'0')
-	}
-	return n
+	return cli.AtoiSafe(s)
 }
