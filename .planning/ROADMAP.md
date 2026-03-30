@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Bug Fixes & Test Infrastructure** - Fix data-integrity bugs and establish testable output patterns (completed 2026-03-29)
 - [ ] **Phase 2: First-Run Experience** - Init wizard, env vars, config validation, and practical templates
-- [ ] **Phase 3: Interactive Mode & CLI Structure** - Flagship --interactive mode with charmbracelet/huh and monolith split into internal/cli/
+- [x] **Phase 3: Interactive Mode & CLI Structure** - Flagship --interactive mode with charmbracelet/huh and monolith split into internal/cli/ (completed 2026-03-30)
 - [ ] **Phase 4: UX Polish** - Conflict resolution guidance and customizable prep time
 - [ ] **Phase 5: ND Extraction & Performance** - Extract neurodivergent features to internal/nd/ and optimize batch performance
 
@@ -76,13 +76,13 @@ Plans:
   2. All existing CLI commands (`create`, `batch`, `lint`, `config`, `template`, `timezone`, `rrule`) continue to work with identical flags and output after the monolith split
   3. `main.go` is reduced to approximately 100 lines of wiring code, with command logic in `internal/cli/<command>.go` files
   4. Test coverage remains at or above 79% after the restructure
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — Foundation: App struct, helpers, internal/parsing/ unified API (REF-01)
 - [x] 03-02-PLAN.md — Split batch 1: create, quick, init, config, version + huh migration + ND functions (REF-01, UX-02)
 - [x] 03-03-PLAN.md — Split batch 2: batch, lint, template, timezone, rrule, locale + slim main.go + survey removal (REF-01)
-- [ ] 03-04-PLAN.md — Interactive wizard: 7-step huh form for `tempus create --interactive` (UX-02)
+- [x] 03-04-PLAN.md — Interactive wizard: 7-step huh form for `tempus create --interactive` (UX-02)
 
 **UI hint**: yes
 
@@ -133,6 +133,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Bug Fixes & Test Infrastructure | 0/3 | Complete    | 2026-03-29 |
 | 2. First-Run Experience | 0/3 | Not started | - |
-| 3. Interactive Mode & CLI Structure | 3/4 | In Progress|  |
+| 3. Interactive Mode & CLI Structure | 4/4 | Complete   | 2026-03-30 |
 | 4. UX Polish | 0/2 | Not started | - |
 | 5. ND Extraction & Performance | 0/3 | Not started | - |
