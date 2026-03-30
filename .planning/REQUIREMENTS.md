@@ -34,7 +34,7 @@
 
 ### Refactor — Mantenibilidad
 
-- [ ] **REF-01**: El código de cada comando Cobra vive en `internal/cli/<command>.go` con un `App` struct que provee config/translator via `PersistentPreRunE` — `main.go` queda en ~100 líneas
+- [x] **REF-01**: El código de cada comando Cobra vive en `internal/cli/<command>.go` con un `App` struct que provee config/translator via `PersistentPreRunE` — `main.go` queda en ~100 líneas
 - [x] **REF-02**: Las 13 funciones de parsing de fechas se unifican en `internal/parsing.Parse(ParseOptions)` — mismo comportamiento, un punto de entrada
 - [ ] **REF-03**: Las features neurodivergentes (spellcheck, conflictos, prep time, emoji) viven en `internal/nd/` — extraídas con tests migrados sin pérdida de cobertura
 - [ ] **REF-04**: La detección de conflictos usa algoritmo sweep-line O(n log n) en lugar de O(n²)
@@ -89,7 +89,7 @@
 | TMPL-02 | Phase 2: First-Run Experience | Pending |
 | TMPL-03 | Phase 2: First-Run Experience | Pending |
 | UX-02 | Phase 3: Interactive Mode & CLI Structure | Pending |
-| REF-01 | Phase 3: Interactive Mode & CLI Structure | Pending |
+| REF-01 | Phase 3: Interactive Mode & CLI Structure | Complete |
 | UX-03 | Phase 4: UX Polish | Pending |
 | UX-04 | Phase 4: UX Polish | Pending |
 | REF-03 | Phase 5: ND Extraction & Performance | Pending |

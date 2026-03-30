@@ -79,7 +79,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Foundation: App struct, helpers, internal/parsing/ unified API (REF-01)
+- [x] 03-01-PLAN.md — Foundation: App struct, helpers, internal/parsing/ unified API (REF-01)
 - [ ] 03-02-PLAN.md — Split batch 1: create, quick, init, config, version + huh migration + ND functions (REF-01, UX-02)
 - [ ] 03-03-PLAN.md — Split batch 2: batch, lint, template, timezone, rrule, locale + slim main.go + survey removal (REF-01)
 - [ ] 03-04-PLAN.md — Interactive wizard: 7-step huh form for `tempus create --interactive` (UX-02)

@@ -28,16 +28,17 @@ Un usuario neurodivergente puede crear un evento de calendario correcto con el m
 - ✓ Prep time auto-generado (`--add-prep-time`) — existing
 - ✓ Auto-emoji por categoría — existing
 - ✓ Normalización de inputs de fecha/hora (en batch) — existing
+- ✓ B1: `stripEmoji()` preserva acentuados — `unicode.Is(unicode.So, r)` — Validated in Phase 1
+- ✓ B2: `promptAlarmField()` usa i18n en los 4 locales — Validated in Phase 1
+- ✓ B3: Alarm profile no encontrado → error explícito con lista de profiles disponibles — Validated in Phase 1
+- ✓ B4: `cityToIANA()` falla con error útil + sugerencia `tempus timezone list --search` — Validated in Phase 1
+- ✓ B5: Normalización de inputs en `create` (slash dates, missing zeros) — Validated in Phase 1
+- ✓ R6: `printOK`/`printErr` escriben a `var stdout io.Writer` — testable sin capturar stdout global — Validated in Phase 1
 
 ### Active
 
 <!-- Mejoras del ciclo actual -->
 
-- [ ] B1: Fix `stripEmoji()` — rune > 127 destruye acentuados (é, ñ, ü)
-- [ ] B2: Fix `promptAlarmField()` — hardcodeado en español, ignora `--language`
-- [ ] B3: Fix alarm profile no encontrado — silent failure → error explícito con sugerencias
-- [ ] B4: Fix `cityToIANA()` — falla silenciosamente para ciudades no mapeadas
-- [ ] B5: Fix normalización de inputs en `create` (actualmente solo en batch)
 - [ ] F1: Implementar `tempus init` — wizard de primer uso interactivo
 - [ ] F2: Implementar `--interactive` en `create` — modo paso a paso con survey
 - [ ] F3: Implementar env vars (`TEMPUS_TIMEZONE`, `TEMPUS_LANGUAGE`, `TEMPUS_OUTPUT_DIR`)
@@ -110,4 +111,4 @@ Este documento evoluciona en las transiciones de fase y milestones.
 3. Auditar Out of Scope — ¿las razones siguen siendo válidas?
 
 ---
-*Last updated: 2026-03-29 after initialization*
+*Last updated: 2026-03-30 after Phase 1 completion — 5 bugs fixed, testable output, 79.7% coverage*
