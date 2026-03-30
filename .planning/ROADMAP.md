@@ -16,7 +16,7 @@ Tempus is a working CLI with ~79% test coverage and a 3,900-line monolith. This 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Bug Fixes & Test Infrastructure** - Fix data-integrity bugs and establish testable output patterns
+- [x] **Phase 1: Bug Fixes & Test Infrastructure** - Fix data-integrity bugs and establish testable output patterns (completed 2026-03-29)
 - [ ] **Phase 2: First-Run Experience** - Init wizard, env vars, config validation, and practical templates
 - [ ] **Phase 3: Interactive Mode & CLI Structure** - Flagship --interactive mode with charmbracelet/huh and monolith split into internal/cli/
 - [ ] **Phase 4: UX Polish** - Conflict resolution guidance and customizable prep time
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User references a non-existent alarm profile and receives an error listing available profiles
   4. User enters an unrecognized city as timezone and receives an error suggesting `tempus timezone list --search`
   5. User runs `tempus create --start 2025/12/16 --time 09:00` and the date/time is parsed correctly (same as batch)
-**Plans:** 3 plans
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Unicode/emoji fix (BUG-01) + testable output infrastructure (REF-06)
@@ -56,12 +56,12 @@ Plans:
   3. User runs `tempus config set timezone Invalid/Zone` and receives a validation error before config is saved
   4. User runs `tempus config set output_dir /nonexistent` and receives a validation error about the directory
   5. User runs `tempus batch template school-event`, `recruiter-meeting`, or `travel-day` and gets a usable CSV/YAML template with relevant fields
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — Config infrastructure: env var binding, validation, detection functions (CONF-01, CONF-02, CONF-03)
+- [ ] 02-02-PLAN.md — `tempus init` interactive wizard (UX-01)
+- [ ] 02-03-PLAN.md — Practical batch templates: school-event, recruiter-meeting, travel-day (TMPL-01, TMPL-02, TMPL-03)
 
 **UI hint**: yes
 
@@ -130,7 +130,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Bug Fixes & Test Infrastructure | 0/3 | Planning complete | - |
+| 1. Bug Fixes & Test Infrastructure | 0/3 | Complete    | 2026-03-29 |
 | 2. First-Run Experience | 0/3 | Not started | - |
 | 3. Interactive Mode & CLI Structure | 0/3 | Not started | - |
 | 4. UX Polish | 0/2 | Not started | - |
