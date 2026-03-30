@@ -996,86 +996,8 @@ func TestBuildEventFromBatch(t *testing.T) {
 // Config command tests
 // ============================================================================
 
-func TestNewConfigCmd(t *testing.T) {
-	cmd := newConfigCmd()
-	if cmd == nil {
-		t.Fatal("newConfigCmd() returned nil")
-	}
-	if cmd.Use != "config" {
-		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "config")
-	}
-
-	// Check subcommands
-	subcommands := cmd.Commands()
-	if len(subcommands) != 3 {
-		t.Errorf("expected 3 subcommands, got %d", len(subcommands))
-	}
-
-	var hasSet, hasList, hasAlarmProfiles bool
-	for _, sub := range subcommands {
-		if strings.HasPrefix(sub.Use, "set") {
-			hasSet = true
-		}
-		if strings.HasPrefix(sub.Use, "list") {
-			hasList = true
-		}
-		if strings.HasPrefix(sub.Use, "alarm-profiles") {
-			hasAlarmProfiles = true
-		}
-	}
-	if !hasSet {
-		t.Error("config command missing 'set' subcommand")
-	}
-	if !hasList {
-		t.Error("config command missing 'list' subcommand")
-	}
-	if !hasAlarmProfiles {
-		t.Error("config command missing 'alarm-profiles' subcommand")
-	}
-}
-
-func TestRunConfigSet(t *testing.T) {
-	// This test requires the config package to work properly
-	// We'll test the command creation and basic structure
-	cmd := newConfigCmd()
-	setCmd := findSubcommand(cmd, "set")
-	if setCmd == nil {
-		t.Fatal("set subcommand not found")
-	}
-
-	// Check that it requires exactly 2 args
-	if setCmd.Args == nil {
-		t.Error("set command should have Args validator")
-	}
-}
-
-func TestRunConfigList(t *testing.T) {
-	cmd := newConfigCmd()
-	listCmd := findSubcommand(cmd, "list")
-	if listCmd == nil {
-		t.Fatal("list subcommand not found")
-	}
-	if listCmd.RunE == nil {
-		t.Error("list command should have RunE function")
-	}
-}
-
-// ============================================================================
-// Version command tests
-// ============================================================================
-
-func TestNewVersionCmd(t *testing.T) {
-	cmd := newVersionCmd()
-	if cmd == nil {
-		t.Fatal("newVersionCmd() returned nil")
-	}
-	if cmd.Use != "version" {
-		t.Errorf(testutil.ErrMsgUseMismatch, cmd.Use, "version")
-	}
-	if cmd.Run == nil {
-		t.Error("version command should have Run function")
-	}
-}
+// TestNewConfigCmd, TestRunConfigSet, TestRunConfigList moved to internal/cli/config_test.go
+// TestNewVersionCmd moved to internal/cli/version_test.go (Task 2)
 
 // ============================================================================
 // Template command tests

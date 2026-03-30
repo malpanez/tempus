@@ -4,12 +4,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tempus/internal/cli"
 	"tempus/internal/testutil"
 	"testing"
 )
 
 func TestCreateSupportsCategoriesAttendeesAndPriority(t *testing.T) {
-	cmd := newCreateCmd()
+	app := cli.TestApp()
+	cmd := cli.NewCreateCmd(app)
 
 	tmpDir := t.TempDir()
 	outputPath := filepath.Join(tmpDir, "category.ics")
@@ -30,7 +32,7 @@ func TestCreateSupportsCategoriesAttendeesAndPriority(t *testing.T) {
 	set("attendee", testutil.EmailBob)
 	set("priority", "3")
 
-	if err := runCreate(cmd, []string{"Focus Session"}); err != nil {
+	if err := cmd.RunE(cmd, []string{"Focus Session"}); err != nil {
 		t.Fatalf("runCreate returned error: %v", err)
 	}
 
@@ -55,7 +57,8 @@ func TestCreateSupportsCategoriesAttendeesAndPriority(t *testing.T) {
 }
 
 func TestCreateRejectsInvalidPriority(t *testing.T) {
-	cmd := newCreateCmd()
+	app := cli.TestApp()
+	cmd := cli.NewCreateCmd(app)
 	set := func(name, value string) {
 		if err := cmd.Flags().Set(name, value); err != nil {
 			t.Fatalf("failed to set flag %s: %v", name, err)
@@ -66,7 +69,7 @@ func TestCreateRejectsInvalidPriority(t *testing.T) {
 	set("end", "2025-04-01 10:00")
 	set("priority", "10")
 
-	err := runCreate(cmd, []string{"Invalid priority"})
+	err := cmd.RunE(cmd, []string{"Invalid priority"})
 	if err == nil || !strings.Contains(err.Error(), "priority must be between 0 and 9") {
 		t.Fatalf("expected priority validation error, got %v", err)
 	}

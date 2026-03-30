@@ -13,61 +13,7 @@ import (
 // Utility function tests - covering 0% functions
 // ============================================================================
 
-func TestLevenshteinDistance(t *testing.T) {
-	tests := []struct {
-		name string
-		s1   string
-		s2   string
-		want int
-	}{
-		{"empty strings", "", "", 0},
-		{"empty s1", "", "hello", 5},
-		{"empty s2", "hello", "", 5},
-		{"identical", "test", "test", 0},
-		{"one char different", "test", "best", 1},
-		{"completely different", "abc", "xyz", 3},
-		{"different lengths", "short", "longer string", 11}, // Actual levenshtein distance
-		{"insertion", "cat", "cats", 1},
-		{"deletion", "cats", "cat", 1},
-		{"substitution", "cat", "bat", 1},
-		{"multiple operations", "kitten", "sitting", 3},
-		{"case sensitive", "Test", "test", 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := levenshteinDistance(tt.s1, tt.s2)
-			if got != tt.want {
-				t.Errorf("levenshteinDistance(%q, %q) = %d, want %d", tt.s1, tt.s2, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestMin(t *testing.T) {
-	tests := []struct {
-		name    string
-		a, b, c int
-		want    int
-	}{
-		{"a is minimum", 1, 2, 3, 1},
-		{"b is minimum", 3, 1, 2, 1},
-		{"c is minimum", 3, 2, 1, 1},
-		{"all equal", 5, 5, 5, 5},
-		{"two equal minimum", 2, 2, 3, 2},
-		{"negative numbers", -5, -2, -1, -5},
-		{"mixed positive and negative", -1, 0, 1, -1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := min(tt.a, tt.b, tt.c)
-			if got != tt.want {
-				t.Errorf("min(%d, %d, %d) = %d, want %d", tt.a, tt.b, tt.c, got, tt.want)
-			}
-		})
-	}
-}
+// TestLevenshteinDistance and TestMin moved to internal/cli/nd_test.go
 
 func TestStripEmoji(t *testing.T) {
 	tests := []struct {
