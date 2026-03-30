@@ -54,6 +54,7 @@ type batchOptions struct {
 	checkConflicts  bool
 	maxEventsPerDay int
 	addPrepTime     bool
+	prepLabel       string
 }
 
 var icsDurationRegex = regexp.MustCompile(`(?i)^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$`)
@@ -76,6 +77,7 @@ func NewBatchCmd(app *App) *cobra.Command {
 	cmd.Flags().Bool("check-conflicts", false, "Detect and warn about overlapping events")
 	cmd.Flags().Int("max-events-per-day", 0, "Warn if any day exceeds this number of events (0=unlimited)")
 	cmd.Flags().Bool("add-prep-time", false, "Auto-add preparation/transition time buffers (ADHD time boxing)")
+	cmd.Flags().String("prep-label", "", "Custom prefix for prep time events (overrides config)")
 
 	cmd.AddCommand(NewBatchTemplateCmd(app))
 
@@ -87,6 +89,8 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+
+	opts.prepLabel = resolvePrepLabel(opts.prepLabel, app.Config)
 
 	records, _, err := loadBatchInput(opts)
 	if err != nil {
@@ -118,6 +122,7 @@ func parseBatchFlags(cmd *cobra.Command) (*batchOptions, error) {
 	opts.checkConflicts, _ = cmd.Flags().GetBool("check-conflicts")
 	opts.maxEventsPerDay, _ = cmd.Flags().GetInt("max-events-per-day")
 	opts.addPrepTime, _ = cmd.Flags().GetBool("add-prep-time")
+	opts.prepLabel, _ = cmd.Flags().GetString("prep-label")
 
 	opts.input = strings.TrimSpace(opts.input)
 	if opts.input == "" {
@@ -125,6 +130,16 @@ func parseBatchFlags(cmd *cobra.Command) (*batchOptions, error) {
 	}
 
 	return opts, nil
+}
+
+func resolvePrepLabel(flagValue string, cfg *config.Config) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	if cfg != nil && cfg.PrepTimePrefix != "" {
+		return cfg.PrepTimePrefix
+	}
+	return "Preparation"
 }
 
 func loadBatchInput(opts *batchOptions) ([]batchRecord, batchFormat, error) {
@@ -170,7 +185,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Ca
 	}
 
 	if opts.addPrepTime {
-		prepEvents := GeneratePrepTimeEvents(cal.Events)
+		prepEvents := GeneratePrepTimeEvents(cal.Events, opts.prepLabel)
 		for _, prepEv := range prepEvents {
 			cal.AddEvent(prepEv)
 		}

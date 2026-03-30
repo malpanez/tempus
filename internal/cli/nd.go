@@ -314,7 +314,7 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dh%dm", hours, remaining)
 }
 
-func GeneratePrepTimeEvents(events []calendar.Event) []*calendar.Event {
+func GeneratePrepTimeEvents(events []calendar.Event, prepLabel string) []*calendar.Event {
 	var prepEvents []*calendar.Event
 
 	for _, ev := range events {
@@ -327,7 +327,7 @@ func GeneratePrepTimeEvents(events []calendar.Event) []*calendar.Event {
 			continue
 		}
 
-		if prepEvent := createPrepEventIfNeeded(ev); prepEvent != nil {
+		if prepEvent := createPrepEventIfNeeded(ev, prepLabel); prepEvent != nil {
 			prepEvents = append(prepEvents, prepEvent)
 		}
 	}
@@ -355,10 +355,13 @@ func createTransitionEventIfNeeded(ev calendar.Event) *calendar.Event {
 	}
 }
 
-func createPrepEventIfNeeded(ev calendar.Event) *calendar.Event {
+func createPrepEventIfNeeded(ev calendar.Event, prepLabel string) *calendar.Event {
 	duration, description := determinePrepTime(ev.Summary)
 	if duration == 0 {
 		return nil
+	}
+	if description == "Preparation" && prepLabel != "" {
+		description = prepLabel
 	}
 
 	return &calendar.Event{

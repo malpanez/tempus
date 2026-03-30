@@ -3,6 +3,7 @@ package cli
 import (
 	"strings"
 	"tempus/internal/calendar"
+	"tempus/internal/config"
 	"tempus/internal/testutil"
 	"testing"
 	"time"
@@ -231,7 +232,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 	}
 
 	events := []calendar.Event{meetingEvent}
-	prepEvents := GeneratePrepTimeEvents(events)
+	prepEvents := GeneratePrepTimeEvents(events, "")
 
 	if len(prepEvents) != 1 {
 		t.Errorf("GeneratePrepTimeEvents() returned %d events, want 1", len(prepEvents))
@@ -260,7 +261,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 		EndTime:   time.Date(2025, 5, 1, 15, 0, 0, 0, time.UTC),
 		StartTZ:   testutil.TZEuropeMadrid,
 	}
-	medicalPrep := GeneratePrepTimeEvents([]calendar.Event{doctorEvent})
+	medicalPrep := GeneratePrepTimeEvents([]calendar.Event{doctorEvent}, "")
 	if len(medicalPrep) != 1 {
 		t.Error("doctor appointment should generate prep event")
 	} else {
@@ -275,7 +276,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 		StartTime: time.Date(2025, 5, 1, 9, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 10, 30, 0, 0, time.UTC),
 	}
-	focusPrep := GeneratePrepTimeEvents([]calendar.Event{focusEvent})
+	focusPrep := GeneratePrepTimeEvents([]calendar.Event{focusEvent}, "")
 	if len(focusPrep) != 1 {
 		t.Error("focus block should generate transition event")
 	} else {
@@ -289,7 +290,7 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 		StartTime: time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 5, 1, 11, 0, 0, 0, time.UTC),
 	}
-	regularPrep := GeneratePrepTimeEvents([]calendar.Event{regularEvent})
+	regularPrep := GeneratePrepTimeEvents([]calendar.Event{regularEvent}, "")
 	if len(regularPrep) != 0 {
 		t.Error("regular event should not generate prep events")
 	}
@@ -300,12 +301,12 @@ func TestGeneratePrepTimeEvents(t *testing.T) {
 		EndTime:   time.Date(2025, 5, 2, 0, 0, 0, 0, time.UTC),
 		AllDay:    true,
 	}
-	allDayPrep := GeneratePrepTimeEvents([]calendar.Event{allDayEvent})
+	allDayPrep := GeneratePrepTimeEvents([]calendar.Event{allDayEvent}, "")
 	if len(allDayPrep) != 0 {
 		t.Error("all-day events should not generate prep events")
 	}
 
-	emptyPrepEvents := GeneratePrepTimeEvents([]calendar.Event{})
+	emptyPrepEvents := GeneratePrepTimeEvents([]calendar.Event{}, "")
 	if len(emptyPrepEvents) != 0 {
 		t.Error("GeneratePrepTimeEvents() with empty slice should return no events")
 	}
@@ -383,6 +384,81 @@ func TestNormalizeAndSpellCheck(t *testing.T) {
 			got := NormalizeAndSpellCheck(tt.input)
 			if got != tt.want {
 				t.Errorf("NormalizeAndSpellCheck(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGeneratePrepTimeEventsCustomLabel(t *testing.T) {
+	meetingEvent := calendar.Event{
+		Summary:   testutil.EventTitleTeamMeeting,
+		StartTime: time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC),
+		EndTime:   time.Date(2025, 5, 1, 11, 0, 0, 0, time.UTC),
+		StartTZ:   testutil.TZEuropeMadrid,
+		EndTZ:     testutil.TZEuropeMadrid,
+	}
+
+	t.Run("custom label replaces Preparation for meeting", func(t *testing.T) {
+		prepEvents := GeneratePrepTimeEvents([]calendar.Event{meetingEvent}, "Buffer")
+		if len(prepEvents) != 1 {
+			t.Fatalf("expected 1 prep event, got %d", len(prepEvents))
+		}
+		if !strings.Contains(prepEvents[0].Summary, "Buffer") {
+			t.Errorf("prep event summary should contain 'Buffer', got %q", prepEvents[0].Summary)
+		}
+		if strings.Contains(prepEvents[0].Summary, "Preparation") {
+			t.Errorf("prep event summary should NOT contain 'Preparation', got %q", prepEvents[0].Summary)
+		}
+	})
+
+	t.Run("custom label does NOT override medical prep", func(t *testing.T) {
+		doctorEvent := calendar.Event{
+			Summary:   "Doctor Appointment",
+			StartTime: time.Date(2025, 5, 1, 14, 0, 0, 0, time.UTC),
+			EndTime:   time.Date(2025, 5, 1, 15, 0, 0, 0, time.UTC),
+			StartTZ:   testutil.TZEuropeMadrid,
+		}
+		prepEvents := GeneratePrepTimeEvents([]calendar.Event{doctorEvent}, "Custom")
+		if len(prepEvents) != 1 {
+			t.Fatalf("expected 1 prep event, got %d", len(prepEvents))
+		}
+		if !strings.Contains(prepEvents[0].Summary, "Travel & arrival buffer") {
+			t.Errorf("medical prep should contain 'Travel & arrival buffer', got %q", prepEvents[0].Summary)
+		}
+		if strings.Contains(prepEvents[0].Summary, "Custom") {
+			t.Errorf("medical prep should NOT contain 'Custom', got %q", prepEvents[0].Summary)
+		}
+	})
+
+	t.Run("empty label uses default Preparation", func(t *testing.T) {
+		prepEvents := GeneratePrepTimeEvents([]calendar.Event{meetingEvent}, "")
+		if len(prepEvents) != 1 {
+			t.Fatalf("expected 1 prep event, got %d", len(prepEvents))
+		}
+		if !strings.Contains(prepEvents[0].Summary, "Preparation") {
+			t.Errorf("prep event summary should contain 'Preparation', got %q", prepEvents[0].Summary)
+		}
+	})
+}
+
+func TestResolvePrepLabel(t *testing.T) {
+	tests := []struct {
+		name     string
+		flagVal  string
+		cfg      *config.Config
+		want     string
+	}{
+		{"flag wins over config", "MyLabel", &config.Config{PrepTimePrefix: "Setup"}, "MyLabel"},
+		{"config wins when flag empty", "", &config.Config{PrepTimePrefix: "Setup"}, "Setup"},
+		{"default when config prefix empty", "", &config.Config{PrepTimePrefix: ""}, "Preparation"},
+		{"default when config nil", "", nil, "Preparation"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolvePrepLabel(tt.flagVal, tt.cfg)
+			if got != tt.want {
+				t.Errorf("resolvePrepLabel(%q, cfg) = %q, want %q", tt.flagVal, got, tt.want)
 			}
 		})
 	}

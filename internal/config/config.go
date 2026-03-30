@@ -23,6 +23,7 @@ type Config struct {
 	DefaultAlarmProfile string              `mapstructure:"default_alarm_profile" json:"default_alarm_profile"`
 	AlarmProfiles       map[string][]string `mapstructure:"alarm_profiles" json:"alarm_profiles"`
 	SpellCorrections    map[string]string   `mapstructure:"spell_corrections" json:"spell_corrections"`
+	PrepTimePrefix      string              `mapstructure:"prep_time_prefix" json:"prep_time_prefix"`
 }
 
 var defaultConfig = Config{
@@ -42,6 +43,7 @@ var defaultConfig = Config{
 		"single":         {"-15m"},                       // Standard single reminder
 		"none":           {},                             // No alarms
 	},
+	PrepTimePrefix: "Preparation",
 	SpellCorrections: map[string]string{
 		"meetng":       "meeting",
 		"meetting":     "meeting",
@@ -94,6 +96,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("default_alarm_profile", defaultConfig.DefaultAlarmProfile)
 	viper.SetDefault("alarm_profiles", defaultConfig.AlarmProfiles)
 	viper.SetDefault("spell_corrections", defaultConfig.SpellCorrections)
+	viper.SetDefault("prep_time_prefix", defaultConfig.PrepTimePrefix)
 
 	viper.SetEnvPrefix("TEMPUS")
 	viper.AutomaticEnv()
