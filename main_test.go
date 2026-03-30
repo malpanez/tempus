@@ -2183,6 +2183,60 @@ func TestBatchTemplateFormatFlag(t *testing.T) {
 	}
 }
 
+func TestRunBatchTemplateWithFormatFlag(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name     string
+		tmpl     string
+		format   string
+		contains string
+	}{
+		{"school-event-csv", "school-event", "csv", "summary,start_date"},
+		{"school-event-yaml", "school-event", "yaml", "summary:"},
+		{"recruiter-meeting-csv", "recruiter-meeting", "csv", "company,role"},
+		{"travel-day-yaml", "travel-day", "yaml", "destination_timezone:"},
+		{"basic-default", "basic", "csv", "summary,start"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			outPath := filepath.Join(tmpDir, tt.name+".out")
+			cmd := newBatchTemplateCmd()
+			cmd.SetArgs([]string{tt.tmpl})
+			mustSetFlag(t, cmd, "output", outPath)
+			mustSetFlag(t, cmd, "format", tt.format)
+
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("execute failed: %v", err)
+			}
+
+			data, err := os.ReadFile(outPath)
+			if err != nil {
+				t.Fatalf("failed to read output: %v", err)
+			}
+			if !strings.Contains(string(data), tt.contains) {
+				t.Errorf("output missing %q:\n%s", tt.contains, string(data))
+			}
+		})
+	}
+}
+
+func TestRunBatchTemplateInvalidFormat(t *testing.T) {
+	cmd := newBatchTemplateCmd()
+	cmd.SetArgs([]string{"basic"})
+	mustSetFlag(t, cmd, "output", filepath.Join(t.TempDir(), "out.csv"))
+	mustSetFlag(t, cmd, "format", "xml")
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for invalid format")
+	}
+	if !strings.Contains(err.Error(), "--format must be") {
+		t.Errorf("expected format error, got: %v", err)
+	}
+}
+
 func TestBatchTemplateFormatInvalid(t *testing.T) {
 	_, err := getBatchTemplateContent("unknown-type", "csv")
 	if err == nil {
