@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 04-ux-polish-01-PLAN.md
-last_updated: "2026-03-30T18:36:12.574Z"
+stopped_at: Completed 04-ux-polish-02-PLAN.md
+last_updated: "2026-03-30T18:41:44.466Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [..........] 0%
 | Phase 03-interactive-mode-cli-structure P03-03 | 90 | 2 tasks | 28 files |
 | Phase 03-interactive-mode-cli-structure P04 | 20m | 2 tasks | 3 files |
 | Phase 04-ux-polish P01 | 2min | 2 tasks | 2 files |
+| Phase 04-ux-polish P02 | 2min | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
 - [Phase 03-interactive-mode-cli-structure]: runInteractive returns nil on form.Run() error — treats non-TTY and Ctrl+C as clean cancellations (no file written)
 - [Phase 03-interactive-mode-cli-structure]: buildInteractiveForm extracted from runInteractive for testability; interactiveVars struct holds all wizard state
 - [Phase 04-ux-polish]: Kept DetectEventConflicts return type as []string -- no breaking change to callers
+- [Phase 04-ux-polish]: resolvePrepLabel in batch.go with flag > config > default priority; medical prep protected via description == Preparation check
 
 ### Pending Todos
 
@@ -104,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T18:36:12.567Z
-Stopped at: Completed 04-ux-polish-01-PLAN.md
+Last session: 2026-03-30T18:41:44.459Z
+Stopped at: Completed 04-ux-polish-02-PLAN.md
 Resume file: None

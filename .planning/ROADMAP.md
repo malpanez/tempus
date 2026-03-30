@@ -100,7 +100,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Enhanced conflict detection with overlap duration and move suggestion (UX-03)
-- [ ] 04-02-PLAN.md — Customizable prep time prefix via config and --prep-label flag (UX-04)
+- [x] 04-02-PLAN.md — Customizable prep time prefix via config and --prep-label flag (UX-04)
 
 **UI hint**: no
 
