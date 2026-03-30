@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-03-29T23:15:30.612Z"
-last_activity: 2026-03-29
+status: executing
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-03-30T00:46:58.807Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 7
+  completed_plans: 5
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Un usuario neurodivergente puede crear un evento de calendario correcto con el minimo de friccion.
-**Current focus:** Phase 01 — bug-fixes-test-infrastructure
+**Current focus:** Phase 02 — first-run-experience
 
 ## Current Position
 
-Phase: 01 (bug-fixes-test-infrastructure) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-03-29
+Phase: 02 (first-run-experience) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [..........] 0%
 
@@ -56,6 +56,7 @@ Progress: [..........] 0%
 | Phase 01 P03 | 5min | 2 tasks | 2 files |
 | Phase 01 P02 | 7min | 2 tasks | 7 files |
 | Phase 01 P04 | 4min | 2 tasks | 2 files |
+| Phase 02 P03 | 6min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Unknown city is fatal in runTZInfo -- aborts before fuzzy fallback per D-02
 - [Phase 01]: Constructed Config structs directly instead of Load() for test isolation
 - [Phase 01]: Added parseAllDayTimes and addEmojiToSummary tests beyond plan scope to cross 79% coverage gate
+- [Phase 02]: Existing templates ignore format param for backward compat; new templates default CSV with --format yaml option
 
 ### Pending Todos
 
@@ -85,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T23:15:30.597Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-03-30T00:46:58.795Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None

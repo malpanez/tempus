@@ -28,9 +28,9 @@
 
 ### Templates Prácticos
 
-- [ ] **TMPL-01**: `tempus batch template school-event` genera plantilla para fechas escolares (trimestres, eventos, vacaciones) con campos: nombre, fecha inicio, fecha fin, categoría, notas
-- [ ] **TMPL-02**: `tempus batch template recruiter-meeting` genera plantilla para entrevistas y llamadas con recruiters — incluye prep time automático, alarmas triple ADHD, campo de empresa y rol
-- [ ] **TMPL-03**: `tempus batch template travel-day` genera plantilla para días de viaje con soporte multi-timezone (origen/destino), vuelo, alojamiento, actividades
+- [x] **TMPL-01**: `tempus batch template school-event` genera plantilla para fechas escolares (trimestres, eventos, vacaciones) con campos: nombre, fecha inicio, fecha fin, categoría, notas
+- [x] **TMPL-02**: `tempus batch template recruiter-meeting` genera plantilla para entrevistas y llamadas con recruiters — incluye prep time automático, alarmas triple ADHD, campo de empresa y rol
+- [x] **TMPL-03**: `tempus batch template travel-day` genera plantilla para días de viaje con soporte multi-timezone (origen/destino), vuelo, alojamiento, actividades
 
 ### Refactor — Mantenibilidad
 
@@ -85,9 +85,9 @@
 | CONF-02 | Phase 2: First-Run Experience | Pending |
 | CONF-03 | Phase 2: First-Run Experience | Pending |
 | UX-01 | Phase 2: First-Run Experience | Pending |
-| TMPL-01 | Phase 2: First-Run Experience | Pending |
-| TMPL-02 | Phase 2: First-Run Experience | Pending |
-| TMPL-03 | Phase 2: First-Run Experience | Pending |
+| TMPL-01 | Phase 2: First-Run Experience | Complete |
+| TMPL-02 | Phase 2: First-Run Experience | Complete |
+| TMPL-03 | Phase 2: First-Run Experience | Complete |
 | UX-02 | Phase 3: Interactive Mode & CLI Structure | Pending |
 | REF-01 | Phase 3: Interactive Mode & CLI Structure | Pending |
 | UX-03 | Phase 4: UX Polish | Pending |
