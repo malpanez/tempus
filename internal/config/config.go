@@ -261,3 +261,59 @@ func ValidateLanguage(lang string) error {
 	}
 	return fmt.Errorf("unsupported language: %s (supported: %v)", lang, i18n.SupportedLanguages())
 }
+
+func ValidateOutputDir(dir string) error {
+	dir = strings.TrimSpace(dir)
+	if dir == "" {
+		return fmt.Errorf("output directory cannot be empty")
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("'%s' is not a directory", dir)
+	}
+	f, err := os.CreateTemp(dir, ".tempus-test-*")
+	if err != nil {
+		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+	}
+	f.Close()
+	os.Remove(f.Name())
+	return nil
+}
+
+func DetectTimezone() string {
+	if target, err := os.Readlink("/etc/localtime"); err == nil {
+		if idx := strings.Index(target, "zoneinfo/"); idx != -1 {
+			tz := target[idx+len("zoneinfo/"):]
+			if _, err := time.LoadLocation(tz); err == nil {
+				return tz
+			}
+		}
+	}
+	if data, err := os.ReadFile("/etc/timezone"); err == nil {
+		tz := strings.TrimSpace(string(data))
+		if _, err := time.LoadLocation(tz); err == nil {
+			return tz
+		}
+	}
+	return "UTC"
+}
+
+func DetectLanguage() string {
+	lang := os.Getenv("LANG")
+	if lang == "" {
+		return "en"
+	}
+	lang = strings.Split(lang, ".")[0]
+	lang = strings.Split(lang, "_")[0]
+	lang = strings.ToLower(lang)
+	if lang == "c" || lang == "posix" || lang == "" {
+		return "en"
+	}
+	if i18n.IsSupportedLanguage(lang) {
+		return lang
+	}
+	return "en"
+}

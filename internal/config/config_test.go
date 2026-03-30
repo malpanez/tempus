@@ -6,6 +6,7 @@ import (
 	"strings"
 	"tempus/internal/testutil"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -396,5 +397,128 @@ func TestSetAllFields(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.value, actual)
 			}
 		})
+	}
+}
+
+func TestValidateOutputDir_Valid(t *testing.T) {
+	dir := t.TempDir()
+	if err := ValidateOutputDir(dir); err != nil {
+		t.Errorf("ValidateOutputDir(%q) unexpected error: %v", dir, err)
+	}
+}
+
+func TestValidateOutputDir_NonExistent(t *testing.T) {
+	err := ValidateOutputDir("/nonexistent-dir-xyz")
+	if err == nil {
+		t.Fatal("expected error for non-existent directory")
+	}
+	if !strings.Contains(err.Error(), "does not exist or is not writable") {
+		t.Errorf("expected 'does not exist or is not writable' in error, got: %v", err)
+	}
+}
+
+func TestValidateOutputDir_NotADir(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "not-a-dir")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := ValidateOutputDir(tmpFile)
+	if err == nil {
+		t.Fatal("expected error for file path")
+	}
+	if !strings.Contains(err.Error(), "is not a directory") {
+		t.Errorf("expected 'is not a directory' in error, got: %v", err)
+	}
+}
+
+func TestValidateOutputDir_Empty(t *testing.T) {
+	err := ValidateOutputDir("")
+	if err == nil {
+		t.Fatal("expected error for empty string")
+	}
+	if !strings.Contains(err.Error(), "cannot be empty") {
+		t.Errorf("expected 'cannot be empty' in error, got: %v", err)
+	}
+}
+
+func TestDetectTimezone(t *testing.T) {
+	tz := DetectTimezone()
+	if tz == "" {
+		t.Fatal("DetectTimezone() returned empty string")
+	}
+	if _, err := time.LoadLocation(tz); err != nil {
+		t.Errorf("DetectTimezone() returned invalid timezone %q: %v", tz, err)
+	}
+}
+
+func TestDetectLanguage_Supported(t *testing.T) {
+	t.Setenv("LANG", "es_ES.UTF-8")
+	lang := DetectLanguage()
+	if lang != "es" {
+		t.Errorf("expected 'es', got %q", lang)
+	}
+}
+
+func TestDetectLanguage_Unsupported(t *testing.T) {
+	t.Setenv("LANG", "xx_XX.UTF-8")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback, got %q", lang)
+	}
+}
+
+func TestDetectLanguage_Empty(t *testing.T) {
+	t.Setenv("LANG", "")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback, got %q", lang)
+	}
+}
+
+func TestDetectLanguage_POSIX(t *testing.T) {
+	t.Setenv("LANG", "C.UTF-8")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback for C locale, got %q", lang)
+	}
+}
+
+func TestGetAlarmProfile(t *testing.T) {
+	cfg := &Config{
+		AlarmProfiles: map[string][]string{
+			"adhd-default": {"-2h", "-30m", "-5m"},
+		},
+	}
+	profile := cfg.GetAlarmProfile("adhd-default")
+	if len(profile) != 3 {
+		t.Errorf("expected 3 alarms, got %d", len(profile))
+	}
+	missing := cfg.GetAlarmProfile("nonexistent")
+	if missing != nil {
+		t.Errorf("expected nil for missing profile, got %v", missing)
+	}
+	nilCfg := &Config{}
+	nilProfile := nilCfg.GetAlarmProfile("any")
+	if nilProfile != nil {
+		t.Errorf("expected nil for nil profiles map, got %v", nilProfile)
+	}
+}
+
+func TestListAlarmProfiles(t *testing.T) {
+	cfg := &Config{
+		AlarmProfiles: map[string][]string{
+			"adhd-default": {"-2h", "-30m", "-5m"},
+			"medication":   {"-30m", "-5m"},
+		},
+	}
+	profiles := cfg.ListAlarmProfiles()
+	if len(profiles) != 2 {
+		t.Errorf("expected 2 profiles, got %d", len(profiles))
+	}
+	nilCfg := &Config{}
+	empty := nilCfg.ListAlarmProfiles()
+	if len(empty) != 0 {
+		t.Errorf("expected 0 profiles for nil map, got %d", len(empty))
 	}
 }

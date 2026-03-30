@@ -67,6 +67,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(
 		cli.NewCreateCmd(app),
 		cli.NewQuickCmd(app),
+		cli.NewInitCmd(app),
 		newBatchCmd(),
 		newLintCmd(),
 		cli.NewConfigCmd(app),

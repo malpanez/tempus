@@ -337,3 +337,47 @@ func TestAddEmojiToSummary(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeAndSpellCheck(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty string", "", ""},
+		{"no corrections needed", "Hello World", "Hello World"},
+		{"simple text", "Team Meeting", "Team Meeting"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NormalizeAndSpellCheck(tt.input)
+			if got != tt.want {
+				t.Errorf("NormalizeAndSpellCheck(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateCategoryWithSuggestion(t *testing.T) {
+	tests := []struct {
+		name     string
+		category string
+		want     string
+	}{
+		{"exact match lowercase", "work", "Work"},
+		{"exact match mixed case", "Work", "Work"},
+		{"medication alias", "meds", "Medication"},
+		{"typo close to work", "wrk", "Work"},
+		{"unknown category", "xyzabc123", "xyzabc123"},
+		{"empty", "", ""},
+		{"deep work alias", "deep work", "Focus"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ValidateCategoryWithSuggestion(tt.category)
+			if got != tt.want {
+				t.Errorf("ValidateCategoryWithSuggestion(%q) = %q, want %q", tt.category, got, tt.want)
+			}
+		})
+	}
+}
