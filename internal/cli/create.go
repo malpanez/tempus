@@ -45,7 +45,7 @@ func NewCreateCmd(app *App) *cobra.Command {
 func runCreate(app *App, cmd *cobra.Command, args []string) error {
 	interactive, _ := cmd.Flags().GetBool("interactive")
 	if interactive {
-		return fmt.Errorf("interactive mode not yet implemented")
+		return runInteractive(app, cmd)
 	}
 
 	if len(args) == 0 {
