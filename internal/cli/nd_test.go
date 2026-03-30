@@ -130,6 +130,13 @@ func TestDetectEventConflicts(t *testing.T) {
 		t.Error("DetectEventConflicts() should find conflicts")
 	}
 
+	if !strings.Contains(conflicts[0], "by 30m") {
+		t.Errorf("conflict string should contain overlap duration 'by 30m', got: %s", conflicts[0])
+	}
+	if !strings.Contains(conflicts[0], "Suggestion: move Event 2 to 11:00") {
+		t.Errorf("conflict string should contain move suggestion, got: %s", conflicts[0])
+	}
+
 	noConflictEvents := []calendar.Event{
 		{
 			Summary:   testutil.EventTitleEvent1,
@@ -156,6 +163,29 @@ func TestDetectEventConflicts(t *testing.T) {
 	singleConflicts := DetectEventConflicts(events[:1])
 	if len(singleConflicts) != 0 {
 		t.Error("DetectEventConflicts() with single event should return no conflicts")
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	tests := []struct {
+		name string
+		d    time.Duration
+		want string
+	}{
+		{"30 minutes", 30 * time.Minute, "30m"},
+		{"90 minutes", 90 * time.Minute, "1h30m"},
+		{"2 hours", 2 * time.Hour, "2h"},
+		{"zero", 0, "0m"},
+		{"45 minutes", 45 * time.Minute, "45m"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatDuration(tt.d)
+			if got != tt.want {
+				t.Errorf("formatDuration(%v) = %q, want %q", tt.d, got, tt.want)
+			}
+		})
 	}
 }
 

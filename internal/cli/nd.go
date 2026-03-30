@@ -272,19 +272,46 @@ func DetectEventConflicts(events []calendar.Event) []string {
 			}
 
 			if ev1.EndTime.After(ev2.StartTime) && ev2.EndTime.After(ev1.StartTime) {
-				conflict := fmt.Sprintf("%s (%s-%s) overlaps with %s (%s-%s)",
+				overlapStart := ev1.StartTime
+				if ev2.StartTime.After(overlapStart) {
+					overlapStart = ev2.StartTime
+				}
+				overlapEnd := ev1.EndTime
+				if ev2.EndTime.Before(overlapEnd) {
+					overlapEnd = ev2.EndTime
+				}
+				overlapDuration := overlapEnd.Sub(overlapStart)
+				suggestion := ev1.EndTime.Format("15:04")
+
+				conflict := fmt.Sprintf("%s (%s-%s) overlaps with %s (%s-%s) by %s. Suggestion: move %s to %s",
 					ev1.Summary,
 					ev1.StartTime.Format("15:04"),
 					ev1.EndTime.Format("15:04"),
 					ev2.Summary,
 					ev2.StartTime.Format("15:04"),
-					ev2.EndTime.Format("15:04"))
+					ev2.EndTime.Format("15:04"),
+					formatDuration(overlapDuration),
+					ev2.Summary,
+					suggestion)
 				conflicts = append(conflicts, conflict)
 			}
 		}
 	}
 
 	return conflicts
+}
+
+func formatDuration(d time.Duration) string {
+	minutes := int(d.Minutes())
+	if minutes < 60 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	hours := minutes / 60
+	remaining := minutes % 60
+	if remaining == 0 {
+		return fmt.Sprintf("%dh", hours)
+	}
+	return fmt.Sprintf("%dh%dm", hours, remaining)
 }
 
 func GeneratePrepTimeEvents(events []calendar.Event) []*calendar.Event {
