@@ -1821,17 +1821,27 @@ Available template types:
   medical           - Healthcare appointments with prep reminders (CSV)
   travel            - Travel itinerary with flights and hotels (JSON)
   family            - Family calendar with mixed events (CSV)
+  school-event      - School calendar with terms, meetings, pickups (CSV/YAML)
+  recruiter-meeting - Job interview scheduling with prep time (CSV/YAML)
+  travel-day        - Single travel day with flights, hotels, activities (CSV/YAML)
+
+Use --format to choose output format (csv or yaml) for templates that support it.
 
 Examples:
   tempus batch template basic -o my-events.csv
   tempus batch template adhd-routine -o routine.csv
-  tempus batch template medication -o meds.yaml`,
+  tempus batch template medication -o meds.yaml
+  tempus batch template school-event -o school.csv
+  tempus batch template school-event --format yaml -o school.yaml
+  tempus batch template recruiter-meeting -o interviews.csv
+  tempus batch template travel-day --format yaml -o trip.yaml`,
 		Args: cobra.ExactArgs(1),
 		RunE: runBatchTemplate,
 	}
 
 	cmd.Flags().StringP("output", "o", "", "Output file path (required)")
 	_ = cmd.MarkFlagRequired("output")
+	cmd.Flags().StringP("format", "f", "csv", "Template format: csv or yaml")
 
 	return cmd
 }
@@ -1839,12 +1849,16 @@ Examples:
 func runBatchTemplate(cmd *cobra.Command, args []string) error {
 	templateType := strings.ToLower(strings.TrimSpace(args[0]))
 	output, _ := cmd.Flags().GetString("output")
+	format, _ := cmd.Flags().GetString("format")
 
 	if output == "" {
 		return fmt.Errorf("--output is required")
 	}
+	if format != "csv" && format != "yaml" {
+		return fmt.Errorf("--format must be 'csv' or 'yaml'")
+	}
 
-	content, err := getBatchTemplateContent(templateType)
+	content, err := getBatchTemplateContent(templateType, format)
 	if err != nil {
 		return err
 	}
@@ -1859,7 +1873,7 @@ func runBatchTemplate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getBatchTemplateContent(templateType string) (string, error) {
+func getBatchTemplateContent(templateType, format string) (string, error) {
 	switch templateType {
 	case "basic":
 		return getBasicTemplate(), nil
@@ -1875,8 +1889,23 @@ func getBatchTemplateContent(templateType string) (string, error) {
 		return getTravelTemplate(), nil
 	case "family":
 		return getFamilyTemplate(), nil
+	case "school-event":
+		if format == "yaml" {
+			return getSchoolEventTemplateYAML(), nil
+		}
+		return getSchoolEventTemplateCSV(), nil
+	case "recruiter-meeting":
+		if format == "yaml" {
+			return getRecruiterMeetingTemplateYAML(), nil
+		}
+		return getRecruiterMeetingTemplateCSV(), nil
+	case "travel-day":
+		if format == "yaml" {
+			return getTravelDayTemplateYAML(), nil
+		}
+		return getTravelDayTemplateCSV(), nil
 	default:
-		return "", fmt.Errorf("unknown template type: %s\nAvailable: basic, adhd-routine, medication, work-meetings, medical, travel, family", templateType)
+		return "", fmt.Errorf("unknown template type: %s\nAvailable: basic, adhd-routine, medication, work-meetings, medical, travel, family, school-event, recruiter-meeting, travel-day", templateType)
 	}
 }
 
@@ -2015,6 +2044,140 @@ Soccer Practice,2025-12-17 17:00,1h,Europe/Madrid,Sports Complex Field 3,FREQ=WE
 Piano Lesson,2025-12-18 16:30,45m,Europe/Madrid,Music Academy,FREQ=WEEKLY;BYDAY=WE;COUNT=10,Family|Kids|Music,Emma piano lesson,trigger=-2h;description=Practice today||trigger=-30m
 Pediatrician Checkup,2025-12-20 10:00,30m,Europe/Madrid,Pediatric Clinic,Family|Kids|Health,Annual checkup for both kids,trigger=-1d;description=Confirm appointment||trigger=-2h||trigger=-30m
 Date Night,2025-12-21 20:00,2h,Europe/Madrid,Restaurant Downtown,Family|Personal,Dinner reservation - babysitter confirmed,trigger=-1d;description=Confirm babysitter||trigger=-4h;description=Start getting ready||trigger=-1h
+`
+}
+
+func getSchoolEventTemplateCSV() string {
+	return `summary,start_date,end_date,category,location,alarm,notes
+School starts Q3,2025-09-01,,trimester,IES Cervantes,-1d,
+Half-term holiday,2025-10-27,2025-10-31,vacation,,,"Emma and Leo - no school"
+Parent-teacher meeting,2025-11-15T17:00,,activity,IES Cervantes,adhd-default,"Emma - bring report card"
+Emma pickup 17:00,2025-09-02T17:00,,transport,IES Cervantes,single,"Gate 2"
+End of year concert,2025-06-20T18:00,,activity,School auditorium,-2h,"Bring camera"
+`
+}
+
+func getSchoolEventTemplateYAML() string {
+	return `- summary: "School starts Q3"
+  start_date: "2025-09-01"
+  category: trimester
+  location: "IES Cervantes"
+  alarm: "-1d"
+
+- summary: "Half-term holiday"
+  start_date: "2025-10-27"
+  end_date: "2025-10-31"
+  category: vacation
+  notes: "Emma and Leo - no school"
+
+- summary: "Parent-teacher meeting"
+  start_date: "2025-11-15T17:00"
+  category: activity
+  location: "IES Cervantes"
+  alarm: adhd-default
+  notes: "Emma - bring report card"
+
+- summary: "Emma pickup 17:00"
+  start_date: "2025-09-02T17:00"
+  category: transport
+  location: "IES Cervantes"
+  alarm: single
+  notes: "Gate 2"
+
+- summary: "End of year concert"
+  start_date: "2025-06-20T18:00"
+  category: activity
+  location: "School auditorium"
+  alarm: "-2h"
+  notes: "Bring camera"
+`
+}
+
+func getRecruiterMeetingTemplateCSV() string {
+	return `summary,start_date,time,duration,timezone,alarm,add_prep_time,company,role,recruiter,notes
+Call with Sarah @ Acme Corp,2025-12-16,10:00,30m,Europe/Madrid,adhd-default,true,Acme Corp,Senior Developer,Sarah Jones,"LinkedIn: linkedin.com/in/sarah"
+Technical interview @ StartupX,2025-12-18,15:00,1h,America/New_York,adhd-default,true,StartupX,Backend Engineer,Mike Chen,"Phone: +1-555-0123"
+`
+}
+
+func getRecruiterMeetingTemplateYAML() string {
+	return `- summary: "Call with Sarah @ Acme Corp"
+  start_date: "2025-12-16"
+  time: "10:00"
+  duration: 30m
+  timezone: Europe/Madrid
+  alarm: adhd-default
+  add_prep_time: true
+  company: "Acme Corp"
+  role: "Senior Developer"
+  recruiter: "Sarah Jones"
+  notes: "LinkedIn: linkedin.com/in/sarah"
+
+- summary: "Technical interview @ StartupX"
+  start_date: "2025-12-18"
+  time: "15:00"
+  duration: 1h
+  timezone: America/New_York
+  alarm: adhd-default
+  add_prep_time: true
+  company: "StartupX"
+  role: "Backend Engineer"
+  recruiter: "Mike Chen"
+  notes: "Phone: +1-555-0123"
+`
+}
+
+func getTravelDayTemplateCSV() string {
+	return `summary,start_date,time,end_time,timezone,destination_timezone,category,location,add_prep_time,alarm,notes
+MAD -> LHR BA456,2025-12-20,08:30,11:00,Europe/Madrid,Europe/London,flight,Madrid Barajas T4,true,-2h,"Booking: ABC123"
+Arrive London Heathrow,2025-12-20,11:00,,Europe/London,,transfer,Heathrow T5,false,,"Take Heathrow Express to Paddington"
+Hotel check-in Hilton London,2025-12-20,15:00,,Europe/London,,accommodation,Hilton London Paddington,false,-1h,"Booking ref: HIL789"
+Walking tour South Bank,2025-12-20,17:00,19:00,Europe/London,,activity,Waterloo Bridge,false,-30m,"Comfortable shoes"
+`
+}
+
+func getTravelDayTemplateYAML() string {
+	return `- summary: "MAD -> LHR BA456"
+  start_date: "2025-12-20"
+  time: "08:30"
+  end_time: "11:00"
+  timezone: Europe/Madrid
+  destination_timezone: Europe/London
+  category: flight
+  location: "Madrid Barajas T4"
+  add_prep_time: true
+  alarm: "-2h"
+  notes: "Booking: ABC123"
+
+- summary: "Arrive London Heathrow"
+  start_date: "2025-12-20"
+  time: "11:00"
+  timezone: Europe/London
+  category: transfer
+  location: "Heathrow T5"
+  add_prep_time: false
+  notes: "Take Heathrow Express to Paddington"
+
+- summary: "Hotel check-in Hilton London"
+  start_date: "2025-12-20"
+  time: "15:00"
+  timezone: Europe/London
+  category: accommodation
+  location: "Hilton London Paddington"
+  add_prep_time: false
+  alarm: "-1h"
+  notes: "Booking ref: HIL789"
+
+- summary: "Walking tour South Bank"
+  start_date: "2025-12-20"
+  time: "17:00"
+  end_time: "19:00"
+  timezone: Europe/London
+  category: activity
+  location: "Waterloo Bridge"
+  add_prep_time: false
+  alarm: "-30m"
+  notes: "Comfortable shoes"
 `
 }
 
