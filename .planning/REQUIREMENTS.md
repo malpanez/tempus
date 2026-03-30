@@ -22,15 +22,15 @@
 
 ### Configuración
 
-- [ ] **CONF-01**: El usuario puede configurar timezone, idioma y directorio con variables de entorno (`TEMPUS_TIMEZONE`, `TEMPUS_LANGUAGE`, `TEMPUS_OUTPUT_DIR`) — Viper `SetEnvPrefix("TEMPUS")` + `AutomaticEnv()`
-- [ ] **CONF-02**: `tempus config set timezone Europe/Madrid` valida que el identificador IANA existe antes de guardar
-- [ ] **CONF-03**: `tempus config set output_dir /ruta` valida que el directorio existe y es escribible antes de guardar
+- [x] **CONF-01**: El usuario puede configurar timezone, idioma y directorio con variables de entorno (`TEMPUS_TIMEZONE`, `TEMPUS_LANGUAGE`, `TEMPUS_OUTPUT_DIR`) — Viper `SetEnvPrefix("TEMPUS")` + `AutomaticEnv()`
+- [x] **CONF-02**: `tempus config set timezone Europe/Madrid` valida que el identificador IANA existe antes de guardar
+- [x] **CONF-03**: `tempus config set output_dir /ruta` valida que el directorio existe y es escribible antes de guardar
 
 ### Templates Prácticos
 
-- [x] **TMPL-01**: `tempus batch template school-event` genera plantilla para fechas escolares (trimestres, eventos, vacaciones) con campos: nombre, fecha inicio, fecha fin, categoría, notas
-- [x] **TMPL-02**: `tempus batch template recruiter-meeting` genera plantilla para entrevistas y llamadas con recruiters — incluye prep time automático, alarmas triple ADHD, campo de empresa y rol
-- [x] **TMPL-03**: `tempus batch template travel-day` genera plantilla para días de viaje con soporte multi-timezone (origen/destino), vuelo, alojamiento, actividades
+- [ ] **TMPL-01**: `tempus batch template school-event` genera plantilla para fechas escolares (trimestres, eventos, vacaciones) con campos: nombre, fecha inicio, fecha fin, categoría, notas
+- [ ] **TMPL-02**: `tempus batch template recruiter-meeting` genera plantilla para entrevistas y llamadas con recruiters — incluye prep time automático, alarmas triple ADHD, campo de empresa y rol
+- [ ] **TMPL-03**: `tempus batch template travel-day` genera plantilla para días de viaje con soporte multi-timezone (origen/destino), vuelo, alojamiento, actividades
 
 ### Refactor — Mantenibilidad
 
@@ -81,13 +81,13 @@
 | BUG-05 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | REF-02 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
 | REF-06 | Phase 1: Bug Fixes & Test Infrastructure | Complete |
-| CONF-01 | Phase 2: First-Run Experience | Pending |
-| CONF-02 | Phase 2: First-Run Experience | Pending |
-| CONF-03 | Phase 2: First-Run Experience | Pending |
+| CONF-01 | Phase 2: First-Run Experience | Complete |
+| CONF-02 | Phase 2: First-Run Experience | Complete |
+| CONF-03 | Phase 2: First-Run Experience | Complete |
 | UX-01 | Phase 2: First-Run Experience | Pending |
-| TMPL-01 | Phase 2: First-Run Experience | Complete |
-| TMPL-02 | Phase 2: First-Run Experience | Complete |
-| TMPL-03 | Phase 2: First-Run Experience | Complete |
+| TMPL-01 | Phase 2: First-Run Experience | Pending |
+| TMPL-02 | Phase 2: First-Run Experience | Pending |
+| TMPL-03 | Phase 2: First-Run Experience | Pending |
 | UX-02 | Phase 3: Interactive Mode & CLI Structure | Pending |
 | REF-01 | Phase 3: Interactive Mode & CLI Structure | Pending |
 | UX-03 | Phase 4: UX Polish | Pending |

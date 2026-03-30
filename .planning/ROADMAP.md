@@ -59,9 +59,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Config infrastructure: env var binding, validation, detection functions (CONF-01, CONF-02, CONF-03)
+- [x] 02-01-PLAN.md — Config infrastructure: env var binding, validation, detection functions (CONF-01, CONF-02, CONF-03)
 - [ ] 02-02-PLAN.md — `tempus init` interactive wizard (UX-01)
-- [x] 02-03-PLAN.md — Practical batch templates: school-event, recruiter-meeting, travel-day (TMPL-01, TMPL-02, TMPL-03)
+- [ ] 02-03-PLAN.md — Practical batch templates: school-event, recruiter-meeting, travel-day (TMPL-01, TMPL-02, TMPL-03)
 
 **UI hint**: yes
 
