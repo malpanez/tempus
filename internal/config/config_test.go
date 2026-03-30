@@ -6,6 +6,7 @@ import (
 	"strings"
 	"tempus/internal/testutil"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -396,5 +397,181 @@ func TestSetAllFields(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.value, actual)
 			}
 		})
+	}
+}
+
+func TestEnvVarOverrideTimezone(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+	t.Setenv("TEMPUS_TIMEZONE", testutil.TZAmericaNewYork)
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.Timezone != testutil.TZAmericaNewYork {
+		t.Errorf("expected timezone %q, got %q", testutil.TZAmericaNewYork, cfg.Timezone)
+	}
+}
+
+func TestEnvVarOverrideLanguage(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+	t.Setenv("TEMPUS_LANGUAGE", "es")
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.Language != "es" {
+		t.Errorf("expected language %q, got %q", "es", cfg.Language)
+	}
+}
+
+func TestEnvVarOverrideOutputDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+	t.Setenv("TEMPUS_OUTPUT_DIR", "/tmp")
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.OutputDir != "/tmp" {
+		t.Errorf("expected output_dir %q, got %q", "/tmp", cfg.OutputDir)
+	}
+}
+
+func TestEnvVarOverrideDateFormat(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+	t.Setenv("TEMPUS_DATE_FORMAT", "DD/MM/YYYY")
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.DateFormat != "DD/MM/YYYY" {
+		t.Errorf("expected date_format %q, got %q", "DD/MM/YYYY", cfg.DateFormat)
+	}
+}
+
+func TestEnvVarOverrideTimeFormat(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+	t.Setenv("TEMPUS_TIME_FORMAT", "HH:MM:SS")
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() failed: %v", err)
+	}
+
+	if cfg.TimeFormat != "HH:MM:SS" {
+		t.Errorf("expected time_format %q, got %q", "HH:MM:SS", cfg.TimeFormat)
+	}
+}
+
+func TestValidateOutputDir_Valid(t *testing.T) {
+	dir := t.TempDir()
+	if err := ValidateOutputDir(dir); err != nil {
+		t.Errorf("ValidateOutputDir(%q) unexpected error: %v", dir, err)
+	}
+}
+
+func TestValidateOutputDir_NonExistent(t *testing.T) {
+	err := ValidateOutputDir("/nonexistent-dir-xyz")
+	if err == nil {
+		t.Fatal("expected error for non-existent directory")
+	}
+	if !strings.Contains(err.Error(), "does not exist or is not writable") {
+		t.Errorf("expected 'does not exist or is not writable' in error, got: %v", err)
+	}
+}
+
+func TestValidateOutputDir_NotADir(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "not-a-dir")
+	if err := os.WriteFile(tmpFile, []byte("test"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := ValidateOutputDir(tmpFile)
+	if err == nil {
+		t.Fatal("expected error for file path")
+	}
+	if !strings.Contains(err.Error(), "is not a directory") {
+		t.Errorf("expected 'is not a directory' in error, got: %v", err)
+	}
+}
+
+func TestValidateOutputDir_Empty(t *testing.T) {
+	err := ValidateOutputDir("")
+	if err == nil {
+		t.Fatal("expected error for empty string")
+	}
+	if !strings.Contains(err.Error(), "cannot be empty") {
+		t.Errorf("expected 'cannot be empty' in error, got: %v", err)
+	}
+}
+
+func TestDetectTimezone(t *testing.T) {
+	tz := DetectTimezone()
+	if tz == "" {
+		t.Fatal("DetectTimezone() returned empty string")
+	}
+	if _, err := time.LoadLocation(tz); err != nil {
+		t.Errorf("DetectTimezone() returned invalid timezone %q: %v", tz, err)
+	}
+}
+
+func TestDetectLanguage_Supported(t *testing.T) {
+	t.Setenv("LANG", "es_ES.UTF-8")
+	lang := DetectLanguage()
+	if lang != "es" {
+		t.Errorf("expected 'es', got %q", lang)
+	}
+}
+
+func TestDetectLanguage_Unsupported(t *testing.T) {
+	t.Setenv("LANG", "xx_XX.UTF-8")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback, got %q", lang)
+	}
+}
+
+func TestDetectLanguage_Empty(t *testing.T) {
+	t.Setenv("LANG", "")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback, got %q", lang)
+	}
+}
+
+func TestDetectLanguage_POSIX(t *testing.T) {
+	t.Setenv("LANG", "C.UTF-8")
+	lang := DetectLanguage()
+	if lang != "en" {
+		t.Errorf("expected 'en' fallback for C locale, got %q", lang)
+	}
+}
+
+func TestDefaultAlarmProfileField(t *testing.T) {
+	cfg := Config{DefaultAlarmProfile: "adhd-default"}
+	if cfg.DefaultAlarmProfile != "adhd-default" {
+		t.Errorf("expected 'adhd-default', got %q", cfg.DefaultAlarmProfile)
 	}
 }

@@ -14,23 +14,25 @@ import (
 )
 
 type Config struct {
-	Language         string              `mapstructure:"language" json:"language"`
-	Timezone         string              `mapstructure:"timezone" json:"timezone"`
-	DateFormat       string              `mapstructure:"date_format" json:"date_format"`
-	TimeFormat       string              `mapstructure:"time_format" json:"time_format"`
-	OutputDir        string              `mapstructure:"output_dir" json:"output_dir"`
-	DefaultTitle     string              `mapstructure:"default_title" json:"default_title"`
-	AlarmProfiles    map[string][]string `mapstructure:"alarm_profiles" json:"alarm_profiles"`
-	SpellCorrections map[string]string   `mapstructure:"spell_corrections" json:"spell_corrections"`
+	Language            string              `mapstructure:"language" json:"language"`
+	Timezone            string              `mapstructure:"timezone" json:"timezone"`
+	DateFormat          string              `mapstructure:"date_format" json:"date_format"`
+	TimeFormat          string              `mapstructure:"time_format" json:"time_format"`
+	OutputDir           string              `mapstructure:"output_dir" json:"output_dir"`
+	DefaultTitle        string              `mapstructure:"default_title" json:"default_title"`
+	DefaultAlarmProfile string              `mapstructure:"default_alarm_profile" json:"default_alarm_profile"`
+	AlarmProfiles       map[string][]string `mapstructure:"alarm_profiles" json:"alarm_profiles"`
+	SpellCorrections    map[string]string   `mapstructure:"spell_corrections" json:"spell_corrections"`
 }
 
 var defaultConfig = Config{
-	Language:     "en",
-	Timezone:     "UTC",
-	DateFormat:   constants.DateFormatISO,
-	TimeFormat:   constants.TimeFormatHHMM,
-	OutputDir:    ".",
-	DefaultTitle: "Event",
+	Language:            "en",
+	Timezone:            "UTC",
+	DateFormat:          constants.DateFormatISO,
+	TimeFormat:          constants.TimeFormatHHMM,
+	OutputDir:           ".",
+	DefaultTitle:        "Event",
+	DefaultAlarmProfile: "adhd-default",
 	AlarmProfiles: map[string][]string{
 		// Evidence-based ADHD profiles (neuroscience research 2024-2025)
 		// Spacing based on working memory & prospective memory studies
@@ -89,8 +91,13 @@ func Load() (*Config, error) {
 	viper.SetDefault("time_format", defaultConfig.TimeFormat)
 	viper.SetDefault("output_dir", defaultConfig.OutputDir)
 	viper.SetDefault("default_title", defaultConfig.DefaultTitle)
+	viper.SetDefault("default_alarm_profile", defaultConfig.DefaultAlarmProfile)
 	viper.SetDefault("alarm_profiles", defaultConfig.AlarmProfiles)
 	viper.SetDefault("spell_corrections", defaultConfig.SpellCorrections)
+
+	viper.SetEnvPrefix("TEMPUS")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	// Try to read config file
 	if err := viper.ReadInConfig(); err != nil {
@@ -125,6 +132,8 @@ func (c *Config) Set(key, value string) error {
 		c.OutputDir = value
 	case "default_title":
 		c.DefaultTitle = value
+	case "default_alarm_profile":
+		c.DefaultAlarmProfile = value
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -147,6 +156,8 @@ func (c *Config) Get(key string) (string, error) {
 		return c.OutputDir, nil
 	case "default_title":
 		return c.DefaultTitle, nil
+	case "default_alarm_profile":
+		return c.DefaultAlarmProfile, nil
 	default:
 		return "", fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -248,6 +259,65 @@ func ValidateTimezone(tz string) error {
 		return fmt.Errorf("invalid timezone %q: %w", tz, err)
 	}
 	return nil
+}
+
+// ValidateOutputDir checks that the directory exists, is a directory, and is writable.
+func ValidateOutputDir(dir string) error {
+	dir = strings.TrimSpace(dir)
+	if dir == "" {
+		return fmt.Errorf("output directory cannot be empty")
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("'%s' is not a directory", dir)
+	}
+	f, err := os.CreateTemp(dir, ".tempus-test-*")
+	if err != nil {
+		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+	}
+	f.Close()
+	os.Remove(f.Name())
+	return nil
+}
+
+// DetectTimezone returns the system timezone or "UTC" as fallback.
+func DetectTimezone() string {
+	if target, err := os.Readlink("/etc/localtime"); err == nil {
+		if idx := strings.Index(target, "zoneinfo/"); idx != -1 {
+			tz := target[idx+len("zoneinfo/"):]
+			if _, err := time.LoadLocation(tz); err == nil {
+				return tz
+			}
+		}
+	}
+	if data, err := os.ReadFile("/etc/timezone"); err == nil {
+		tz := strings.TrimSpace(string(data))
+		if _, err := time.LoadLocation(tz); err == nil {
+			return tz
+		}
+	}
+	return "UTC"
+}
+
+// DetectLanguage returns the system language from LANG env var, or "en" as fallback.
+func DetectLanguage() string {
+	lang := os.Getenv("LANG")
+	if lang == "" {
+		return "en"
+	}
+	lang = strings.Split(lang, ".")[0]
+	lang = strings.Split(lang, "_")[0]
+	lang = strings.ToLower(lang)
+	if lang == "c" || lang == "posix" || lang == "" {
+		return "en"
+	}
+	if i18n.IsSupportedLanguage(lang) {
+		return lang
+	}
+	return "en"
 }
 
 // ValidateLanguage checks if a language code is supported.
