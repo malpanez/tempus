@@ -13,6 +13,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/config"
+	"tempus/internal/nd"
 	"tempus/internal/parsing"
 	"tempus/internal/testutil"
 
@@ -97,7 +98,12 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	cal, validationErrors, err := buildBatchCalendar(records, opts)
+	corrections := make(map[string]string)
+	if app.Config != nil && app.Config.SpellCorrections != nil {
+		corrections = app.Config.SpellCorrections
+	}
+
+	cal, validationErrors, err := buildBatchCalendar(records, opts, corrections)
 	if err != nil {
 		return err
 	}
@@ -160,7 +166,7 @@ func loadBatchInput(opts *batchOptions) ([]batchRecord, batchFormat, error) {
 	return records, format, nil
 }
 
-func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Calendar, []string, error) {
+func buildBatchCalendar(records []batchRecord, opts *batchOptions, corrections map[string]string) (*calendar.Calendar, []string, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 
@@ -173,7 +179,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Ca
 
 	var validationErrors []string
 	for i, rec := range records {
-		ev, err := buildEventFromBatch(rec, opts.defaultTZ)
+		ev, err := buildEventFromBatch(rec, opts.defaultTZ, corrections)
 		if err != nil {
 			if opts.dryRun {
 				validationErrors = append(validationErrors, fmt.Sprintf("Row %d: %v", i+1, err))
@@ -185,7 +191,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions) (*calendar.Ca
 	}
 
 	if opts.addPrepTime {
-		prepEvents := GeneratePrepTimeEvents(cal.Events, opts.prepLabel)
+		prepEvents := nd.GeneratePrepTimeEvents(cal.Events, opts.prepLabel)
 		for _, prepEv := range prepEvents {
 			cal.AddEvent(prepEv)
 		}
@@ -198,7 +204,7 @@ func collectBatchWarnings(events []calendar.Event, opts *batchOptions) []string 
 	var warnings []string
 
 	if opts.checkConflicts || opts.dryRun {
-		conflicts := DetectEventConflicts(events)
+		conflicts := nd.DetectEventConflicts(events)
 		if len(conflicts) > 0 {
 			warnings = append(warnings, fmt.Sprintf("⚠️  Found %d time conflict(s):", len(conflicts)))
 			for _, conflict := range conflicts {
@@ -208,7 +214,7 @@ func collectBatchWarnings(events []calendar.Event, opts *batchOptions) []string 
 	}
 
 	if opts.maxEventsPerDay > 0 || opts.dryRun {
-		overwhelmDays := DetectOverwhelmDays(events, opts.maxEventsPerDay)
+		overwhelmDays := nd.DetectOverwhelmDays(events, opts.maxEventsPerDay)
 		if len(overwhelmDays) > 0 {
 			warnings = append(warnings, "⚠️  Days with high event load:")
 			for _, day := range overwhelmDays {
@@ -471,8 +477,8 @@ func loadBatchFromYAML(path string) ([]batchRecord, error) {
 	return records, nil
 }
 
-func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, error) {
-	summary, startStr, err := validateBatchRecord(rec)
+func buildEventFromBatch(rec batchRecord, fallbackTZ string, corrections map[string]string) (*calendar.Event, error) {
+	summary, startStr, err := validateBatchRecord(rec, corrections)
 	if err != nil {
 		return nil, err
 	}
@@ -483,15 +489,15 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, e
 		return nil, err
 	}
 
-	summaryWithEmoji := AddEmojiToSummary(summary, rec.Categories)
+	summaryWithEmoji := nd.AddEmojiToSummary(summary, rec.Categories)
 	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
 	configureBatchEvent(event, rec, startTZ, endTZ)
 
 	return event, nil
 }
 
-func validateBatchRecord(rec batchRecord) (summary, startStr string, err error) {
-	summary = NormalizeAndSpellCheck(strings.TrimSpace(rec.Summary))
+func validateBatchRecord(rec batchRecord, corrections map[string]string) (summary, startStr string, err error) {
+	summary = nd.NormalizeAndSpellCheck(strings.TrimSpace(rec.Summary), corrections)
 	if summary == "" {
 		return "", "", fmt.Errorf("summary is required")
 	}
@@ -574,7 +580,7 @@ func parseBatchEndTime(rec batchRecord, startTime time.Time, endTZ, summary stri
 	case strings.TrimSpace(rec.Duration) != "":
 		return parseBatchDurationEnd(rec.Duration, startTime)
 	default:
-		return startTime.Add(GetSmartDefaultDuration(summary, startTime)), nil
+		return startTime.Add(nd.GetSmartDefaultDuration(summary, startTime)), nil
 	}
 }
 
@@ -636,7 +642,7 @@ func addBatchCategories(event *calendar.Event, categories []string) {
 	for _, cat := range categories {
 		cat = strings.TrimSpace(cat)
 		if cat != "" {
-			validated := ValidateCategoryWithSuggestion(cat)
+			validated := nd.ValidateCategoryWithSuggestion(cat)
 			event.AddCategory(validated)
 		}
 	}

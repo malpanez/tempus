@@ -335,7 +335,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ev, err := buildEventFromBatch(tt.record, tt.fallbackTZ)
+			ev, err := buildEventFromBatch(tt.record, tt.fallbackTZ, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("buildEventFromBatch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -432,7 +432,7 @@ func TestBuildEventFromBatchWithCategories(t *testing.T) {
 		Categories: []string{"work", "urgent", "meeting"},
 	}
 
-	ev, err := buildEventFromBatch(rec, "")
+	ev, err := buildEventFromBatch(rec, "", nil)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
@@ -450,7 +450,7 @@ func TestBuildEventFromBatchWithRRule(t *testing.T) {
 		RRule:   testutil.RRuleDaily5Count,
 	}
 
-	ev, err := buildEventFromBatch(rec, "")
+	ev, err := buildEventFromBatch(rec, "", nil)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
@@ -526,7 +526,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := buildEventFromBatch(tt.record, "")
+			_, err := buildEventFromBatch(tt.record, "", nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(testutil.ErrMsgBuildEventFromBatchError+", wantErr %v", err, tt.wantErr)
 			}
@@ -545,7 +545,7 @@ func TestBuildEventFromBatchWithExDatesAndAlarms(t *testing.T) {
 		Alarms:  []string{"15m", "30m"},
 	}
 
-	ev, err := buildEventFromBatch(rec, "")
+	ev, err := buildEventFromBatch(rec, "", nil)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
