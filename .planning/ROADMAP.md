@@ -96,11 +96,11 @@ Plans:
   1. User runs `tempus batch --check-conflicts` with a file containing overlapping events and sees exactly which events conflict (names, times, overlap duration) — no false promise of reading external calendar state
   2. User sets `prep_time_prefix` in config and new prep time events use that custom prefix instead of "Preparation"
   3. User runs `tempus batch` with `--prep-label "Setup"` and prep time events use "Setup" as their prefix
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Enhanced conflict detection with overlap duration and move suggestion (UX-03)
+- [ ] 04-02-PLAN.md — Customizable prep time prefix via config and --prep-label flag (UX-04)
 
 **UI hint**: no
 
