@@ -2353,10 +2353,24 @@ func runConfigSet(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := cfg.Set(args[0], args[1]); err != nil {
+	key, value := args[0], args[1]
+	oldValue, _ := cfg.Get(key)
+
+	switch key {
+	case "timezone":
+		if err := config.ValidateTimezone(value); err != nil {
+			return fmt.Errorf("Invalid timezone: '%s'. Use 'tempus timezone list --search <name>' to find a valid IANA identifier.", value)
+		}
+	case "output_dir":
+		if err := config.ValidateOutputDir(value); err != nil {
+			return err
+		}
+	}
+
+	if err := cfg.Set(key, value); err != nil {
 		return err
 	}
-	printOK("Config updated: %s = %s\n", args[0], args[1])
+	fmt.Fprintf(os.Stdout, "%s: %s -> %s\n", key, oldValue, value)
 	return nil
 }
 
