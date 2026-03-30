@@ -115,10 +115,10 @@ Plans:
   2. Conflict detection on 1000+ events completes in O(n log n) time using sweep-line algorithm (measurably faster than current O(n^2))
   3. Batch spell checking with 100+ records reuses a precomputed distance matrix instead of recalculating per record
   4. Test coverage remains at or above 79% after extraction
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 05-01-PLAN.md — Extract all ND functions to internal/nd/, migrate tests, update batch.go call sites (REF-03)
+- [x] 05-01-PLAN.md — Extract all ND functions to internal/nd/, migrate tests, update batch.go call sites (REF-03)
 - [ ] 05-02-PLAN.md — O(n log n) conflict detection + spellcheck/category caches for batch (REF-04, REF-05)
 
 **UI hint**: no
@@ -134,4 +134,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. First-Run Experience | 0/3 | Not started | - |
 | 3. Interactive Mode & CLI Structure | 4/4 | Complete   | 2026-03-30 |
 | 4. UX Polish | 0/2 | Not started | - |
-| 5. ND Extraction & Performance | 0/2 | Not started | - |
+| 5. ND Extraction & Performance | 1/2 | In Progress|  |
