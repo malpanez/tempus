@@ -1,9 +1,8 @@
-package cli
+package nd
 
 import (
 	"strings"
 	"tempus/internal/calendar"
-	"tempus/internal/config"
 	"tempus/internal/testutil"
 	"testing"
 	"time"
@@ -32,9 +31,9 @@ func TestLevenshteinDistance(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := levenshteinDistance(tt.s1, tt.s2)
+			got := LevenshteinDistance(tt.s1, tt.s2)
 			if got != tt.want {
-				t.Errorf("levenshteinDistance(%q, %q) = %d, want %d", tt.s1, tt.s2, got, tt.want)
+				t.Errorf("LevenshteinDistance(%q, %q) = %d, want %d", tt.s1, tt.s2, got, tt.want)
 			}
 		})
 	}
@@ -182,9 +181,9 @@ func TestFormatDuration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatDuration(tt.d)
+			got := FormatDuration(tt.d)
 			if got != tt.want {
-				t.Errorf("formatDuration(%v) = %q, want %q", tt.d, got, tt.want)
+				t.Errorf("FormatDuration(%v) = %q, want %q", tt.d, got, tt.want)
 			}
 		})
 	}
@@ -381,9 +380,39 @@ func TestNormalizeAndSpellCheck(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NormalizeAndSpellCheck(tt.input)
+			got := NormalizeAndSpellCheck(tt.input, nil)
 			if got != tt.want {
-				t.Errorf("NormalizeAndSpellCheck(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("NormalizeAndSpellCheck(%q, nil) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNormalizeAndSpellCheckWithCorrections(t *testing.T) {
+	corrections := map[string]string{
+		"meeing":  "meeting",
+		"doctr":   "doctor",
+	}
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"corrects typo", "meeing", "meeting"},
+		{"preserves case", "Meeing", "Meeting"},
+		{"no match", "hello", "hello"},
+		{"nil corrections", "meeing", "meeing"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := corrections
+			if tt.name == "nil corrections" {
+				c = nil
+			}
+			got := NormalizeAndSpellCheck(tt.input, c)
+			if got != tt.want {
+				t.Errorf("NormalizeAndSpellCheck(%q, corrections) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -441,29 +470,6 @@ func TestGeneratePrepTimeEventsCustomLabel(t *testing.T) {
 	})
 }
 
-func TestResolvePrepLabel(t *testing.T) {
-	tests := []struct {
-		name     string
-		flagVal  string
-		cfg      *config.Config
-		want     string
-	}{
-		{"flag wins over config", "MyLabel", &config.Config{PrepTimePrefix: "Setup"}, "MyLabel"},
-		{"config wins when flag empty", "", &config.Config{PrepTimePrefix: "Setup"}, "Setup"},
-		{"default when config prefix empty", "", &config.Config{PrepTimePrefix: ""}, "Preparation"},
-		{"default when config nil", "", nil, "Preparation"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := resolvePrepLabel(tt.flagVal, tt.cfg)
-			if got != tt.want {
-				t.Errorf("resolvePrepLabel(%q, cfg) = %q, want %q", tt.flagVal, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestValidateCategoryWithSuggestion(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -486,4 +492,44 @@ func TestValidateCategoryWithSuggestion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExpandAlarmProfiles(t *testing.T) {
+	lookup := func(name string) []string {
+		profiles := map[string][]string{
+			"adhd": {"-15m", "-5m", "-1m"},
+		}
+		return profiles[name]
+	}
+
+	t.Run("expands known profile", func(t *testing.T) {
+		result := ExpandAlarmProfiles([]string{"profile:adhd"}, lookup)
+		if len(result) != 3 {
+			t.Fatalf("expected 3 expanded alarms, got %d", len(result))
+		}
+	})
+
+	t.Run("passes through non-profile specs", func(t *testing.T) {
+		result := ExpandAlarmProfiles([]string{"-10m", "profile:adhd"}, lookup)
+		if len(result) != 4 {
+			t.Fatalf("expected 4 alarms, got %d", len(result))
+		}
+		if result[0] != "-10m" {
+			t.Errorf("first alarm should be '-10m', got %q", result[0])
+		}
+	})
+
+	t.Run("nil lookup returns specs unchanged", func(t *testing.T) {
+		result := ExpandAlarmProfiles([]string{"profile:adhd", "-5m"}, nil)
+		if len(result) != 2 {
+			t.Fatalf("expected 2 alarms, got %d", len(result))
+		}
+	})
+
+	t.Run("unknown profile kept as-is", func(t *testing.T) {
+		result := ExpandAlarmProfiles([]string{"profile:unknown"}, lookup)
+		if len(result) != 1 || result[0] != "profile:unknown" {
+			t.Errorf("unknown profile should be kept, got %v", result)
+		}
+	})
 }

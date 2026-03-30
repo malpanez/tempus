@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 04-ux-polish-02-PLAN.md
-last_updated: "2026-03-30T18:41:44.466Z"
+stopped_at: Completed 05-nd-extraction-performance-01-PLAN.md
+last_updated: "2026-03-30T20:24:07.629Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 15
+  completed_plans: 14
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [..........] 0%
 | Phase 03-interactive-mode-cli-structure P04 | 20m | 2 tasks | 3 files |
 | Phase 04-ux-polish P01 | 2min | 2 tasks | 2 files |
 | Phase 04-ux-polish P02 | 2min | 1 tasks | 4 files |
+| Phase 05 P01 | 5min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 03-interactive-mode-cli-structure]: buildInteractiveForm extracted from runInteractive for testability; interactiveVars struct holds all wizard state
 - [Phase 04-ux-polish]: Kept DetectEventConflicts return type as []string -- no breaking change to callers
 - [Phase 04-ux-polish]: resolvePrepLabel in batch.go with flag > config > default priority; medical prep protected via description == Preparation check
+- [Phase 05]: NormalizeAndSpellCheck accepts corrections map[string]string param -- caller threads from app.Config
+- [Phase 05]: ExpandAlarmProfiles accepts func(string) []string profileLookup -- more flexible than *config.Config
+- [Phase 05]: expandAlarmProfilesWithError stays in batch.go -- CLI-specific error wrapper
 
 ### Pending Todos
 
@@ -106,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T18:41:44.459Z
-Stopped at: Completed 04-ux-polish-02-PLAN.md
+Last session: 2026-03-30T20:24:07.617Z
+Stopped at: Completed 05-nd-extraction-performance-01-PLAN.md
 Resume file: None

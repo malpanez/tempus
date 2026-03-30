@@ -1,4 +1,4 @@
-package cli
+package nd
 
 import (
 	"fmt"
@@ -7,20 +7,17 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
-	"tempus/internal/config"
 
 	"github.com/google/uuid"
 )
 
-func NormalizeAndSpellCheck(text string) string {
+func NormalizeAndSpellCheck(text string, corrections map[string]string) string {
 	if text == "" {
 		return text
 	}
 
-	cfg, _ := config.Load()
-	corrections := make(map[string]string)
-	if cfg != nil && cfg.SpellCorrections != nil {
-		corrections = cfg.SpellCorrections
+	if corrections == nil {
+		return text
 	}
 
 	words := strings.Fields(text)
@@ -84,7 +81,7 @@ func ValidateCategoryWithSuggestion(category string) string {
 	threshold := 2
 
 	for known, canonical := range commonCategories {
-		dist := levenshteinDistance(lower, known)
+		dist := LevenshteinDistance(lower, known)
 		if dist <= threshold && dist < bestDistance {
 			bestDistance = dist
 			bestMatch = canonical
@@ -94,7 +91,7 @@ func ValidateCategoryWithSuggestion(category string) string {
 	return bestMatch
 }
 
-func levenshteinDistance(s1, s2 string) int {
+func LevenshteinDistance(s1, s2 string) int {
 	if len(s1) == 0 {
 		return len(s2)
 	}
@@ -290,7 +287,7 @@ func DetectEventConflicts(events []calendar.Event) []string {
 					ev2.Summary,
 					ev2.StartTime.Format("15:04"),
 					ev2.EndTime.Format("15:04"),
-					formatDuration(overlapDuration),
+					FormatDuration(overlapDuration),
 					ev2.Summary,
 					suggestion)
 				conflicts = append(conflicts, conflict)
@@ -301,7 +298,7 @@ func DetectEventConflicts(events []calendar.Event) []string {
 	return conflicts
 }
 
-func formatDuration(d time.Duration) string {
+func FormatDuration(d time.Duration) string {
 	minutes := int(d.Minutes())
 	if minutes < 60 {
 		return fmt.Sprintf("%dm", minutes)
@@ -456,9 +453,8 @@ func DetectOverwhelmDays(events []calendar.Event, maxPerDay int) []string {
 	return warnings
 }
 
-func ExpandAlarmProfiles(alarmSpecs []string) []string {
-	cfg, err := config.Load()
-	if err != nil {
+func ExpandAlarmProfiles(alarmSpecs []string, profileLookup func(string) []string) []string {
+	if profileLookup == nil {
 		return alarmSpecs
 	}
 
@@ -473,7 +469,7 @@ func ExpandAlarmProfiles(alarmSpecs []string) []string {
 			profileName := strings.TrimPrefix(spec, "profile:")
 			profileName = strings.TrimSpace(profileName)
 
-			profile := cfg.GetAlarmProfile(profileName)
+			profile := profileLookup(profileName)
 			if profile != nil {
 				expanded = append(expanded, profile...)
 			} else {
