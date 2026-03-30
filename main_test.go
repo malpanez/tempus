@@ -2073,3 +2073,122 @@ func TestCSVValue(t *testing.T) {
 		t.Errorf("csvValue() with out of range index = %q, want empty", result)
 	}
 }
+
+func TestSchoolEventTemplateCSV(t *testing.T) {
+	content := getSchoolEventTemplateCSV()
+	if content == "" {
+		t.Fatal("getSchoolEventTemplateCSV() returned empty string")
+	}
+	requiredHeaders := []string{"summary", "start_date", "end_date", "category", "location", "alarm", "notes"}
+	for _, h := range requiredHeaders {
+		if !strings.Contains(content, h) {
+			t.Errorf("getSchoolEventTemplateCSV() missing header %q", h)
+		}
+	}
+	lines := strings.Split(strings.TrimSpace(content), "\n")
+	if len(lines) < 4 {
+		t.Errorf("getSchoolEventTemplateCSV() expected at least 3 example rows + header, got %d lines", len(lines))
+	}
+}
+
+func TestSchoolEventTemplateYAML(t *testing.T) {
+	content := getSchoolEventTemplateYAML()
+	if content == "" {
+		t.Fatal("getSchoolEventTemplateYAML() returned empty string")
+	}
+	for _, key := range []string{"summary:", "start_date:"} {
+		if !strings.Contains(content, key) {
+			t.Errorf("getSchoolEventTemplateYAML() missing key %q", key)
+		}
+	}
+}
+
+func TestRecruiterMeetingTemplateCSV(t *testing.T) {
+	content := getRecruiterMeetingTemplateCSV()
+	if content == "" {
+		t.Fatal("getRecruiterMeetingTemplateCSV() returned empty string")
+	}
+	requiredHeaders := []string{"summary", "start_date", "time", "duration", "timezone", "alarm", "add_prep_time", "company", "role", "recruiter", "notes"}
+	for _, h := range requiredHeaders {
+		if !strings.Contains(content, h) {
+			t.Errorf("getRecruiterMeetingTemplateCSV() missing header %q", h)
+		}
+	}
+	lines := strings.Split(strings.TrimSpace(content), "\n")
+	if len(lines) < 2 {
+		t.Errorf("getRecruiterMeetingTemplateCSV() expected at least 1 example row + header, got %d lines", len(lines))
+	}
+}
+
+func TestRecruiterMeetingTemplateYAML(t *testing.T) {
+	content := getRecruiterMeetingTemplateYAML()
+	if content == "" {
+		t.Fatal("getRecruiterMeetingTemplateYAML() returned empty string")
+	}
+	for _, key := range []string{"summary:", "company:"} {
+		if !strings.Contains(content, key) {
+			t.Errorf("getRecruiterMeetingTemplateYAML() missing key %q", key)
+		}
+	}
+}
+
+func TestTravelDayTemplateCSV(t *testing.T) {
+	content := getTravelDayTemplateCSV()
+	if content == "" {
+		t.Fatal("getTravelDayTemplateCSV() returned empty string")
+	}
+	requiredHeaders := []string{"summary", "start_date", "time", "end_time", "timezone", "destination_timezone", "category", "location", "add_prep_time", "alarm", "notes"}
+	for _, h := range requiredHeaders {
+		if !strings.Contains(content, h) {
+			t.Errorf("getTravelDayTemplateCSV() missing header %q", h)
+		}
+	}
+	lines := strings.Split(strings.TrimSpace(content), "\n")
+	if len(lines) < 5 {
+		t.Errorf("getTravelDayTemplateCSV() expected at least 4 example rows + header, got %d lines", len(lines))
+	}
+}
+
+func TestTravelDayTemplateYAML(t *testing.T) {
+	content := getTravelDayTemplateYAML()
+	if content == "" {
+		t.Fatal("getTravelDayTemplateYAML() returned empty string")
+	}
+	for _, key := range []string{"summary:", "destination_timezone:"} {
+		if !strings.Contains(content, key) {
+			t.Errorf("getTravelDayTemplateYAML() missing key %q", key)
+		}
+	}
+}
+
+func TestBatchTemplateFormatFlag(t *testing.T) {
+	csvContent, err := getBatchTemplateContent("school-event", "csv")
+	if err != nil {
+		t.Fatalf("getBatchTemplateContent(school-event, csv) error: %v", err)
+	}
+	if csvContent == "" {
+		t.Fatal("getBatchTemplateContent(school-event, csv) returned empty")
+	}
+
+	yamlContent, err := getBatchTemplateContent("school-event", "yaml")
+	if err != nil {
+		t.Fatalf("getBatchTemplateContent(school-event, yaml) error: %v", err)
+	}
+	if yamlContent == "" {
+		t.Fatal("getBatchTemplateContent(school-event, yaml) returned empty")
+	}
+
+	if csvContent == yamlContent {
+		t.Error("CSV and YAML content should differ")
+	}
+}
+
+func TestBatchTemplateFormatInvalid(t *testing.T) {
+	_, err := getBatchTemplateContent("unknown-type", "csv")
+	if err == nil {
+		t.Fatal("expected error for unknown template type")
+	}
+	if !strings.Contains(err.Error(), "unknown template type") {
+		t.Errorf("expected 'unknown template type' in error, got: %v", err)
+	}
+}

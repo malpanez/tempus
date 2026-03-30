@@ -666,32 +666,54 @@ func TestGetBatchTemplateContent(t *testing.T) {
 	tests := []struct {
 		name        string
 		templateKey string
+		format      string
 		wantEmpty   bool
 		wantErr     bool
 	}{
-		{"basic", "basic", false, false},
-		{"adhd-routine", "adhd-routine", false, false},
-		{"medication", "medication", false, false},
-		{"work-meetings", "work-meetings", false, false},
-		{"medical", "medical", false, false},
-		{"travel", "travel", false, false},
-		{"family", "family", false, false},
-		{"unknown", "unknown-template", true, true},
-		{"empty", "", true, true},
+		{"basic", "basic", "csv", false, false},
+		{"adhd-routine", "adhd-routine", "csv", false, false},
+		{"medication", "medication", "csv", false, false},
+		{"work-meetings", "work-meetings", "csv", false, false},
+		{"medical", "medical", "csv", false, false},
+		{"travel", "travel", "csv", false, false},
+		{"family", "family", "csv", false, false},
+		{"school-event-csv", "school-event", "csv", false, false},
+		{"school-event-yaml", "school-event", "yaml", false, false},
+		{"recruiter-meeting-csv", "recruiter-meeting", "csv", false, false},
+		{"recruiter-meeting-yaml", "recruiter-meeting", "yaml", false, false},
+		{"travel-day-csv", "travel-day", "csv", false, false},
+		{"travel-day-yaml", "travel-day", "yaml", false, false},
+		{"unknown", "unknown-template", "csv", true, true},
+		{"empty", "", "csv", true, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getBatchTemplateContent(tt.templateKey)
+			got, err := getBatchTemplateContent(tt.templateKey, tt.format)
 			isEmpty := got == ""
 			hasErr := err != nil
 			if isEmpty != tt.wantEmpty {
-				t.Errorf("getBatchTemplateContent(%q) isEmpty = %v, want %v",
-					tt.templateKey, isEmpty, tt.wantEmpty)
+				t.Errorf("getBatchTemplateContent(%q, %q) isEmpty = %v, want %v",
+					tt.templateKey, tt.format, isEmpty, tt.wantEmpty)
 			}
 			if hasErr != tt.wantErr {
-				t.Errorf("getBatchTemplateContent(%q) hasErr = %v, want %v",
-					tt.templateKey, hasErr, tt.wantErr)
+				t.Errorf("getBatchTemplateContent(%q, %q) hasErr = %v, want %v",
+					tt.templateKey, tt.format, hasErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestExistingTemplatesUnchanged(t *testing.T) {
+	existingTemplates := []string{"basic", "adhd-routine", "medication", "work-meetings", "medical", "travel", "family"}
+	for _, tmpl := range existingTemplates {
+		t.Run(tmpl, func(t *testing.T) {
+			content, err := getBatchTemplateContent(tmpl, "csv")
+			if err != nil {
+				t.Errorf("getBatchTemplateContent(%q, \"csv\") returned error: %v", tmpl, err)
+			}
+			if content == "" {
+				t.Errorf("getBatchTemplateContent(%q, \"csv\") returned empty content", tmpl)
 			}
 		})
 	}
