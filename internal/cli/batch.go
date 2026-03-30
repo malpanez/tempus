@@ -102,8 +102,10 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 	if app.Config != nil && app.Config.SpellCorrections != nil {
 		corrections = app.Config.SpellCorrections
 	}
+	spellCache := nd.NewSpellCheckCache(corrections)
+	catCache := nd.NewCategoryCache()
 
-	cal, validationErrors, err := buildBatchCalendar(records, opts, corrections)
+	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache)
 	if err != nil {
 		return err
 	}
@@ -166,7 +168,7 @@ func loadBatchInput(opts *batchOptions) ([]batchRecord, batchFormat, error) {
 	return records, format, nil
 }
 
-func buildBatchCalendar(records []batchRecord, opts *batchOptions, corrections map[string]string) (*calendar.Calendar, []string, error) {
+func buildBatchCalendar(records []batchRecord, opts *batchOptions, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache) (*calendar.Calendar, []string, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 
@@ -179,7 +181,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions, corrections m
 
 	var validationErrors []string
 	for i, rec := range records {
-		ev, err := buildEventFromBatch(rec, opts.defaultTZ, corrections)
+		ev, err := buildEventFromBatch(rec, opts.defaultTZ, spellCache, catCache)
 		if err != nil {
 			if opts.dryRun {
 				validationErrors = append(validationErrors, fmt.Sprintf("Row %d: %v", i+1, err))
@@ -477,8 +479,8 @@ func loadBatchFromYAML(path string) ([]batchRecord, error) {
 	return records, nil
 }
 
-func buildEventFromBatch(rec batchRecord, fallbackTZ string, corrections map[string]string) (*calendar.Event, error) {
-	summary, startStr, err := validateBatchRecord(rec, corrections)
+func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache) (*calendar.Event, error) {
+	summary, startStr, err := validateBatchRecord(rec, spellCache)
 	if err != nil {
 		return nil, err
 	}
@@ -491,13 +493,13 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string, corrections map[str
 
 	summaryWithEmoji := nd.AddEmojiToSummary(summary, rec.Categories)
 	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
-	configureBatchEvent(event, rec, startTZ, endTZ)
+	configureBatchEvent(event, rec, startTZ, endTZ, catCache)
 
 	return event, nil
 }
 
-func validateBatchRecord(rec batchRecord, corrections map[string]string) (summary, startStr string, err error) {
-	summary = nd.NormalizeAndSpellCheck(strings.TrimSpace(rec.Summary), corrections)
+func validateBatchRecord(rec batchRecord, spellCache *nd.SpellCheckCache) (summary, startStr string, err error) {
+	summary = spellCache.NormalizeAndCheck(strings.TrimSpace(rec.Summary))
 	if summary == "" {
 		return "", "", fmt.Errorf("summary is required")
 	}
@@ -614,7 +616,7 @@ func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error
 	return startTime.Add(dur), nil
 }
 
-func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) {
+func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string, catCache *nd.CategoryCache) {
 	event.AllDay = rec.AllDay
 
 	if startTZ != "" {
@@ -633,16 +635,16 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 		event.RRule = strings.TrimSpace(rec.RRule)
 	}
 
-	addBatchCategories(event, rec.Categories)
+	addBatchCategories(event, rec.Categories, catCache)
 	addBatchExDates(event, rec.ExDates, startTZ, rec.AllDay)
 	addBatchAlarms(event, rec.Alarms, startTZ)
 }
 
-func addBatchCategories(event *calendar.Event, categories []string) {
+func addBatchCategories(event *calendar.Event, categories []string, catCache *nd.CategoryCache) {
 	for _, cat := range categories {
 		cat = strings.TrimSpace(cat)
 		if cat != "" {
-			validated := nd.ValidateCategoryWithSuggestion(cat)
+			validated := catCache.Validate(cat)
 			event.AddCategory(validated)
 		}
 	}

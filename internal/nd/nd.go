@@ -258,40 +258,42 @@ func GetSmartDefaultDuration(summary string, startTime time.Time) time.Duration 
 }
 
 func DetectEventConflicts(events []calendar.Event) []string {
+	timed := make([]calendar.Event, 0, len(events))
+	for _, ev := range events {
+		if !ev.AllDay {
+			timed = append(timed, ev)
+		}
+	}
+
+	sort.Slice(timed, func(i, j int) bool {
+		return timed[i].StartTime.Before(timed[j].StartTime)
+	})
+
 	var conflicts []string
-
-	for i := 0; i < len(events); i++ {
-		for j := i + 1; j < len(events); j++ {
-			ev1, ev2 := events[i], events[j]
-
-			if ev1.AllDay || ev2.AllDay {
-				continue
+	for i := 1; i < len(timed); i++ {
+		for j := i - 1; j >= 0; j-- {
+			if !timed[j].EndTime.After(timed[i].StartTime) {
+				break
 			}
-
-			if ev1.EndTime.After(ev2.StartTime) && ev2.EndTime.After(ev1.StartTime) {
-				overlapStart := ev1.StartTime
-				if ev2.StartTime.After(overlapStart) {
-					overlapStart = ev2.StartTime
-				}
-				overlapEnd := ev1.EndTime
-				if ev2.EndTime.Before(overlapEnd) {
-					overlapEnd = ev2.EndTime
-				}
-				overlapDuration := overlapEnd.Sub(overlapStart)
-				suggestion := ev1.EndTime.Format("15:04")
-
-				conflict := fmt.Sprintf("%s (%s-%s) overlaps with %s (%s-%s) by %s. Suggestion: move %s to %s",
-					ev1.Summary,
-					ev1.StartTime.Format("15:04"),
-					ev1.EndTime.Format("15:04"),
-					ev2.Summary,
-					ev2.StartTime.Format("15:04"),
-					ev2.EndTime.Format("15:04"),
-					FormatDuration(overlapDuration),
-					ev2.Summary,
-					suggestion)
-				conflicts = append(conflicts, conflict)
+			overlapStart := timed[i].StartTime
+			overlapEnd := timed[j].EndTime
+			if timed[i].EndTime.Before(overlapEnd) {
+				overlapEnd = timed[i].EndTime
 			}
+			overlapDuration := overlapEnd.Sub(overlapStart)
+			suggestion := timed[j].EndTime.Format("15:04")
+
+			conflict := fmt.Sprintf("%s (%s-%s) overlaps with %s (%s-%s) by %s. Suggestion: move %s to %s",
+				timed[j].Summary,
+				timed[j].StartTime.Format("15:04"),
+				timed[j].EndTime.Format("15:04"),
+				timed[i].Summary,
+				timed[i].StartTime.Format("15:04"),
+				timed[i].EndTime.Format("15:04"),
+				FormatDuration(overlapDuration),
+				timed[i].Summary,
+				suggestion)
+			conflicts = append(conflicts, conflict)
 		}
 	}
 

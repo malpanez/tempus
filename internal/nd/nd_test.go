@@ -1,6 +1,7 @@
 package nd
 
 import (
+	"fmt"
 	"strings"
 	"tempus/internal/calendar"
 	"tempus/internal/testutil"
@@ -530,6 +531,46 @@ func TestExpandAlarmProfiles(t *testing.T) {
 		result := ExpandAlarmProfiles([]string{"profile:unknown"}, lookup)
 		if len(result) != 1 || result[0] != "profile:unknown" {
 			t.Errorf("unknown profile should be kept, got %v", result)
+		}
+	})
+}
+
+func BenchmarkDetectEventConflicts(b *testing.B) {
+	base := time.Date(2025, 5, 1, 8, 0, 0, 0, time.UTC)
+
+	b.Run("1000 events no overlap", func(b *testing.B) {
+		events := make([]calendar.Event, 1000)
+		for i := range events {
+			start := base.Add(time.Duration(i) * 35 * time.Minute)
+			events[i] = calendar.Event{
+				Summary:   fmt.Sprintf("Event %d", i),
+				StartTime: start,
+				EndTime:   start.Add(30 * time.Minute),
+			}
+		}
+		b.ResetTimer()
+		for n := 0; n < b.N; n++ {
+			DetectEventConflicts(events)
+		}
+	})
+
+	b.Run("1000 events 10pct overlap", func(b *testing.B) {
+		events := make([]calendar.Event, 1000)
+		for i := range events {
+			start := base.Add(time.Duration(i) * 35 * time.Minute)
+			dur := 30 * time.Minute
+			if i%10 == 0 {
+				dur = 50 * time.Minute
+			}
+			events[i] = calendar.Event{
+				Summary:   fmt.Sprintf("Event %d", i),
+				StartTime: start,
+				EndTime:   start.Add(dur),
+			}
+		}
+		b.ResetTimer()
+		for n := 0; n < b.N; n++ {
+			DetectEventConflicts(events)
 		}
 	})
 }
