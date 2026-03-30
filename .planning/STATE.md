@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 05-nd-extraction-performance-01-PLAN.md
-last_updated: "2026-03-30T20:24:07.629Z"
+stopped_at: Completed 05-nd-extraction-performance-02-PLAN.md
+last_updated: "2026-03-30T20:41:22.648Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [..........] 0%
 | Phase 04-ux-polish P01 | 2min | 2 tasks | 2 files |
 | Phase 04-ux-polish P02 | 2min | 1 tasks | 4 files |
 | Phase 05 P01 | 5min | 2 tasks | 4 files |
+| Phase 05 P02 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 05]: NormalizeAndSpellCheck accepts corrections map[string]string param -- caller threads from app.Config
 - [Phase 05]: ExpandAlarmProfiles accepts func(string) []string profileLookup -- more flexible than *config.Config
 - [Phase 05]: expandAlarmProfilesWithError stays in batch.go -- CLI-specific error wrapper
+- [Phase 05]: SpellCheckCache stores corrected words by lowered key, applies capitalization at retrieval
+- [Phase 05]: Caches created once in runBatch, threaded through buildBatchCalendar pipeline -- plain maps, no sync.Map
+- [Phase 05]: DetectEventConflicts uses sort.Slice + backward sweep instead of nested loop
 
 ### Pending Todos
 
@@ -110,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T20:24:07.617Z
-Stopped at: Completed 05-nd-extraction-performance-01-PLAN.md
+Last session: 2026-03-30T20:41:22.639Z
+Stopped at: Completed 05-nd-extraction-performance-02-PLAN.md
 Resume file: None

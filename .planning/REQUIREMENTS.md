@@ -37,8 +37,8 @@
 - [x] **REF-01**: El código de cada comando Cobra vive en `internal/cli/<command>.go` con un `App` struct que provee config/translator via `PersistentPreRunE` — `main.go` queda en ~100 líneas
 - [x] **REF-02**: Las 13 funciones de parsing de fechas se unifican en `internal/parsing.Parse(ParseOptions)` — mismo comportamiento, un punto de entrada
 - [x] **REF-03**: Las features neurodivergentes (spellcheck, conflictos, prep time, emoji) viven en `internal/nd/` — extraídas con tests migrados sin pérdida de cobertura
-- [ ] **REF-04**: La detección de conflictos usa algoritmo sweep-line O(n log n) en lugar de O(n²)
-- [ ] **REF-05**: El spell checking en batch precalcula la matriz de distancias una vez, no por cada registro (~100x menos comparaciones)
+- [x] **REF-04**: La detección de conflictos usa algoritmo sweep-line O(n log n) en lugar de O(n²)
+- [x] **REF-05**: El spell checking en batch precalcula la matriz de distancias una vez, no por cada registro (~100x menos comparaciones)
 - [x] **REF-06**: `printOK`, `printErr` y similares aceptan `io.Writer` como parámetro — testables sin capturar stdout global
 
 ## v2 Requirements
@@ -93,8 +93,8 @@
 | UX-03 | Phase 4: UX Polish | Complete |
 | UX-04 | Phase 4: UX Polish | Complete |
 | REF-03 | Phase 5: ND Extraction & Performance | Complete |
-| REF-04 | Phase 5: ND Extraction & Performance | Pending |
-| REF-05 | Phase 5: ND Extraction & Performance | Pending |
+| REF-04 | Phase 5: ND Extraction & Performance | Complete |
+| REF-05 | Phase 5: ND Extraction & Performance | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total

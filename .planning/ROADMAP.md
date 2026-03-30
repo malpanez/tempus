@@ -119,7 +119,7 @@ Plans:
 
 Plans:
 - [x] 05-01-PLAN.md — Extract all ND functions to internal/nd/, migrate tests, update batch.go call sites (REF-03)
-- [ ] 05-02-PLAN.md — O(n log n) conflict detection + spellcheck/category caches for batch (REF-04, REF-05)
+- [x] 05-02-PLAN.md — O(n log n) conflict detection + spellcheck/category caches for batch (REF-04, REF-05)
 
 **UI hint**: no
 
