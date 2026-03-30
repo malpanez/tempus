@@ -16,7 +16,7 @@
 ### UX — Primera Experiencia
 
 - [ ] **UX-01**: El usuario nuevo puede ejecutar `tempus init` y quedar configurado con timezone, idioma, directorio de salida y perfil de alarmas — wizard paso a paso con survey
-- [ ] **UX-02**: `tempus create --interactive` guía al usuario paso a paso con progreso visible ("Paso 2/7") hasta generar el evento — implementado con charmbracelet/huh (reemplaza survey/v2 archivado)
+- [x] **UX-02**: `tempus create --interactive` guía al usuario paso a paso con progreso visible ("Paso 2/7") hasta generar el evento — implementado con charmbracelet/huh (reemplaza survey/v2 archivado)
 - [ ] **UX-03**: En modo batch, cuando `--check-conflicts` detecta eventos que se solapan entre sí dentro del mismo fichero, el usuario ve exactamente qué eventos colisionan (nombres, horas) y cuánto tiempo solapan — facilitando decidir cuál mover antes de importar al calendario
 - [ ] **UX-04**: El nombre del evento de prep time es personalizable mediante `prep_time_prefix` en config y `--prep-label` en batch — default: "Preparation"
 
@@ -88,7 +88,7 @@
 | TMPL-01 | Phase 2: First-Run Experience | Pending |
 | TMPL-02 | Phase 2: First-Run Experience | Pending |
 | TMPL-03 | Phase 2: First-Run Experience | Pending |
-| UX-02 | Phase 3: Interactive Mode & CLI Structure | Pending |
+| UX-02 | Phase 3: Interactive Mode & CLI Structure | Complete |
 | REF-01 | Phase 3: Interactive Mode & CLI Structure | Complete |
 | UX-03 | Phase 4: UX Polish | Pending |
 | UX-04 | Phase 4: UX Polish | Pending |

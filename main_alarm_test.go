@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tempus/internal/cli"
 	"tempus/internal/testutil"
 	"testing"
 )
@@ -40,7 +41,8 @@ func TestExpandAlarmProfiles(t *testing.T) {
 }
 
 func TestCreateSupportsAlarms(t *testing.T) {
-	cmd := newCreateCmd()
+	app := cli.TestApp()
+	cmd := cli.NewCreateCmd(app)
 
 	tmpDir := t.TempDir()
 	outputPath := filepath.Join(tmpDir, "alarm.ics")
@@ -59,7 +61,7 @@ func TestCreateSupportsAlarms(t *testing.T) {
 	set("alarm", "trigger=+10m,description=Wrap up")
 	set("alarm", "trigger=2025-03-01 09:15,description=Airport check-in")
 
-	if err := runCreate(cmd, []string{"Flight Reminder"}); err != nil {
+	if err := cmd.RunE(cmd, []string{"Flight Reminder"}); err != nil {
 		t.Fatalf("runCreate returned error: %v", err)
 	}
 

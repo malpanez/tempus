@@ -13,29 +13,21 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
 
 	"tempus/internal/calendar"
 	"tempus/internal/cli"
 	"tempus/internal/config"
-	"tempus/internal/parsing"
 	"tempus/internal/constants"
 	"tempus/internal/i18n"
+	"tempus/internal/parsing"
 	"tempus/internal/prompts"
 	tpl "tempus/internal/templates"
 	"tempus/internal/testutil"
 	tzpkg "tempus/internal/timezone"
 
-	survey "github.com/AlecAivazis/survey/v2"
-	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/google/uuid"
-	"github.com/olebedev/when"
-	"github.com/olebedev/when/rules/en"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
-
-var stdout io.Writer = os.Stdout
 
 var (
 	scanner *bufio.Scanner
@@ -52,11 +44,20 @@ func main() {
 	}
 }
 
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = ""
+)
+
 func newRootCmd() *cobra.Command {
+	app := &cli.App{Stdout: os.Stdout, Stderr: os.Stderr}
+
 	cmd := &cobra.Command{
-		Use:          "tempus",
-		Short:        "A multilingual ICS calendar file generator",
-		SilenceUsage: true,
+		Use:              "tempus",
+		Short:            "A multilingual ICS calendar file generator",
+		SilenceUsage:     true,
+		PersistentPreRunE: cli.SetupPersistentPreRunE(app),
 	}
 
 	cmd.PersistentFlags().StringP("language", "l", "", "Language for output (es, en, ga, pt)")
@@ -64,13 +65,13 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringP("config", "c", "", "Config file path")
 
 	cmd.AddCommand(
-		newCreateCmd(),
-		newQuickCmd(),
+		cli.NewCreateCmd(app),
+		cli.NewQuickCmd(app),
+		cli.NewInitCmd(app),
 		newBatchCmd(),
 		newLintCmd(),
-		newConfigCmd(),
-		newInitCmd(),
-		newVersionCmd(),
+		cli.NewConfigCmd(app),
+		cli.NewVersionCmd(app, version, commit, date),
 		newTemplateCmd(),
 		newLocaleCmd(),
 		newTimezoneCmd(),
@@ -78,623 +79,6 @@ func newRootCmd() *cobra.Command {
 	)
 
 	return cmd
-}
-
-func newInitCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "init",
-		Short: "Configure Tempus interactively",
-		Long:  "Run an interactive wizard to set up timezone, language, output directory, and default alarm profile.",
-		RunE:  runInit,
-	}
-}
-
-func runInit(_ *cobra.Command, _ []string) error {
-	configDir, err := config.ConfigDir()
-	if err != nil {
-		return err
-	}
-	configFile := filepath.Join(configDir, "config.yaml")
-
-	if _, err := os.Stat(configFile); err == nil {
-		var overwrite bool
-		prompt := &survey.Confirm{
-			Message: fmt.Sprintf("Config already exists at %s. Overwrite?", configFile),
-			Default: false,
-		}
-		if err := survey.AskOne(prompt, &overwrite); err != nil || !overwrite {
-			fmt.Fprintf(stdout, "Config unchanged. Use 'tempus config set <key> <value>' for individual changes.\n")
-			return nil
-		}
-	}
-
-	var timezone string
-	if err := survey.AskOne(
-		&survey.Input{Message: "Timezone:", Default: config.DetectTimezone()},
-		&timezone,
-		survey.WithValidator(func(ans interface{}) error {
-			return config.ValidateTimezone(ans.(string))
-		}),
-	); err != nil {
-		if err == terminal.InterruptErr {
-			return nil
-		}
-		return err
-	}
-
-	var language string
-	detectedLang := config.DetectLanguage()
-	if err := survey.AskOne(
-		&survey.Select{Message: "Language:", Options: []string{"en", "es", "pt", "ga"}, Default: detectedLang},
-		&language,
-	); err != nil {
-		if err == terminal.InterruptErr {
-			return nil
-		}
-		return err
-	}
-
-	var outputDir string
-	if err := survey.AskOne(
-		&survey.Input{Message: "Output directory:", Default: "."},
-		&outputDir,
-		survey.WithValidator(func(ans interface{}) error {
-			return config.ValidateOutputDir(ans.(string))
-		}),
-	); err != nil {
-		if err == terminal.InterruptErr {
-			return nil
-		}
-		return err
-	}
-
-	var alarmProfile string
-	if err := survey.AskOne(
-		&survey.Select{
-			Message: "Default alarm profile:",
-			Options: []string{"adhd-default", "adhd-countdown", "medication", "single", "none"},
-			Default: "adhd-default",
-		},
-		&alarmProfile,
-	); err != nil {
-		if err == terminal.InterruptErr {
-			return nil
-		}
-		return err
-	}
-
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-	for _, kv := range [][2]string{
-		{"timezone", timezone},
-		{"language", language},
-		{"output_dir", outputDir},
-		{"default_alarm_profile", alarmProfile},
-	} {
-		if err := cfg.Set(kv[0], kv[1]); err != nil {
-			return err
-		}
-	}
-
-	fmt.Fprintf(stdout, "\n> Config saved to %s\n\n", configFile)
-	fmt.Fprintf(stdout, "  Timezone:      %s\n", timezone)
-	fmt.Fprintf(stdout, "  Language:      %s\n", language)
-	fmt.Fprintf(stdout, "  Output dir:    %s\n", outputDir)
-	fmt.Fprintf(stdout, "  Alarm profile: %s\n", alarmProfile)
-	fmt.Fprintf(stdout, "\nNext: tempus create --start today --duration 1h\n")
-	return nil
-}
-
-func newQuickCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "quick [natural language event description]",
-		Short: "Create a new event from a single sentence (experimental)",
-		Args:  cobra.ExactArgs(1),
-		RunE:  runQuick,
-	}
-
-	cmd.Flags().StringP("output", "o", "", "Output file path (optional)")
-	cmd.Flags().StringP("timezone", "t", "", "Default timezone (overrides config)")
-
-	return cmd
-}
-
-type quickParsedEvent struct {
-	Summary   string
-	StartTime time.Time
-	EndTime   time.Time
-	Location  string
-	InputText string
-}
-
-func runQuick(cmd *cobra.Command, args []string) error {
-	details, err := parseQuickInput(args[0])
-	if err != nil {
-		return err
-	}
-
-	finalTZ := resolveQuickTimezone(cmd)
-	applyTimezoneToDetails(&details, finalTZ)
-
-	if !confirmQuickEvent(details, finalTZ) {
-		fmt.Println("Operation cancelled.")
-		return nil
-	}
-
-	output := getQuickOutput(cmd, details.Summary)
-	return writeQuickCalendar(details, finalTZ, output)
-}
-
-func parseQuickInput(text string) (quickParsedEvent, error) {
-	w := when.New(nil)
-	w.Add(en.All...)
-
-	res, err := w.Parse(text, time.Now())
-	if err != nil || res == nil {
-		return quickParsedEvent{}, fmt.Errorf("could not understand the date/time in your request. Please be more specific, e.g., 'tomorrow at 3pm'")
-	}
-
-	return extractEventDetails(text, res), nil
-}
-
-func resolveQuickTimezone(cmd *cobra.Command) string {
-	cfg, _ := config.Load()
-	defaultTZ := ""
-	if cfg != nil {
-		if v, err := cfg.Get("timezone"); err == nil {
-			defaultTZ = v
-		}
-	}
-
-	flagTZ, _ := cmd.Flags().GetString("timezone")
-	return firstNonEmpty(flagTZ, defaultTZ)
-}
-
-func applyTimezoneToDetails(details *quickParsedEvent, tz string) {
-	if tz == "" {
-		return
-	}
-
-	loc, err := time.LoadLocation(tz)
-	if err == nil {
-		details.StartTime = details.StartTime.In(loc)
-		details.EndTime = details.EndTime.In(loc)
-	}
-}
-
-func confirmQuickEvent(details quickParsedEvent, tz string) bool {
-	fmt.Println("I understood the following event:")
-	fmt.Printf("  Summary:   %s\n", details.Summary)
-	fmt.Printf("  Start:     %s\n", details.StartTime.Format(constants.DateTimeFormatRFC1123))
-	fmt.Printf("  End:       %s\n", details.EndTime.Format(constants.DateTimeFormatRFC1123))
-	if details.Location != "" {
-		fmt.Printf("  Location:  %s\n", details.Location)
-	}
-	if tz != "" {
-		fmt.Printf("  Timezone:  %s\n", tz)
-	}
-
-	confirmPrompt := &survey.Confirm{
-		Message: "Does this look correct?",
-		Default: true,
-	}
-	var confirmed bool
-	if err := survey.AskOne(confirmPrompt, &confirmed); err != nil {
-		return false
-	}
-
-	return confirmed
-}
-
-func getQuickOutput(cmd *cobra.Command, summary string) string {
-	output, _ := cmd.Flags().GetString("output")
-	if output == "" {
-		output = fmt.Sprintf("%s.ics", slugify(summary))
-	}
-	return output
-}
-
-func writeQuickCalendar(details quickParsedEvent, tz, output string) error {
-	cal := calendar.NewCalendar()
-	cal.IncludeVTZ = true
-	cal.Name = details.Summary
-	if tz != "" {
-		cal.SetDefaultTimezone(tz)
-	}
-
-	event := calendar.NewEvent(details.Summary, details.StartTime, details.EndTime)
-	if details.Location != "" {
-		event.Location = details.Location
-	}
-	if tz != "" {
-		event.SetStartTimezone(tz)
-		event.SetEndTimezone(tz)
-	}
-
-	cal.AddEvent(event)
-	icsContent := cal.ToICS()
-
-	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
-		printErr(constants.ErrMsgFailedToWriteFile, err)
-		return err
-	}
-	printOK(constants.MsgCreatedFile, output)
-
-	return nil
-}
-
-// extractEventDetails uses regex and string manipulation to pull out details.
-func extractEventDetails(text string, res *when.Result) quickParsedEvent {
-	summary := strings.TrimSpace(strings.Replace(text, res.Text, "", 1))
-
-	// Simple regex for duration and location
-	durRegex := regexp.MustCompile(`(?i)\b(?:for|duration)\s+((?:\d+\s*)?(?:h|hr|hour|m|min|minute)s?)`)
-	locRegex := regexp.MustCompile(`(?i)\b(?:at|in)\s+([\w\s\d]+)`)
-
-	var duration time.Duration
-	if matches := durRegex.FindStringSubmatch(text); len(matches) > 1 {
-		summary = strings.Replace(summary, matches[0], "", 1)
-		if d, err := calendar.ParseHumanDuration(matches[1]); err == nil {
-			duration = d
-		}
-	}
-
-	var location string
-	if matches := locRegex.FindStringSubmatch(text); len(matches) > 1 {
-		// Avoid matching the time expression
-		if !strings.Contains(res.Text, matches[1]) {
-			location = strings.TrimSpace(matches[1])
-			summary = strings.Replace(summary, matches[0], "", 1)
-		}
-	}
-
-	// Clean up summary
-	summary = strings.TrimSpace(summary)
-	summary = strings.Trim(summary, ",. ")
-
-	endTime := res.Time.Add(time.Hour) // Default to 1 hour if no duration
-	if duration > 0 {
-		endTime = res.Time.Add(duration)
-	}
-
-	return quickParsedEvent{
-		Summary:   summary,
-		StartTime: res.Time,
-		EndTime:   endTime,
-		Location:  location,
-		InputText: text,
-	}
-}
-
-func newCreateCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create [event-name]",
-		Short: "Create a new ICS calendar event",
-		// If no args, show help (friendlier).
-		RunE: runCreate,
-	}
-
-	cmd.Flags().StringP("start", "s", "", "Start date/time (YYYY-MM-DD HH:MM)")
-	cmd.Flags().StringP("end", "e", "", "End date/time (YYYY-MM-DD HH:MM) or duration (e.g. 60m, 1h30m, 1:00, 90)")
-	cmd.Flags().String("duration", "", "Duration (e.g. 45m, 1h30m, 90)")
-	cmd.Flags().StringP("location", "L", "", "Event location")
-	cmd.Flags().StringP("description", "d", "", "Event description")
-	cmd.Flags().StringP("start-tz", "", "", "Start timezone")
-	cmd.Flags().StringP("end-tz", "", "", "End timezone")
-	cmd.Flags().StringP("output", "o", "", "Output file path")
-	cmd.Flags().BoolP("all-day", "a", false, "All-day event")
-	cmd.Flags().String("rrule", "", "Recurrence rule (RRULE), e.g. FREQ=DAILY;COUNT=10")
-	cmd.Flags().StringArray("exdate", []string{}, "Exclude date/time (EXDATE). Repeat flag for multiple values (YYYY-MM-DD or YYYY-MM-DD HH:MM)")
-	cmd.Flags().StringArray("alarm", []string{}, "Reminder (VALARM). Repeat for multiple values (e.g. 15m, trigger=-30m,description=Boarding Pass)")
-	cmd.Flags().StringArray("category", []string{}, "Category label(s) to attach to the event (repeat flag for multiple values)")
-	cmd.Flags().StringArray("attendee", []string{}, "Attendee email address (repeat flag for multiple values)")
-	cmd.Flags().Int("priority", 0, "Event priority (1-9, 0 to omit)")
-	cmd.Flags().BoolP("interactive", "i", false, "Create an event using an interactive questionnaire")
-
-	return cmd
-}
-
-func runCreate(cmd *cobra.Command, args []string) error {
-	interactive, _ := cmd.Flags().GetBool("interactive")
-	if interactive {
-		return fmt.Errorf("interactive mode not yet implemented")
-	}
-
-	if len(args) == 0 {
-		_ = cmd.Help()
-		return nil
-	}
-
-	opts, err := parseCreateFlags(cmd, args)
-	if err != nil {
-		return err
-	}
-
-	startTime, endTime, err := parseCreateTimes(opts)
-	if err != nil {
-		return err
-	}
-
-	cal, err := createCalendarWithEvent(opts, startTime, endTime)
-	if err != nil {
-		return err
-	}
-	return writeCalendarOutput(cal, opts.output)
-}
-
-type createOptions struct {
-	summary     string
-	startStr    string
-	endStr      string
-	durStr      string
-	location    string
-	description string
-	startTZ     string
-	endTZ       string
-	output      string
-	allDay      bool
-	rrule       string
-	exdates     []string
-	alarms      []string
-	categories  []string
-	attendees   []string
-	priority    int
-}
-
-func parseCreateFlags(cmd *cobra.Command, args []string) (*createOptions, error) {
-	opts := &createOptions{summary: args[0]}
-	opts.startStr, _ = cmd.Flags().GetString("start")
-	opts.endStr, _ = cmd.Flags().GetString("end")
-	opts.durStr, _ = cmd.Flags().GetString("duration")
-	opts.location, _ = cmd.Flags().GetString("location")
-	opts.description, _ = cmd.Flags().GetString("description")
-	opts.startTZ, _ = cmd.Flags().GetString("start-tz")
-	opts.endTZ, _ = cmd.Flags().GetString("end-tz")
-	opts.output, _ = cmd.Flags().GetString("output")
-	opts.allDay, _ = cmd.Flags().GetBool("all-day")
-	opts.rrule, _ = cmd.Flags().GetString("rrule")
-	opts.exdates, _ = cmd.Flags().GetStringArray("exdate")
-	opts.alarms, _ = cmd.Flags().GetStringArray("alarm")
-	opts.categories, _ = cmd.Flags().GetStringArray("category")
-	opts.attendees, _ = cmd.Flags().GetStringArray("attendee")
-	opts.priority, _ = cmd.Flags().GetInt("priority")
-
-	if opts.priority < 0 || opts.priority > 9 {
-		return nil, fmt.Errorf("priority must be between 0 and 9")
-	}
-
-	if strings.TrimSpace(opts.startStr) == "" {
-		return nil, fmt.Errorf("start time is required (use --start)")
-	}
-
-	opts.startStr = normalizeTimeInput(opts.startStr, opts.startTZ, opts.endTZ)
-	opts.endStr = normalizeTimeInput(opts.endStr, opts.startTZ, opts.endTZ)
-
-	return opts, nil
-}
-
-func normalizeTimeInput(timeStr, startTZ, endTZ string) string {
-	if timeStr != "" && cli.LooksLikeClock(timeStr) {
-		return cli.PrependToday(timeStr, cli.FirstNonEmpty(startTZ, endTZ, ""))
-	}
-	return timeStr
-}
-
-func parseCreateTimes(opts *createOptions) (startTime, endTime time.Time, err error) {
-	if opts.allDay {
-		return parseAllDayTimes(opts.startStr, opts.endStr)
-	}
-	return parseTimedEventTimes(opts.startStr, opts.endStr, opts.durStr)
-}
-
-func parseAllDayTimes(startStr, endStr string) (startTime, endTime time.Time, err error) {
-	startStr = normalizeDateTimeInput(startStr)
-	startTime, err = time.Parse("2006-01-02", startStr)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid start date: %w", err)
-	}
-
-	if strings.TrimSpace(endStr) == "" {
-		endTime = startTime.AddDate(0, 0, 1)
-	} else {
-		endStr = normalizeDateTimeInput(endStr)
-		endDate, parseErr := time.Parse("2006-01-02", endStr)
-		if parseErr != nil {
-			return time.Time{}, time.Time{}, fmt.Errorf("invalid end date: %w", parseErr)
-		}
-		if endDate.Before(startTime) {
-			return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgEndDateAfterStart)
-		}
-		endTime = endDate.AddDate(0, 0, 1)
-	}
-
-	if !endTime.After(startTime) {
-		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgEndDateAfterStart)
-	}
-
-	return startTime, endTime, nil
-}
-
-func parseTimedEventTimes(startStr, endStr, durStr string) (startTime, endTime time.Time, err error) {
-	startStr = normalizeDateTimeInput(startStr)
-	startTime, err = time.Parse("2006-01-02 15:04", startStr)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
-	}
-
-	switch {
-	case strings.TrimSpace(endStr) != "":
-		endTime, err = parseEndTime(startTime, endStr)
-	case strings.TrimSpace(durStr) != "":
-		endTime, err = parseDurationEnd(startTime, durStr)
-	default:
-		endTime = startTime.Add(1 * time.Hour)
-	}
-
-	if err != nil {
-		return time.Time{}, time.Time{}, err
-	}
-
-	if !endTime.After(startTime) {
-		return time.Time{}, time.Time{}, fmt.Errorf("end time must be after start time")
-	}
-
-	return startTime, endTime, nil
-}
-
-func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
-	if d, derr := calendar.ParseHumanDuration(endStr); derr == nil {
-		if d <= 0 {
-			return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
-		}
-		return startTime.Add(d), nil
-	}
-
-	endStr = normalizeDateTimeInput(endStr)
-	endTime, err := time.Parse("2006-01-02 15:04", endStr)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid end time: %w", err)
-	}
-	return endTime, nil
-}
-
-func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
-	d, err := calendar.ParseHumanDuration(durStr)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid duration: %v", err)
-	}
-	if d <= 0 {
-		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
-	}
-	return startTime.Add(d), nil
-}
-
-func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) (*calendar.Calendar, error) {
-	cal := calendar.NewCalendar()
-	cal.IncludeVTZ = true
-	cal.Name = opts.summary
-	if tz := firstNonEmpty(opts.startTZ, opts.endTZ); strings.TrimSpace(tz) != "" {
-		cal.SetDefaultTimezone(tz)
-	}
-
-	event := calendar.NewEvent(opts.summary, startTime, endTime)
-	if err := configureEvent(event, opts); err != nil {
-		return nil, err
-	}
-	cal.AddEvent(event)
-
-	return cal, nil
-}
-
-func configureEvent(event *calendar.Event, opts *createOptions) error {
-	event.AllDay = opts.allDay
-	if opts.location != "" {
-		event.Location = opts.location
-	}
-	if opts.description != "" {
-		event.Description = opts.description
-	}
-
-	setEventTimezones(event, opts.startTZ, opts.endTZ)
-
-	if strings.TrimSpace(opts.rrule) != "" {
-		event.RRule = strings.TrimSpace(opts.rrule)
-	}
-
-	addEventExDates(event, opts.exdates, opts.startTZ, opts.allDay)
-	if err := addEventAlarms(event, opts.alarms, opts.startTZ); err != nil {
-		return fmt.Errorf("alarm error: %w", err)
-	}
-	addEventCategories(event, opts.categories)
-	addEventAttendees(event, opts.attendees)
-
-	if opts.priority > 0 {
-		event.Priority = opts.priority
-	}
-	return nil
-}
-
-func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
-	if startTZ != "" {
-		event.SetStartTimezone(startTZ)
-	}
-	if endTZ != "" {
-		event.SetEndTimezone(endTZ)
-	} else if startTZ != "" {
-		event.SetEndTimezone(startTZ)
-	}
-}
-
-func addEventExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
-	if len(exdates) == 0 {
-		return
-	}
-
-	tzForExdate := strings.TrimSpace(event.StartTZ)
-	if tzForExdate == "" {
-		tzForExdate = strings.TrimSpace(startTZ)
-	}
-
-	parsed, err := parseExDateValues(exdates, tzForExdate, allDay)
-	if err == nil && len(parsed) > 0 {
-		event.ExDates = append(event.ExDates, parsed...)
-	}
-}
-
-func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) error {
-	if len(alarms) == 0 {
-		return nil
-	}
-
-	defaultAlarmTZ := strings.TrimSpace(event.StartTZ)
-	if defaultAlarmTZ == "" {
-		defaultAlarmTZ = strings.TrimSpace(startTZ)
-	}
-
-	expandedAlarms, err := expandAlarmProfiles(alarms)
-	if err != nil {
-		return err
-	}
-	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
-	if err != nil {
-		return err
-	}
-	event.Alarms = append(event.Alarms, parsed...)
-	return nil
-}
-
-func addEventCategories(event *calendar.Event, categories []string) {
-	for _, cat := range categories {
-		if c := strings.TrimSpace(cat); c != "" {
-			event.AddCategory(c)
-		}
-	}
-}
-
-func addEventAttendees(event *calendar.Event, attendees []string) {
-	for _, attendee := range attendees {
-		if a := strings.TrimSpace(attendee); a != "" {
-			event.AddAttendee(a)
-		}
-	}
-}
-
-func writeCalendarOutput(cal *calendar.Calendar, output string) error {
-	icsContent := cal.ToICS()
-
-	if output == "" {
-		fmt.Print(icsContent)
-		return nil
-	}
-
-	if err := os.WriteFile(output, []byte(icsContent), 0600); err != nil {
-		printErr(constants.ErrMsgFailedToWriteFile, err)
-		return err
-	}
-	printOK(constants.MsgCreatedFile, output)
-	return nil
 }
 
 func newBatchCmd() *cobra.Command {
@@ -877,7 +261,7 @@ func handleDryRun(validationErrors, warnings []string, records []batchRecord, in
 }
 
 func printDryRunSummary(records []batchRecord, input, output string) {
-	fmt.Fprintf(stdout, "\nEvent summary:\n")
+	fmt.Printf("\nEvent summary:\n")
 	for i, rec := range records {
 		summary := rec.Summary
 		if summary == "" {
@@ -887,19 +271,19 @@ func printDryRunSummary(records []batchRecord, input, output string) {
 		if start == "" {
 			start = "(no start)"
 		}
-		fmt.Fprintf(stdout, "  %d. %s - %s\n", i+1, summary, start)
+		fmt.Printf("  %d. %s - %s\n", i+1, summary, start)
 	}
-	fmt.Fprintf(stdout, "\nTo create the calendar file, run:\n")
-	fmt.Fprintf(stdout, "  tempus batch -i %s -o %s\n", input, output)
+	fmt.Printf("\nTo create the calendar file, run:\n")
+	fmt.Printf("  tempus batch -i %s -o %s\n", input, output)
 }
 
 func writeBatchOutput(cal *calendar.Calendar, warnings []string, output string, eventCount int) error {
 	if len(warnings) > 0 {
-		fmt.Fprintf(stdout, "\n")
+		fmt.Printf("\n")
 		for _, warning := range warnings {
-			fmt.Fprintln(stdout, warning)
+			fmt.Println(warning)
 		}
-		fmt.Fprintf(stdout, "\n")
+		fmt.Printf("\n")
 	}
 
 	if err := ensureDirForFile(output); err != nil {
@@ -1172,9 +556,7 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string) (*calendar.Event, e
 
 	summaryWithEmoji := addEmojiToSummary(summary, rec.Categories)
 	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
-	if err := configureBatchEvent(event, rec, startTZ, endTZ); err != nil {
-		return nil, err
-	}
+	configureBatchEvent(event, rec, startTZ, endTZ)
 
 	return event, nil
 }
@@ -1297,7 +679,7 @@ func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error
 	return startTime.Add(dur), nil
 }
 
-func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) error {
+func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string) {
 	event.AllDay = rec.AllDay
 
 	if startTZ != "" {
@@ -1318,10 +700,7 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 
 	addBatchCategories(event, rec.Categories)
 	addBatchExDates(event, rec.ExDates, startTZ, rec.AllDay)
-	if err := addBatchAlarms(event, rec.Alarms, startTZ); err != nil {
-		return err
-	}
-	return nil
+	addBatchAlarms(event, rec.Alarms, startTZ)
 }
 
 func addBatchCategories(event *calendar.Event, categories []string) {
@@ -1350,9 +729,9 @@ func addBatchExDates(event *calendar.Event, exdates []string, startTZ string, al
 	}
 }
 
-func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) error {
+func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
 	if len(alarms) == 0 {
-		return nil
+		return
 	}
 
 	defaultAlarmTZ := event.StartTZ
@@ -1362,481 +741,54 @@ func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) erro
 
 	expandedAlarms, err := expandAlarmProfiles(alarms)
 	if err != nil {
-		return err
+		return
 	}
-	parsed, parseErr := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
-	if parseErr != nil {
-		return parseErr
+	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
+	if err == nil {
+		event.Alarms = append(event.Alarms, parsed...)
 	}
-	event.Alarms = append(event.Alarms, parsed...)
-	return nil
 }
 
-// normalizeAndSpellCheck fixes common spelling errors and normalizes text in summaries.
-// Helps users with dyslexia or typing errors.
-// Uses the spell_corrections dictionary from config (customizable via config.yaml).
 func normalizeAndSpellCheck(text string) string {
-	if text == "" {
-		return text
-	}
-
-	// Get corrections from config (falls back to built-in defaults)
-	cfg, _ := config.Load()
-	corrections := make(map[string]string)
-	if cfg != nil && cfg.SpellCorrections != nil {
-		corrections = cfg.SpellCorrections
-	}
-
-	words := strings.Fields(text)
-	for i, word := range words {
-		lower := strings.ToLower(word)
-		if corrected, exists := corrections[lower]; exists {
-			// Preserve original capitalization
-			if len(word) > 0 && word[0] >= 'A' && word[0] <= 'Z' {
-				words[i] = strings.Title(corrected)
-			} else {
-				words[i] = corrected
-			}
-		}
-	}
-
-	return strings.Join(words, " ")
+	return cli.NormalizeAndSpellCheck(text)
 }
 
 func normalizeDateTimeInput(input string) string {
 	return parsing.NormalizeDateTimeInput(input)
 }
 
-// validateCategoryWithSuggestion checks for common typos in category names and auto-corrects them.
-// This helps neurodivergent users who may struggle with spelling or consistency.
 func validateCategoryWithSuggestion(category string) string {
-	commonCategories := map[string]string{
-		"work":          "Work",
-		"meeting":       "Meeting",
-		"health":        "Health",
-		"medication":    "Medication",
-		"meds":          "Medication",
-		"medical":       "Medical",
-		"therapy":       "Therapy",
-		"mental health": "Mental Health",
-		"exercise":      "Exercise",
-		"workout":       "Workout",
-		"food":          "Food",
-		"meal":          "Meal",
-		"travel":        "Travel",
-		"flight":        "Flight",
-		"hotel":         "Accommodation",
-		"accommodation": "Accommodation",
-		"family":        "Family",
-		"kids":          "Kids",
-		"personal":      "Personal",
-		"focus":         "Focus",
-		"deep work":     "Focus",
-		"break":         "Break",
-		"rest":          "Rest",
-		"transition":    "Transition",
-		"urgent":        "Urgent",
-		"important":     "Important",
-		"fun":           "Fun",
-		"leisure":       "Leisure",
-		"learning":      "Learning",
-		"education":     "Education",
-		"sleep":         "Sleep",
-	}
-
-	lower := strings.ToLower(category)
-
-	// Exact match (case-insensitive)
-	if corrected, exists := commonCategories[lower]; exists {
-		return corrected
-	}
-
-	// Check for close matches using Levenshtein distance
-	bestMatch := category
-	bestDistance := 999
-	threshold := 2 // Allow up to 2 character differences
-
-	for known, canonical := range commonCategories {
-		dist := levenshteinDistance(lower, known)
-		if dist <= threshold && dist < bestDistance {
-			bestDistance = dist
-			bestMatch = canonical
-		}
-	}
-
-	return bestMatch
+	return cli.ValidateCategoryWithSuggestion(category)
 }
 
-// levenshteinDistance calculates the edit distance between two strings.
-// Used for typo detection and correction suggestions.
-func levenshteinDistance(s1, s2 string) int {
-	if len(s1) == 0 {
-		return len(s2)
-	}
-	if len(s2) == 0 {
-		return len(s1)
-	}
-
-	// Create matrix
-	matrix := make([][]int, len(s1)+1)
-	for i := range matrix {
-		matrix[i] = make([]int, len(s2)+1)
-		matrix[i][0] = i
-	}
-	for j := range matrix[0] {
-		matrix[0][j] = j
-	}
-
-	// Fill matrix
-	for i := 1; i <= len(s1); i++ {
-		for j := 1; j <= len(s2); j++ {
-			cost := 0
-			if s1[i-1] != s2[j-1] {
-				cost = 1
-			}
-			matrix[i][j] = min(
-				matrix[i-1][j]+1,      // deletion
-				matrix[i][j-1]+1,      // insertion
-				matrix[i-1][j-1]+cost, // substitution
-			)
-		}
-	}
-
-	return matrix[len(s1)][len(s2)]
-}
-
-func min(a, b, c int) int {
-	if a < b {
-		if a < c {
-			return a
-		}
-		return c
-	}
-	if b < c {
-		return b
-	}
-	return c
-}
-
-// addEmojiToSummary adds a relevant emoji prefix to the summary based on categories.
-// Only adds emoji if the summary doesn't already start with one.
-// This provides visual cues that help neurodivergent users quickly scan their calendar.
 func addEmojiToSummary(summary string, categories []string) string {
-	if len(summary) > 0 {
-		firstRune := []rune(summary)[0]
-		if unicode.Is(unicode.So, firstRune) {
-			return summary
-		}
-	}
-
-	// Map categories to emojis
-	categoryLower := make([]string, len(categories))
-	for i, cat := range categories {
-		categoryLower[i] = strings.ToLower(strings.TrimSpace(cat))
-	}
-
-	// Priority order: most specific first
-	for _, cat := range categoryLower {
-		switch cat {
-		case "medication", "meds":
-			return "💊 " + summary
-		case "health", "medical":
-			return "🏥 " + summary
-		case "therapy", "mental health":
-			return "🧠 " + summary
-		case "exercise", "workout", "fitness":
-			return "💪 " + summary
-		case "food", "meal", "restaurant":
-			return "🍽️ " + summary
-		case "travel", "flight":
-			return "✈️ " + summary
-		case "accommodation", "hotel":
-			return "🏨 " + summary
-		case "work", "meeting":
-			return "💼 " + summary
-		case "focus", "deep work":
-			return "🎯 " + summary
-		case "break", "rest":
-			return "☕ " + summary
-		case "transition":
-			return "🔄 " + summary
-		case "family", "kids":
-			return "👨‍👩‍👧 " + summary
-		case "personal":
-			return "🌟 " + summary
-		case "urgent", "important":
-			return "🔥 " + summary
-		case "fun", "leisure":
-			return "🎉 " + summary
-		case "learning", "education":
-			return "📚 " + summary
-		case "sleep":
-			return "😴 " + summary
-		}
-	}
-
-	// Check summary keywords if no category match
-	summaryLower := strings.ToLower(summary)
-	if strings.Contains(summaryLower, "med") || strings.Contains(summaryLower, "pill") {
-		return "💊 " + summary
-	}
-	if strings.Contains(summaryLower, "breakfast") || strings.Contains(summaryLower, "lunch") || strings.Contains(summaryLower, "dinner") {
-		return "🍽️ " + summary
-	}
-	if strings.Contains(summaryLower, "doctor") || strings.Contains(summaryLower, "dentist") || strings.Contains(summaryLower, "appointment") {
-		return "🏥 " + summary
-	}
-	if strings.Contains(summaryLower, "meeting") {
-		return "💼 " + summary
-	}
-	if strings.Contains(summaryLower, "focus") {
-		return "🎯 " + summary
-	}
-
-	return summary
+	return cli.AddEmojiToSummary(summary, categories)
 }
 
-// getSmartDefaultDuration returns a reasonable duration based on event summary and time of day.
-// This helps neurodivergent users by reducing cognitive load - they don't need to specify duration for common events.
 func getSmartDefaultDuration(summary string, startTime time.Time) time.Duration {
-	summaryLower := strings.ToLower(summary)
-	hour := startTime.Hour()
-
-	// Medication/pills: very short
-	if strings.Contains(summaryLower, "med") || strings.Contains(summaryLower, "pill") {
-		return 5 * time.Minute
-	}
-
-	// Meals: depends on time of day
-	if strings.Contains(summaryLower, "breakfast") {
-		return 30 * time.Minute
-	}
-	if strings.Contains(summaryLower, "lunch") {
-		return 45 * time.Minute
-	}
-	if strings.Contains(summaryLower, "dinner") || strings.Contains(summaryLower, "supper") {
-		return 1 * time.Hour
-	}
-
-	// Quick tasks
-	if strings.Contains(summaryLower, "standup") || strings.Contains(summaryLower, "stand-up") {
-		return 15 * time.Minute
-	}
-	if strings.Contains(summaryLower, "break") || strings.Contains(summaryLower, "transition") {
-		return 15 * time.Minute
-	}
-
-	// Therapy/medical
-	if strings.Contains(summaryLower, "therapy") || strings.Contains(summaryLower, "therapist") {
-		return 1 * time.Hour
-	}
-	if strings.Contains(summaryLower, "doctor") || strings.Contains(summaryLower, "dentist") {
-		return 30 * time.Minute
-	}
-
-	// Focus blocks
-	if strings.Contains(summaryLower, "focus") || strings.Contains(summaryLower, "deep work") {
-		return 2 * time.Hour
-	}
-
-	// Time of day defaults (when no keywords match)
-	switch {
-	case hour >= 6 && hour < 9: // Early morning
-		return 30 * time.Minute
-	case hour >= 12 && hour < 14: // Lunch time
-		return 1 * time.Hour
-	case hour >= 18 && hour < 21: // Evening/dinner
-		return 1*time.Hour + 30*time.Minute
-	case hour >= 21 || hour < 6: // Late night/early morning
-		return 30 * time.Minute
-	default: // Business hours (9-18)
-		return 1 * time.Hour
-	}
+	return cli.GetSmartDefaultDuration(summary, startTime)
 }
 
-// detectEventConflicts checks for overlapping events in the same timezone.
-// Returns a list of human-readable conflict descriptions.
 func detectEventConflicts(events []calendar.Event) []string {
-	var conflicts []string
-
-	for i := 0; i < len(events); i++ {
-		for j := i + 1; j < len(events); j++ {
-			ev1, ev2 := events[i], events[j]
-
-			// Skip all-day events
-			if ev1.AllDay || ev2.AllDay {
-				continue
-			}
-
-			// Check if events overlap
-			if ev1.EndTime.After(ev2.StartTime) && ev2.EndTime.After(ev1.StartTime) {
-				conflict := fmt.Sprintf("%s (%s-%s) overlaps with %s (%s-%s)",
-					ev1.Summary,
-					ev1.StartTime.Format("15:04"),
-					ev1.EndTime.Format("15:04"),
-					ev2.Summary,
-					ev2.StartTime.Format("15:04"),
-					ev2.EndTime.Format("15:04"))
-				conflicts = append(conflicts, conflict)
-			}
-		}
-	}
-
-	return conflicts
+	return cli.DetectEventConflicts(events)
 }
 
-// generatePrepTimeEvents creates preparation and transition buffer events.
-// Based on ADHD time boxing research: 15min buffers prevent task derailment.
-// Evidence: https://akiflow.com/blog/time-blocking-adhd
 func generatePrepTimeEvents(events []calendar.Event) []*calendar.Event {
-	var prepEvents []*calendar.Event
-
-	for _, ev := range events {
-		if ev.AllDay {
-			continue
-		}
-
-		if transitionEvent := createTransitionEventIfNeeded(ev); transitionEvent != nil {
-			prepEvents = append(prepEvents, transitionEvent)
-			continue
-		}
-
-		if prepEvent := createPrepEventIfNeeded(ev); prepEvent != nil {
-			prepEvents = append(prepEvents, prepEvent)
-		}
-	}
-
-	return prepEvents
+	return cli.GeneratePrepTimeEvents(events)
 }
 
-func createTransitionEventIfNeeded(ev calendar.Event) *calendar.Event {
-	if !needsFocusTransition(ev.Summary) {
-		return nil
-	}
-
-	return &calendar.Event{
-		UID:        generateUID(),
-		Summary:    "🔄 Transition: " + stripEmoji(ev.Summary),
-		StartTime:  ev.EndTime,
-		EndTime:    ev.EndTime.Add(5 * time.Minute),
-		StartTZ:    ev.StartTZ,
-		EndTZ:      ev.EndTZ,
-		AllDay:     false,
-		Categories: []string{"Transition"},
-		Status:     "CONFIRMED",
-		Created:    time.Now().UTC(),
-		LastMod:    time.Now().UTC(),
-	}
-}
-
-func createPrepEventIfNeeded(ev calendar.Event) *calendar.Event {
-	duration, description := determinePrepTime(ev.Summary)
-	if duration == 0 {
-		return nil
-	}
-
-	return &calendar.Event{
-		UID:        generateUID(),
-		Summary:    "⏰ " + description + ": " + stripEmoji(ev.Summary),
-		StartTime:  ev.StartTime.Add(-duration),
-		EndTime:    ev.StartTime,
-		StartTZ:    ev.StartTZ,
-		EndTZ:      ev.EndTZ,
-		AllDay:     false,
-		Categories: []string{"Preparation"},
-		Status:     "CONFIRMED",
-		Created:    time.Now().UTC(),
-		LastMod:    time.Now().UTC(),
-	}
-}
-
-func needsFocusTransition(summary string) bool {
-	summaryLower := strings.ToLower(summary)
-	focusKeywords := []string{"focus", "deep work", "coding", "writing"}
-
-	for _, keyword := range focusKeywords {
-		if strings.Contains(summaryLower, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-func determinePrepTime(summary string) (time.Duration, string) {
-	summaryLower := strings.ToLower(summary)
-
-	// Medical/health events: 20min prep
-	if containsAny(summaryLower, []string{"doctor", "médico", "dentist", "therapy", "hospital", "clinic"}) {
-		return 20 * time.Minute, "Travel & arrival buffer"
-	}
-
-	// Meetings and appointments: 15min prep
-	if containsAny(summaryLower, []string{"meeting", "reunion", "appointment", "cita", "interview", "call"}) {
-		return 15 * time.Minute, "Preparation"
-	}
-
-	return 0, ""
-}
-
-func containsAny(text string, keywords []string) bool {
-	for _, keyword := range keywords {
-		if strings.Contains(text, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-// stripEmoji removes emoji from event summary for prep event names
 func stripEmoji(s string) string {
-	s = strings.TrimSpace(s)
-	if len(s) > 0 {
-		firstRune := []rune(s)[0]
-		if unicode.Is(unicode.So, firstRune) {
-			runes := []rune(s)
-			if len(runes) > 1 {
-				return strings.TrimSpace(string(runes[1:]))
-			}
-		}
-	}
-	return s
+	return cli.StripEmoji(s)
 }
 
-// generateUID creates a unique identifier for calendar events
 func generateUID() string {
-	return uuid.New().String() + "@tempus"
+	return cli.GenerateUID()
 }
 
-// detectOverwhelmDays identifies days with too many events.
-// Returns warnings for days exceeding the threshold.
 func detectOverwhelmDays(events []calendar.Event, maxPerDay int) []string {
-	if maxPerDay == 0 {
-		maxPerDay = 8 // Default threshold for dry-run
-	}
-
-	// Group events by date
-	eventsByDay := make(map[string]int)
-	for _, ev := range events {
-		dateKey := ev.StartTime.Format("2006-01-02")
-		eventsByDay[dateKey]++
-	}
-
-	var warnings []string
-	for date, count := range eventsByDay {
-		if count > maxPerDay {
-			t, _ := time.Parse("2006-01-02", date)
-			dayName := t.Format("Monday, Jan 2")
-			warnings = append(warnings, fmt.Sprintf("%s: %d events (threshold: %d)", dayName, count, maxPerDay))
-		}
-	}
-
-	// Sort warnings by date
-	sort.Strings(warnings)
-	return warnings
+	return cli.DetectOverwhelmDays(events, maxPerDay)
 }
 
-// expandAlarmProfiles replaces profile references (e.g., "profile:adhd-triple") with actual alarm triggers.
-// If a spec doesn't start with "profile:", it's returned as-is.
 func expandAlarmProfiles(alarmSpecs []string) ([]string, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -1887,20 +839,11 @@ Available template types:
   medical           - Healthcare appointments with prep reminders (CSV)
   travel            - Travel itinerary with flights and hotels (JSON)
   family            - Family calendar with mixed events (CSV)
-  school-event      - School calendar with terms, meetings, pickups (CSV/YAML)
-  recruiter-meeting - Job interview scheduling with prep time (CSV/YAML)
-  travel-day        - Single travel day with flights, hotels, activities (CSV/YAML)
-
-Use --format to choose output format (csv or yaml) for templates that support it.
 
 Examples:
   tempus batch template basic -o my-events.csv
   tempus batch template adhd-routine -o routine.csv
-  tempus batch template medication -o meds.yaml
-  tempus batch template school-event -o school.csv
-  tempus batch template school-event --format yaml -o school.yaml
-  tempus batch template recruiter-meeting -o interviews.csv
-  tempus batch template travel-day --format yaml -o trip.yaml`,
+  tempus batch template medication -o meds.yaml`,
 		Args: cobra.ExactArgs(1),
 		RunE: runBatchTemplate,
 	}
@@ -1920,8 +863,9 @@ func runBatchTemplate(cmd *cobra.Command, args []string) error {
 	if output == "" {
 		return fmt.Errorf("--output is required")
 	}
+
 	if format != "csv" && format != "yaml" {
-		return fmt.Errorf("--format must be 'csv' or 'yaml'")
+		return fmt.Errorf("--format must be 'csv' or 'yaml', got %q", format)
 	}
 
 	content, err := getBatchTemplateContent(templateType, format)
@@ -1973,6 +917,140 @@ func getBatchTemplateContent(templateType, format string) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown template type: %s\nAvailable: basic, adhd-routine, medication, work-meetings, medical, travel, family, school-event, recruiter-meeting, travel-day", templateType)
 	}
+}
+
+func getSchoolEventTemplateCSV() string {
+	return `summary,start_date,end_date,category,location,alarm,notes
+School starts Q3,2025-09-01,,trimester,IES Cervantes,-1d,
+Half-term holiday,2025-10-27,2025-10-31,vacation,,,"Emma and Leo - no school"
+Parent-teacher meeting,2025-11-15T17:00,,activity,IES Cervantes,adhd-default,"Emma - bring report card"
+Emma pickup 17:00,2025-09-02T17:00,,transport,IES Cervantes,single,"Gate 2"
+End of year concert,2025-06-20T18:00,,activity,School auditorium,-2h,"Bring camera"
+`
+}
+
+func getSchoolEventTemplateYAML() string {
+	return `- summary: "School starts Q3"
+  start_date: "2025-09-01"
+  category: trimester
+  location: "IES Cervantes"
+  alarm: "-1d"
+
+- summary: "Half-term holiday"
+  start_date: "2025-10-27"
+  end_date: "2025-10-31"
+  category: vacation
+  notes: "Emma and Leo - no school"
+
+- summary: "Parent-teacher meeting"
+  start_date: "2025-11-15T17:00"
+  category: activity
+  location: "IES Cervantes"
+  alarm: adhd-default
+  notes: "Emma - bring report card"
+
+- summary: "Emma pickup 17:00"
+  start_date: "2025-09-02T17:00"
+  category: transport
+  location: "IES Cervantes"
+  alarm: single
+  notes: "Gate 2"
+
+- summary: "End of year concert"
+  start_date: "2025-06-20T18:00"
+  category: activity
+  location: "School auditorium"
+  alarm: "-2h"
+  notes: "Bring camera"
+`
+}
+
+func getRecruiterMeetingTemplateCSV() string {
+	return `summary,start_date,time,duration,timezone,alarm,add_prep_time,company,role,recruiter,notes
+Call with Sarah @ Acme Corp,2025-12-16,10:00,30m,Europe/Madrid,adhd-default,true,Acme Corp,Senior Developer,Sarah Jones,"LinkedIn: linkedin.com/in/sarah"
+Technical interview @ StartupX,2025-12-18,15:00,1h,America/New_York,adhd-default,true,StartupX,Backend Engineer,Mike Chen,"Phone: +1-555-0123"
+`
+}
+
+func getRecruiterMeetingTemplateYAML() string {
+	return `- summary: "Call with Sarah @ Acme Corp"
+  start_date: "2025-12-16"
+  time: "10:00"
+  duration: 30m
+  timezone: Europe/Madrid
+  alarm: adhd-default
+  add_prep_time: true
+  company: "Acme Corp"
+  role: "Senior Developer"
+  recruiter: "Sarah Jones"
+  notes: "LinkedIn: linkedin.com/in/sarah"
+
+- summary: "Technical interview @ StartupX"
+  start_date: "2025-12-18"
+  time: "15:00"
+  duration: 1h
+  timezone: America/New_York
+  alarm: adhd-default
+  add_prep_time: true
+  company: "StartupX"
+  role: "Backend Engineer"
+  recruiter: "Mike Chen"
+  notes: "Phone: +1-555-0123"
+`
+}
+
+func getTravelDayTemplateCSV() string {
+	return `summary,start_date,time,end_time,timezone,destination_timezone,category,location,add_prep_time,alarm,notes
+MAD -> LHR BA456,2025-12-20,08:30,11:00,Europe/Madrid,Europe/London,flight,Madrid Barajas T4,true,-2h,"Booking: ABC123"
+Arrive London Heathrow,2025-12-20,11:00,,Europe/London,,transfer,Heathrow T5,false,,"Take Heathrow Express to Paddington"
+Hotel check-in Hilton London,2025-12-20,15:00,,Europe/London,,accommodation,Hilton London Paddington,false,-1h,"Booking ref: HIL789"
+Walking tour South Bank,2025-12-20,17:00,19:00,Europe/London,,activity,Waterloo Bridge,false,-30m,"Comfortable shoes"
+`
+}
+
+func getTravelDayTemplateYAML() string {
+	return `- summary: "MAD -> LHR BA456"
+  start_date: "2025-12-20"
+  time: "08:30"
+  end_time: "11:00"
+  timezone: Europe/Madrid
+  destination_timezone: Europe/London
+  category: flight
+  location: "Madrid Barajas T4"
+  add_prep_time: true
+  alarm: "-2h"
+  notes: "Booking: ABC123"
+
+- summary: "Arrive London Heathrow"
+  start_date: "2025-12-20"
+  time: "11:00"
+  timezone: Europe/London
+  category: transfer
+  location: "Heathrow T5"
+  add_prep_time: false
+  notes: "Take Heathrow Express to Paddington"
+
+- summary: "Hotel check-in Hilton London"
+  start_date: "2025-12-20"
+  time: "15:00"
+  timezone: Europe/London
+  category: accommodation
+  location: "Hilton London Paddington"
+  add_prep_time: false
+  alarm: "-1h"
+  notes: "Booking ref: HIL789"
+
+- summary: "Walking tour South Bank"
+  start_date: "2025-12-20"
+  time: "17:00"
+  end_time: "19:00"
+  timezone: Europe/London
+  category: activity
+  location: "Waterloo Bridge"
+  add_prep_time: false
+  alarm: "-30m"
+  notes: "Comfortable shoes"
+`
 }
 
 func getBasicTemplate() string {
@@ -2110,140 +1188,6 @@ Soccer Practice,2025-12-17 17:00,1h,Europe/Madrid,Sports Complex Field 3,FREQ=WE
 Piano Lesson,2025-12-18 16:30,45m,Europe/Madrid,Music Academy,FREQ=WEEKLY;BYDAY=WE;COUNT=10,Family|Kids|Music,Emma piano lesson,trigger=-2h;description=Practice today||trigger=-30m
 Pediatrician Checkup,2025-12-20 10:00,30m,Europe/Madrid,Pediatric Clinic,Family|Kids|Health,Annual checkup for both kids,trigger=-1d;description=Confirm appointment||trigger=-2h||trigger=-30m
 Date Night,2025-12-21 20:00,2h,Europe/Madrid,Restaurant Downtown,Family|Personal,Dinner reservation - babysitter confirmed,trigger=-1d;description=Confirm babysitter||trigger=-4h;description=Start getting ready||trigger=-1h
-`
-}
-
-func getSchoolEventTemplateCSV() string {
-	return `summary,start_date,end_date,category,location,alarm,notes
-School starts Q3,2025-09-01,,trimester,IES Cervantes,-1d,
-Half-term holiday,2025-10-27,2025-10-31,vacation,,,"Emma and Leo - no school"
-Parent-teacher meeting,2025-11-15T17:00,,activity,IES Cervantes,adhd-default,"Emma - bring report card"
-Emma pickup 17:00,2025-09-02T17:00,,transport,IES Cervantes,single,"Gate 2"
-End of year concert,2025-06-20T18:00,,activity,School auditorium,-2h,"Bring camera"
-`
-}
-
-func getSchoolEventTemplateYAML() string {
-	return `- summary: "School starts Q3"
-  start_date: "2025-09-01"
-  category: trimester
-  location: "IES Cervantes"
-  alarm: "-1d"
-
-- summary: "Half-term holiday"
-  start_date: "2025-10-27"
-  end_date: "2025-10-31"
-  category: vacation
-  notes: "Emma and Leo - no school"
-
-- summary: "Parent-teacher meeting"
-  start_date: "2025-11-15T17:00"
-  category: activity
-  location: "IES Cervantes"
-  alarm: adhd-default
-  notes: "Emma - bring report card"
-
-- summary: "Emma pickup 17:00"
-  start_date: "2025-09-02T17:00"
-  category: transport
-  location: "IES Cervantes"
-  alarm: single
-  notes: "Gate 2"
-
-- summary: "End of year concert"
-  start_date: "2025-06-20T18:00"
-  category: activity
-  location: "School auditorium"
-  alarm: "-2h"
-  notes: "Bring camera"
-`
-}
-
-func getRecruiterMeetingTemplateCSV() string {
-	return `summary,start_date,time,duration,timezone,alarm,add_prep_time,company,role,recruiter,notes
-Call with Sarah @ Acme Corp,2025-12-16,10:00,30m,Europe/Madrid,adhd-default,true,Acme Corp,Senior Developer,Sarah Jones,"LinkedIn: linkedin.com/in/sarah"
-Technical interview @ StartupX,2025-12-18,15:00,1h,America/New_York,adhd-default,true,StartupX,Backend Engineer,Mike Chen,"Phone: +1-555-0123"
-`
-}
-
-func getRecruiterMeetingTemplateYAML() string {
-	return `- summary: "Call with Sarah @ Acme Corp"
-  start_date: "2025-12-16"
-  time: "10:00"
-  duration: 30m
-  timezone: Europe/Madrid
-  alarm: adhd-default
-  add_prep_time: true
-  company: "Acme Corp"
-  role: "Senior Developer"
-  recruiter: "Sarah Jones"
-  notes: "LinkedIn: linkedin.com/in/sarah"
-
-- summary: "Technical interview @ StartupX"
-  start_date: "2025-12-18"
-  time: "15:00"
-  duration: 1h
-  timezone: America/New_York
-  alarm: adhd-default
-  add_prep_time: true
-  company: "StartupX"
-  role: "Backend Engineer"
-  recruiter: "Mike Chen"
-  notes: "Phone: +1-555-0123"
-`
-}
-
-func getTravelDayTemplateCSV() string {
-	return `summary,start_date,time,end_time,timezone,destination_timezone,category,location,add_prep_time,alarm,notes
-MAD -> LHR BA456,2025-12-20,08:30,11:00,Europe/Madrid,Europe/London,flight,Madrid Barajas T4,true,-2h,"Booking: ABC123"
-Arrive London Heathrow,2025-12-20,11:00,,Europe/London,,transfer,Heathrow T5,false,,"Take Heathrow Express to Paddington"
-Hotel check-in Hilton London,2025-12-20,15:00,,Europe/London,,accommodation,Hilton London Paddington,false,-1h,"Booking ref: HIL789"
-Walking tour South Bank,2025-12-20,17:00,19:00,Europe/London,,activity,Waterloo Bridge,false,-30m,"Comfortable shoes"
-`
-}
-
-func getTravelDayTemplateYAML() string {
-	return `- summary: "MAD -> LHR BA456"
-  start_date: "2025-12-20"
-  time: "08:30"
-  end_time: "11:00"
-  timezone: Europe/Madrid
-  destination_timezone: Europe/London
-  category: flight
-  location: "Madrid Barajas T4"
-  add_prep_time: true
-  alarm: "-2h"
-  notes: "Booking: ABC123"
-
-- summary: "Arrive London Heathrow"
-  start_date: "2025-12-20"
-  time: "11:00"
-  timezone: Europe/London
-  category: transfer
-  location: "Heathrow T5"
-  add_prep_time: false
-  notes: "Take Heathrow Express to Paddington"
-
-- summary: "Hotel check-in Hilton London"
-  start_date: "2025-12-20"
-  time: "15:00"
-  timezone: Europe/London
-  category: accommodation
-  location: "Hilton London Paddington"
-  add_prep_time: false
-  alarm: "-1h"
-  notes: "Booking ref: HIL789"
-
-- summary: "Walking tour South Bank"
-  start_date: "2025-12-20"
-  time: "17:00"
-  end_time: "19:00"
-  timezone: Europe/London
-  category: activity
-  location: "Waterloo Bridge"
-  add_prep_time: false
-  alarm: "-30m"
-  notes: "Comfortable shoes"
 `
 }
 
@@ -2457,131 +1401,6 @@ func valueAsStringSlice(v interface{}) []string {
 
 func valueAsAlarmSlice(v interface{}) []string {
 	return cli.ValueAsAlarmSlice(v)
-}
-
-func newConfigCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "config",
-		Short: "Manage tempus configuration",
-	}
-
-	cmd.AddCommand(
-		&cobra.Command{
-			Use:   "set <key> <value>",
-			Short: "Set a configuration value",
-			Args:  cobra.ExactArgs(2),
-			RunE:  runConfigSet,
-		},
-		&cobra.Command{
-			Use:   "list",
-			Short: "List all configuration values",
-			RunE:  runConfigList,
-		},
-		&cobra.Command{
-			Use:   "alarm-profiles",
-			Short: "List available alarm profiles",
-			RunE:  runConfigAlarmProfiles,
-		},
-	)
-
-	return cmd
-}
-
-func runConfigSet(_ *cobra.Command, args []string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-	key, value := args[0], args[1]
-	oldValue, _ := cfg.Get(key)
-
-	switch key {
-	case "timezone":
-		if err := config.ValidateTimezone(value); err != nil {
-			return fmt.Errorf("Invalid timezone: '%s'. Use 'tempus timezone list --search <name>' to find a valid IANA identifier.", value)
-		}
-	case "output_dir":
-		if err := config.ValidateOutputDir(value); err != nil {
-			return err
-		}
-	}
-
-	if err := cfg.Set(key, value); err != nil {
-		return err
-	}
-	fmt.Fprintf(stdout, "%s: %s -> %s\n", key, oldValue, value)
-	return nil
-}
-
-func runConfigList(_ *cobra.Command, _ []string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-	return cfg.List()
-}
-
-func runConfigAlarmProfiles(_ *cobra.Command, _ []string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-
-	if cfg.AlarmProfiles == nil || len(cfg.AlarmProfiles) == 0 {
-		fmt.Println("No alarm profiles configured.")
-		return nil
-	}
-
-	fmt.Println("Available alarm profiles:")
-	fmt.Println()
-
-	// Sort profile names for consistent output
-	names := cfg.ListAlarmProfiles()
-	sort.Strings(names)
-
-	for _, name := range names {
-		profile := cfg.GetAlarmProfile(name)
-		if profile == nil {
-			continue
-		}
-
-		fmt.Printf("  %s:\n", name)
-		if len(profile) == 0 {
-			fmt.Println("    (no alarms)")
-		} else {
-			for _, trigger := range profile {
-				fmt.Printf("    - %s\n", trigger)
-			}
-		}
-		fmt.Println()
-	}
-
-	fmt.Println("Usage in batch files:")
-	fmt.Printf("  CSV:  alarms column with 'profile:adhd-triple'\n")
-	fmt.Printf("  JSON: \"alarms\": [\"profile:medication\"]\n")
-	fmt.Printf("  YAML: alarms: [profile:single]\n")
-
-	return nil
-}
-
-var (
-	version = "dev"     // override with -X main.version=...
-	commit  = "unknown" // override with -X main.commit=...
-	date    = ""        // override with -X main.date=...
-)
-
-func newVersionCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Show version information",
-		Run: func(_ *cobra.Command, _ []string) {
-			if strings.TrimSpace(date) == "" {
-				fmt.Printf("tempus %s\n", version)
-			} else {
-				fmt.Printf("tempus %s (%s) built %s\n", version, commit, date)
-			}
-		},
-	}
 }
 
 // ========================================================================
@@ -2898,7 +1717,7 @@ func runTemplateCreate(cmd *cobra.Command, args []string) error {
 	values := map[string]string{}
 	for _, f := range tmpl.Fields {
 		if isAlarmField(f) {
-			values[f.Key] = promptAlarmField(labelForField(f), f.Default, tr)
+			values[f.Key] = promptAlarmField(labelForField(f), f.Default)
 			continue
 		}
 		v := promptInput(labelForField(f), f.Default)
@@ -3529,50 +2348,50 @@ func promptInput(prompt, defaultValue string) string {
 	return prompts.Input(prompt, defaultValue)
 }
 
-func promptAlarmField(label, defaultValue string, t *i18n.Translator) string {
-	fmt.Fprintf(stdout, "\n%s\n", label)
+func promptAlarmField(label, defaultValue string) string {
+	fmt.Printf("\n%s\n", label)
 	existing := calendar.SplitAlarmInput(defaultValue)
 	if len(existing) > 0 {
-		fmt.Fprintln(stdout, t.T("alarm_prompt_suggested"))
+		fmt.Println("Recordatorios sugeridos:")
 		for i, spec := range existing {
-			fmt.Fprintf(stdout, "  %d) %s\n", i+1, spec)
+			fmt.Printf("  %d) %s\n", i+1, spec)
 		}
-		keep := strings.ToLower(strings.TrimSpace(promptInput(t.T("alarm_prompt_keep_or_change"), "")))
-		if keep == "" || keep == t.T("alarm_prompt_yes_short") || keep == t.T("alarm_prompt_yes_long") {
+		keep := strings.ToLower(strings.TrimSpace(promptInput("Pulsa Enter para mantenerlos o escribe 'n' para cambiarlos", "")))
+		if keep == "" || keep == "s" || keep == "si" {
 			return strings.Join(existing, "\n")
 		}
-		fmt.Fprintln(stdout, "")
+		fmt.Println("")
 	}
 
-	fmt.Fprintln(stdout, t.T("alarm_prompt_add_up_to"))
-	fmt.Fprintln(stdout, t.T("alarm_prompt_help_hint"))
+	fmt.Println("Añade hasta 4 recordatorios. Usa formatos como -15m, +10m, 2025-03-01 09:15 o trigger=-15m,description=Texto.")
+	fmt.Println("Escribe '?' para ver ejemplos o deja vacío para terminar.")
 
 	specs := make([]string, 0, 4)
 	for len(specs) < 4 {
-		prompt := fmt.Sprintf(t.T("alarm_prompt_reminder_n"), len(specs)+1)
+		prompt := fmt.Sprintf("Recordatorio #%d (-15m, +10m, trigger=..., ? para ayuda)", len(specs)+1)
 		input := strings.TrimSpace(promptInput(prompt, ""))
 		if input == "" {
 			break
 		}
 		if input == "?" {
-			fmt.Fprintln(stdout, t.T("alarm_prompt_examples_header"))
-			fmt.Fprintln(stdout, t.T("alarm_prompt_example_before"))
-			fmt.Fprintln(stdout, t.T("alarm_prompt_example_after"))
-			fmt.Fprintln(stdout, t.T("alarm_prompt_example_trigger"))
-			fmt.Fprintln(stdout, t.T("alarm_prompt_example_absolute"))
+			fmt.Println("Ejemplos:")
+			fmt.Println("  -15m                 -> 15 minutos antes")
+			fmt.Println("  +5m                  -> 5 minutos después")
+			fmt.Println("  trigger=-30m,description=Buscar taxi")
+			fmt.Println("  trigger=2025-03-01 09:15,description=Check-in")
 			continue
 		}
 
 		spec := input
 		if !strings.Contains(spec, "=") {
-			desc := strings.TrimSpace(promptInput(t.T("alarm_prompt_optional_desc"), ""))
+			desc := strings.TrimSpace(promptInput("Descripción opcional (Enter para usar la genérica)", ""))
 			if desc != "" {
 				spec = fmt.Sprintf("trigger=%s,description=%s", input, desc)
 			}
 		}
 
 		if _, err := calendar.ParseAlarmSpecs([]string{spec}, ""); err != nil {
-			fmt.Fprintf(stdout, "? %v\n", err)
+			fmt.Printf("? %v\n", err)
 			continue
 		}
 		specs = append(specs, spec)
@@ -3743,12 +2562,11 @@ func runTZInfo(_ *cobra.Command, args []string) error {
 	// Try exact/alias/system
 	zone, err := tm.GetTimezone(query)
 	if err != nil {
-		mapped, cityErr := cityToIANA(query)
-		if cityErr != nil {
-			return fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", query, query)
-		}
-		if z2, err2 := tm.GetTimezone(mapped); err2 == nil {
-			zone = z2
+		// Try city→IANA mapping
+		if mapped, mapErr := cityToIANA(query); mapErr == nil && mapped != "" {
+			if z2, err2 := tm.GetTimezone(mapped); err2 == nil {
+				zone = z2
+			}
 		}
 	}
 
@@ -3857,13 +2675,11 @@ func cityToIANA(s string) (string, error) {
 // ------------------------------
 
 func printOK(format string, a ...interface{}) {
-	msg := fmt.Sprintf(format, a...)
-	fmt.Fprintf(stdout, "✅ %s", msg)
+	cli.PrintOK(os.Stdout, format, a...)
 }
 
 func printErr(format string, a ...interface{}) {
-	msg := fmt.Sprintf(format, a...)
-	fmt.Fprintf(stdout, "❌ %s", msg)
+	cli.PrintErr(os.Stdout, format, a...)
 }
 
 func atoiSafe(s string) int {
