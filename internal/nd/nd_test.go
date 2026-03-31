@@ -574,3 +574,107 @@ func BenchmarkDetectEventConflicts(b *testing.B) {
 		}
 	})
 }
+
+func TestAddEmojiToSummaryAllCategories(t *testing.T) {
+	tests := []struct {
+		category string
+	}{
+		{"meds"},
+		{"medical"},
+		{"therapy"},
+		{"mental health"},
+		{"exercise"},
+		{"workout"},
+		{"fitness"},
+		{"food"},
+		{"meal"},
+		{"restaurant"},
+		{"travel"},
+		{"flight"},
+		{"accommodation"},
+		{"hotel"},
+		{"focus"},
+		{"deep work"},
+		{"break"},
+		{"rest"},
+		{"transition"},
+		{"family"},
+		{"kids"},
+		{"personal"},
+		{"urgent"},
+		{"important"},
+		{"fun"},
+		{"leisure"},
+		{"learning"},
+		{"education"},
+		{"sleep"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.category, func(t *testing.T) {
+			got := AddEmojiToSummary("Event", []string{tt.category})
+			if got == "Event" {
+				t.Errorf("AddEmojiToSummary(\"Event\", [%q]) returned no emoji", tt.category)
+			}
+		})
+	}
+}
+
+func TestAddEmojiToSummarySummaryKeywords(t *testing.T) {
+	tests := []struct {
+		summary string
+	}{
+		{"Take a pill"},
+		{"Breakfast time"},
+		{"Lunch break"},
+		{"Dinner with family"},
+		{"Doctor visit"},
+		{"Dentist checkup"},
+		{"Team meeting"},
+		{"Focus block"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.summary, func(t *testing.T) {
+			got := AddEmojiToSummary(tt.summary, nil)
+			if got == tt.summary {
+				t.Errorf("AddEmojiToSummary(%q, nil) returned no emoji", tt.summary)
+			}
+		})
+	}
+}
+
+func TestGetSmartDefaultDurationAllBranches(t *testing.T) {
+	base := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
+	tests := []struct {
+		summary   string
+		hour      int
+		wantMin   int
+	}{
+		{"breakfast", 7, 30},
+		{"lunch meeting", 12, 45},
+		{"dinner reservation", 18, 60},
+		{"supper", 19, 60},
+		{"standup call", 9, 15},
+		{"stand-up call", 9, 15},
+		{"therapy session", 10, 60},
+		{"therapist appointment", 10, 60},
+		{"deep work block", 10, 120},
+		{"dentist checkup", 10, 30},
+		{"morning event", 7, 30},
+		{"evening event", 19, 90},
+		{"late night event", 22, 30},
+		{"midnight event", 2, 30},
+	}
+	for _, tt := range tests {
+		t.Run(tt.summary, func(t *testing.T) {
+			ts := time.Date(2025, 5, 1, tt.hour, 0, 0, 0, time.UTC)
+			if tt.hour == 0 {
+				ts = base
+			}
+			got := GetSmartDefaultDuration(tt.summary, ts)
+			want := time.Duration(tt.wantMin) * time.Minute
+			if got != want {
+				t.Errorf("GetSmartDefaultDuration(%q, hour=%d) = %v, want %v", tt.summary, tt.hour, got, want)
+			}
+		})
+	}
+}

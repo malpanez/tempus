@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/config"
 	"tempus/internal/nd"
 	"tempus/internal/testutil"
 
@@ -1240,3 +1241,707 @@ func TestTravelDayTemplateYAML(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadBatchFromYAML(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		wantLen int
+		wantErr bool
+	}{
+		{
+			name: "valid yaml list",
+			content: `- summary: "Meeting"
+  start: "2025-05-01 10:00"
+  end: "2025-05-01 11:00"
+  start_tz: "Europe/Madrid"
+- summary: "Standup"
+  start: "2025-05-02 09:00"
+  duration: "15m"
+`,
+			wantLen: 2,
+			wantErr: false,
+		},
+		{
+			name:    "empty file",
+			content: "",
+			wantLen: 0,
+			wantErr: false,
+		},
+		{
+			name:    "malformed yaml",
+			content: "{ invalid: yaml: :",
+			wantLen: 0,
+			wantErr: true,
+		},
+		{
+			name: "yaml with all fields",
+			content: `- summary: "Full Event"
+  start: "2025-06-01 14:00"
+  end: "2025-06-01 15:00"
+  duration: ""
+  start_tz: "UTC"
+  end_tz: "UTC"
+  location: "Room A"
+  description: "Test meeting"
+  all_day: false
+  rrule: "FREQ=WEEKLY;COUNT=4"
+  exdate: ["2025-06-08 14:00"]
+  categories: ["Work", "Meeting"]
+  alarms: ["15m", "5m"]
+`,
+			wantLen: 1,
+			wantErr: false,
+		},
+		{
+			name: "yaml with all_day true",
+			content: `- summary: "Holiday"
+  start: "2025-12-25"
+  all_day: true
+`,
+			wantLen: 1,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			path := filepath.Join(tmpDir, "test.yaml")
+			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
+				t.Fatalf("failed to write test file: %v", err)
+			}
+			got, err := loadBatchFromYAML(path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadBatchFromYAML() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(got) != tt.wantLen {
+				t.Errorf("loadBatchFromYAML() returned %d records, want %d", len(got), tt.wantLen)
+			}
+		})
+	}
+
+	t.Run("invalid file path", func(t *testing.T) {
+		_, err := loadBatchFromYAML("/nonexistent/path/test.yaml")
+		if err == nil {
+			t.Error("loadBatchFromYAML() expected error for nonexistent file, got nil")
+		}
+	})
+}
+
+func TestLoadBatchFromYAMLFieldParsing(t *testing.T) {
+	content := `- summary: "Event with fields"
+  start: "2025-07-01 10:00"
+  end: "2025-07-01 11:00"
+  start_tz: "Europe/Madrid"
+  end_tz: "Europe/Madrid"
+  location: "Office"
+  description: "Important meeting"
+  all_day: false
+  rrule: "FREQ=DAILY;COUNT=3"
+  exdate: ["2025-07-03 10:00"]
+  categories: ["Work", "Team"]
+  alarms: ["10m", "5m"]
+`
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "fields.yaml")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	records, err := loadBatchFromYAML(path)
+	if err != nil {
+		t.Fatalf("loadBatchFromYAML() error = %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+
+	rec := records[0]
+	if rec.Summary != "Event with fields" {
+		t.Errorf("Summary = %q, want %q", rec.Summary, "Event with fields")
+	}
+	if rec.Location != "Office" {
+		t.Errorf("Location = %q, want %q", rec.Location, "Office")
+	}
+	if rec.RRule != "FREQ=DAILY;COUNT=3" {
+		t.Errorf("RRule = %q, want %q", rec.RRule, "FREQ=DAILY;COUNT=3")
+	}
+	if len(rec.Categories) != 2 {
+		t.Errorf("Categories len = %d, want 2", len(rec.Categories))
+	}
+	if len(rec.Alarms) != 2 {
+		t.Errorf("Alarms len = %d, want 2", len(rec.Alarms))
+	}
+	if len(rec.ExDates) != 1 {
+		t.Errorf("ExDates len = %d, want 1", len(rec.ExDates))
+	}
+	if rec.AllDay {
+		t.Error("AllDay = true, want false")
+	}
+}
+
+func TestHandleDryRunSuccess(t *testing.T) {
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	records := []batchRecord{
+		{Summary: "Meeting", Start: "2025-05-01 10:00"},
+		{Summary: "Standup", Start: "2025-05-02 09:00"},
+	}
+
+	err := handleDryRun(app, nil, nil, records, "events.csv", "out.ics")
+	if err != nil {
+		t.Fatalf("handleDryRun() unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "Validation passed") {
+		t.Errorf("expected 'Validation passed' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "Meeting") {
+		t.Errorf("expected 'Meeting' in summary output, got: %s", out)
+	}
+	if !strings.Contains(out, "Standup") {
+		t.Errorf("expected 'Standup' in summary output, got: %s", out)
+	}
+	if !strings.Contains(out, "tempus batch") {
+		t.Errorf("expected 'tempus batch' command hint in output, got: %s", out)
+	}
+}
+
+func TestHandleDryRunWithWarnings(t *testing.T) {
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	records := []batchRecord{
+		{Summary: "Event", Start: "2025-05-01 10:00"},
+	}
+	warnings := []string{"conflict: event overlaps another"}
+
+	err := handleDryRun(app, nil, warnings, records, "events.csv", "out.ics")
+	if err != nil {
+		t.Fatalf("handleDryRun() unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "conflict") {
+		t.Errorf("expected warning in output, got: %s", out)
+	}
+}
+
+func TestHandleDryRunWithValidationErrors(t *testing.T) {
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	validationErrors := []string{"Row 1: summary is required", "Row 3: invalid start date"}
+
+	err := handleDryRun(app, validationErrors, nil, nil, "events.csv", "out.ics")
+	if err == nil {
+		t.Fatal("handleDryRun() expected error when validation errors present, got nil")
+	}
+	if !strings.Contains(err.Error(), "validation failed") {
+		t.Errorf("expected 'validation failed' error, got: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "Validation failed") {
+		t.Errorf("expected 'Validation failed' in output, got: %s", out)
+	}
+}
+
+func TestPrintDryRunSummary(t *testing.T) {
+	var buf bytes.Buffer
+
+	records := []batchRecord{
+		{Summary: "Alpha Event", Start: "2025-05-01 10:00"},
+		{Summary: "", Start: ""},
+		{Summary: "Gamma Event", Start: "2025-05-03 14:00"},
+	}
+
+	printDryRunSummary(&buf, records, "input.csv", "output.ics")
+
+	out := buf.String()
+	if !strings.Contains(out, "Event summary") {
+		t.Errorf("expected 'Event summary' header, got: %s", out)
+	}
+	if !strings.Contains(out, "Alpha Event") {
+		t.Errorf("expected 'Alpha Event' in output, got: %s", out)
+	}
+	if !strings.Contains(out, "(no summary)") {
+		t.Errorf("expected '(no summary)' for empty record, got: %s", out)
+	}
+	if !strings.Contains(out, "(no start)") {
+		t.Errorf("expected '(no start)' for empty start, got: %s", out)
+	}
+	if !strings.Contains(out, "input.csv") {
+		t.Errorf("expected input path in output, got: %s", out)
+	}
+	if !strings.Contains(out, "output.ics") {
+		t.Errorf("expected output path in output, got: %s", out)
+	}
+	if !strings.Contains(out, "1.") || !strings.Contains(out, "2.") || !strings.Contains(out, "3.") {
+		t.Errorf("expected numbered list in output, got: %s", out)
+	}
+}
+
+func TestResolvePrepLabel(t *testing.T) {
+	tests := []struct {
+		name      string
+		flagValue string
+		cfg       *config.Config
+		want      string
+	}{
+		{"flag overrides config", "My Prep", &config.Config{PrepTimePrefix: "Config Prep"}, "My Prep"},
+		{"config used when no flag", "", &config.Config{PrepTimePrefix: "Config Prep"}, "Config Prep"},
+		{"default when both empty", "", &config.Config{PrepTimePrefix: ""}, "Preparation"},
+		{"default when nil config", "", nil, "Preparation"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resolvePrepLabel(tt.flagValue, tt.cfg)
+			if got != tt.want {
+				t.Errorf("resolvePrepLabel(%q, ...) = %q, want %q", tt.flagValue, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildBatchCalendarWithDryRun(t *testing.T) {
+	records := []batchRecord{
+		{Summary: "Valid Event", Start: "2025-05-01 10:00", End: "2025-05-01 11:00"},
+		{Summary: "", Start: "2025-05-02 10:00"},
+		{Summary: "Another Valid", Start: "2025-05-03 14:00", End: "2025-05-03 15:00"},
+	}
+	opts := &batchOptions{dryRun: true, defaultTZ: "UTC"}
+	spellCache := nd.NewSpellCheckCache(nil)
+	catCache := nd.NewCategoryCache()
+
+	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	if err != nil {
+		t.Fatalf("buildBatchCalendar() unexpected error: %v", err)
+	}
+	if len(validationErrors) == 0 {
+		t.Error("expected validation errors for record with empty summary, got none")
+	}
+	if cal == nil {
+		t.Fatal("buildBatchCalendar() returned nil calendar")
+	}
+	if len(cal.Events) != 2 {
+		t.Errorf("expected 2 valid events in calendar, got %d", len(cal.Events))
+	}
+}
+
+func TestBuildBatchCalendarWithName(t *testing.T) {
+	records := []batchRecord{
+		{Summary: "Event", Start: "2025-05-01 10:00", End: "2025-05-01 11:00"},
+	}
+	opts := &batchOptions{name: "My Calendar", defaultTZ: "Europe/Madrid"}
+	spellCache := nd.NewSpellCheckCache(nil)
+	catCache := nd.NewCategoryCache()
+
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	if err != nil {
+		t.Fatalf("buildBatchCalendar() error: %v", err)
+	}
+	if cal.Name != "My Calendar" {
+		t.Errorf("Calendar Name = %q, want %q", cal.Name, "My Calendar")
+	}
+}
+
+func TestBuildBatchCalendarNonDryRunError(t *testing.T) {
+	records := []batchRecord{
+		{Summary: "", Start: "2025-05-01 10:00"},
+	}
+	opts := &batchOptions{dryRun: false}
+	spellCache := nd.NewSpellCheckCache(nil)
+	catCache := nd.NewCategoryCache()
+
+	_, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	if err == nil {
+		t.Fatal("buildBatchCalendar() expected error for record with empty summary in non-dry-run mode")
+	}
+}
+
+func TestBuildBatchCalendarWithPrepTime(t *testing.T) {
+	records := []batchRecord{
+		{Summary: "Meeting", Start: "2025-05-01 10:00", End: "2025-05-01 11:00"},
+	}
+	opts := &batchOptions{addPrepTime: true, prepLabel: "Get Ready", defaultTZ: "UTC"}
+	spellCache := nd.NewSpellCheckCache(nil)
+	catCache := nd.NewCategoryCache()
+
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	if err != nil {
+		t.Fatalf("buildBatchCalendar() error: %v", err)
+	}
+	if len(cal.Events) < 1 {
+		t.Error("expected at least 1 event in calendar")
+	}
+}
+
+func TestDetectBatchFormatYAML(t *testing.T) {
+	tests := []struct {
+		name    string
+		flag    string
+		path    string
+		want    batchFormat
+		wantErr bool
+	}{
+		{"auto yaml extension", "auto", "events.yaml", batchFormatYAML, false},
+		{"auto yml extension", "auto", "events.yml", batchFormatYAML, false},
+		{"explicit yaml", "yaml", "events.txt", batchFormatYAML, false},
+		{"explicit yml", "yml", "events.txt", batchFormatYAML, false},
+		{"YAML uppercase", "YAML", "events.txt", batchFormatYAML, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := detectBatchFormat(tt.flag, tt.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("detectBatchFormat(%q, %q) error = %v, wantErr %v", tt.flag, tt.path, err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("detectBatchFormat(%q, %q) = %v, want %v", tt.flag, tt.path, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadBatchFromCSVInvalidPath(t *testing.T) {
+	_, err := loadBatchFromCSV("/nonexistent/dir/file.csv")
+	if err == nil {
+		t.Error("loadBatchFromCSV() expected error for nonexistent file, got nil")
+	}
+}
+
+func TestLoadBatchFromJSONInvalidPath(t *testing.T) {
+	_, err := loadBatchFromJSON("/nonexistent/dir/file.json")
+	if err == nil {
+		t.Error("loadBatchFromJSON() expected error for nonexistent file, got nil")
+	}
+}
+
+func TestParseBatchAllDayTimesEdgeCases(t *testing.T) {
+	t.Run("valid start no end gives next day", func(t *testing.T) {
+		start, end, err := parseBatchAllDayTimes("2025-09-01", "")
+		if err != nil {
+			t.Fatalf("parseBatchAllDayTimes() error: %v", err)
+		}
+		expected := start.AddDate(0, 0, 1)
+		if !end.Equal(expected) {
+			t.Errorf("end = %v, want %v", end, expected)
+		}
+	})
+
+	t.Run("invalid start date", func(t *testing.T) {
+		_, _, err := parseBatchAllDayTimes("not-a-date", "")
+		if err == nil {
+			t.Error("expected error for invalid start date, got nil")
+		}
+	})
+
+	t.Run("invalid end date", func(t *testing.T) {
+		_, _, err := parseBatchAllDayTimes("2025-09-01", "not-a-date")
+		if err == nil {
+			t.Error("expected error for invalid end date, got nil")
+		}
+	})
+}
+
+func TestParseBatchExplicitEndEdgeCases(t *testing.T) {
+	startTime := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
+
+	t.Run("zero duration rejected", func(t *testing.T) {
+		_, err := parseBatchExplicitEnd("0m", startTime, "UTC", "0m")
+		if err == nil {
+			t.Error("expected error for zero duration, got nil")
+		}
+	})
+
+	t.Run("valid human duration", func(t *testing.T) {
+		end, err := parseBatchExplicitEnd("2h", startTime, "UTC", "2h")
+		if err != nil {
+			t.Fatalf("parseBatchExplicitEnd() error: %v", err)
+		}
+		expected := startTime.Add(2 * time.Hour)
+		if !end.Equal(expected) {
+			t.Errorf("end = %v, want %v", end, expected)
+		}
+	})
+
+	t.Run("invalid datetime string", func(t *testing.T) {
+		_, err := parseBatchExplicitEnd("not-a-time", startTime, "UTC", "not-a-time")
+		if err == nil {
+			t.Error("expected error for invalid datetime, got nil")
+		}
+	})
+
+	t.Run("clock only end time", func(t *testing.T) {
+		_, err := parseBatchExplicitEnd("14:00", startTime, "UTC", "14:00")
+		if err != nil {
+			t.Logf("parseBatchExplicitEnd with clock-only: %v (may be expected)", err)
+		}
+	})
+}
+
+func TestParseBatchDurationEndEdgeCases(t *testing.T) {
+	startTime := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
+
+	t.Run("zero duration rejected", func(t *testing.T) {
+		_, err := parseBatchDurationEnd("0m", startTime)
+		if err == nil {
+			t.Error("expected error for zero duration, got nil")
+		}
+	})
+
+	t.Run("invalid duration string", func(t *testing.T) {
+		_, err := parseBatchDurationEnd("not-a-duration", startTime)
+		if err == nil {
+			t.Error("expected error for invalid duration string, got nil")
+		}
+	})
+
+	t.Run("valid duration 45m", func(t *testing.T) {
+		end, err := parseBatchDurationEnd("45m", startTime)
+		if err != nil {
+			t.Fatalf("parseBatchDurationEnd() error: %v", err)
+		}
+		expected := startTime.Add(45 * time.Minute)
+		if !end.Equal(expected) {
+			t.Errorf("end = %v, want %v", end, expected)
+		}
+	})
+}
+
+func TestRunBatchWithDryRun(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join(tmpDir, "events.csv")
+	outputPath := filepath.Join(tmpDir, "out.ics")
+
+	csvData := "summary,start,end\nMeeting,2025-05-01 10:00,2025-05-01 11:00\nStandup,2025-05-02 09:00,2025-05-02 09:15\n"
+	if err := os.WriteFile(inputPath, []byte(csvData), 0644); err != nil {
+		t.Fatalf("failed to write csv: %v", err)
+	}
+
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	cmd := NewBatchCmd(app)
+	mustSetFlag(t, cmd, "input", inputPath)
+	mustSetFlag(t, cmd, "output", outputPath)
+	mustSetFlag(t, cmd, "dry-run", "true")
+
+	if err := runBatch(app, cmd, nil); err != nil {
+		t.Fatalf("runBatch() dry-run error: %v", err)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "Validation passed") {
+		t.Errorf("expected 'Validation passed' in dry-run output, got: %s", out)
+	}
+	if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
+		t.Error("dry-run should not create output file")
+	}
+}
+
+func TestRunBatchWithConflictCheck(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join(tmpDir, "events.csv")
+	outputPath := filepath.Join(tmpDir, "out.ics")
+
+	csvData := "summary,start,end\nEvent A,2025-05-01 10:00,2025-05-01 12:00\nEvent B,2025-05-01 11:00,2025-05-01 13:00\n"
+	if err := os.WriteFile(inputPath, []byte(csvData), 0644); err != nil {
+		t.Fatalf("failed to write csv: %v", err)
+	}
+
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	cmd := NewBatchCmd(app)
+	mustSetFlag(t, cmd, "input", inputPath)
+	mustSetFlag(t, cmd, "output", outputPath)
+	mustSetFlag(t, cmd, "check-conflicts", "true")
+
+	if err := runBatch(app, cmd, nil); err != nil {
+		t.Fatalf("runBatch() with conflict check error: %v", err)
+	}
+}
+
+func TestRunBatchWithPrepTime(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join(tmpDir, "events.csv")
+	outputPath := filepath.Join(tmpDir, "out.ics")
+
+	csvData := "summary,start,end\nMeeting,2025-05-01 10:00,2025-05-01 11:00\n"
+	if err := os.WriteFile(inputPath, []byte(csvData), 0644); err != nil {
+		t.Fatalf("failed to write csv: %v", err)
+	}
+
+	app := TestApp()
+	cmd := NewBatchCmd(app)
+	mustSetFlag(t, cmd, "input", inputPath)
+	mustSetFlag(t, cmd, "output", outputPath)
+	mustSetFlag(t, cmd, "add-prep-time", "true")
+	mustSetFlag(t, cmd, "prep-label", "Get Ready")
+
+	if err := runBatch(app, cmd, nil); err != nil {
+		t.Fatalf("runBatch() with prep-time error: %v", err)
+	}
+}
+
+func TestRunBatchYAMLInput(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join(tmpDir, "events.yaml")
+	outputPath := filepath.Join(tmpDir, "out.ics")
+
+	yamlData := `- summary: "Team Sync"
+  start: "2025-06-01 10:00"
+  end: "2025-06-01 11:00"
+  start_tz: "UTC"
+- summary: "Daily Standup"
+  start: "2025-06-02 09:00"
+  duration: "15m"
+  start_tz: "UTC"
+`
+	if err := os.WriteFile(inputPath, []byte(yamlData), 0644); err != nil {
+		t.Fatalf("failed to write yaml: %v", err)
+	}
+
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+
+	cmd := NewBatchCmd(app)
+	mustSetFlag(t, cmd, "input", inputPath)
+	mustSetFlag(t, cmd, "output", outputPath)
+
+	if err := runBatch(app, cmd, nil); err != nil {
+		t.Fatalf("runBatch() yaml error: %v", err)
+	}
+
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	ics := string(data)
+	if !strings.Contains(ics, "BEGIN:VCALENDAR") {
+		t.Errorf("expected valid ICS output, got: %s", ics)
+	}
+	if !strings.Contains(ics, "SUMMARY:Team Sync") {
+		t.Errorf("expected 'Team Sync' in ICS, got: %s", ics)
+	}
+}
+
+func TestRunBatchNoInput(t *testing.T) {
+	app := TestApp()
+	cmd := NewBatchCmd(app)
+
+	err := runBatch(app, cmd, nil)
+	if err == nil {
+		t.Fatal("runBatch() expected error when no input specified")
+	}
+	if !strings.Contains(err.Error(), "--input is required") {
+		t.Errorf("expected '--input is required' error, got: %v", err)
+	}
+}
+
+func TestRunBatchTemplateOutputRequired(t *testing.T) {
+	app := TestApp()
+	cmd := NewBatchTemplateCmd(app)
+	cmd.SetArgs([]string{"basic"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error when --output not provided")
+	}
+}
+
+func TestBuildBatchCalendarDefaultTZ(t *testing.T) {
+	records := []batchRecord{
+		{Summary: "Event", Start: "2025-05-01 10:00", End: "2025-05-01 11:00"},
+	}
+	opts := &batchOptions{defaultTZ: "Europe/Madrid"}
+	spellCache := nd.NewSpellCheckCache(nil)
+	catCache := nd.NewCategoryCache()
+
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	if err != nil {
+		t.Fatalf("buildBatchCalendar() error: %v", err)
+	}
+	if len(cal.Events) != 1 {
+		t.Errorf("expected 1 event, got %d", len(cal.Events))
+	}
+}
+
+func TestLoadBatchInputDetectsYAML(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "data.yaml")
+	content := `- summary: "YAML Event"
+  start: "2025-08-01 09:00"
+  end: "2025-08-01 10:00"
+`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write yaml: %v", err)
+	}
+
+	opts := &batchOptions{input: path, formatFlag: "auto"}
+	records, format, err := loadBatchInput(opts)
+	if err != nil {
+		t.Fatalf("loadBatchInput() error: %v", err)
+	}
+	if format != batchFormatYAML {
+		t.Errorf("format = %v, want %v", format, batchFormatYAML)
+	}
+	if len(records) != 1 {
+		t.Errorf("records len = %d, want 1", len(records))
+	}
+}
+
+func TestLoadBatchInputEmptyFileError(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "empty.csv")
+	if err := os.WriteFile(path, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	opts := &batchOptions{input: path, formatFlag: "csv"}
+	_, _, err := loadBatchInput(opts)
+	if err == nil {
+		t.Fatal("loadBatchInput() expected error for empty file, got nil")
+	}
+	if !strings.Contains(err.Error(), "no events found") {
+		t.Errorf("expected 'no events found' error, got: %v", err)
+	}
+}
+
+func TestWriteBatchOutputNilStdout(t *testing.T) {
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "out.ics")
+
+	cal := calendar.NewCalendar()
+	ev := &calendar.Event{
+		Summary:   "Test",
+		StartTime: time.Now(),
+		EndTime:   time.Now().Add(time.Hour),
+	}
+	cal.AddEvent(ev)
+
+	app := TestApp()
+	app.Stdout = nil
+
+	err := writeBatchOutput(app, cal, nil, outputPath, 1)
+	if err != nil {
+		t.Fatalf("writeBatchOutput() with nil stdout error: %v", err)
+	}
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		t.Error("expected output file to be created")
+	}
+}
+
