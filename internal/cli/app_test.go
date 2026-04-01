@@ -30,7 +30,7 @@ func TestSetupPersistentPreRunE(t *testing.T) {
 	}
 
 	cmd := &cobra.Command{
-		Use: "test",
+		Use:               "test",
 		PersistentPreRunE: SetupPersistentPreRunE(app),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
@@ -60,7 +60,7 @@ func TestSetupPersistentPreRunEWithFlags(t *testing.T) {
 	}
 
 	cmd := &cobra.Command{
-		Use: "test",
+		Use:               "test",
 		PersistentPreRunE: SetupPersistentPreRunE(app),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil

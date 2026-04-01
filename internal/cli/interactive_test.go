@@ -247,13 +247,13 @@ func TestInteractiveCancelDoesNotWrite(t *testing.T) {
 
 func TestBuildSummaryDescription(t *testing.T) {
 	vars := &interactiveVars{
-		summary:   "Team Meeting",
-		startDate: "2025-06-15",
-		startTime: "10:00",
-		duration:  "1h",
-		timezone:  "UTC",
-		alarmProf: "adhd-default",
-		location:  "Room 1",
+		summary:     "Team Meeting",
+		startDate:   "2025-06-15",
+		startTime:   "10:00",
+		duration:    "1h",
+		timezone:    "UTC",
+		alarmProf:   "adhd-default",
+		location:    "Room 1",
 		description: "Weekly sync",
 	}
 
@@ -347,16 +347,16 @@ func TestCreateEventFromWizardWithCategories(t *testing.T) {
 	app.Config.OutputDir = tmpDir
 
 	vars := &interactiveVars{
-		summary:    "Focus Block",
-		startDate:  "2025-08-01",
-		startTime:  "14:00",
-		duration:   "2h",
-		timezone:   "UTC",
-		alarmProf:  "custom",
+		summary:     "Focus Block",
+		startDate:   "2025-08-01",
+		startTime:   "14:00",
+		duration:    "2h",
+		timezone:    "UTC",
+		alarmProf:   "custom",
 		customAlarm: "-30m,-5m",
-		categories: []string{"work", "other"},
-		customCat:  "focus",
-		confirmed:  true,
+		categories:  []string{"work", "other"},
+		customCat:   "focus",
+		confirmed:   true,
 	}
 
 	err := createEventFromWizard(app, vars)

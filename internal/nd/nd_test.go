@@ -391,8 +391,8 @@ func TestNormalizeAndSpellCheck(t *testing.T) {
 
 func TestNormalizeAndSpellCheckWithCorrections(t *testing.T) {
 	corrections := map[string]string{
-		"meeing":  "meeting",
-		"doctr":   "doctor",
+		"meeing": "meeting",
+		"doctr":  "doctor",
 	}
 
 	tests := []struct {
@@ -645,9 +645,9 @@ func TestAddEmojiToSummarySummaryKeywords(t *testing.T) {
 func TestGetSmartDefaultDurationAllBranches(t *testing.T) {
 	base := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
 	tests := []struct {
-		summary   string
-		hour      int
-		wantMin   int
+		summary string
+		hour    int
+		wantMin int
 	}{
 		{"breakfast", 7, 30},
 		{"lunch meeting", 12, 45},

@@ -1025,9 +1025,9 @@ func TestCSVValue(t *testing.T) {
 	}
 
 	tests := []struct {
-		name  string
-		key   string
-		want  string
+		name string
+		key  string
+		want string
 	}{
 		{"existing key", "col1", "value1"},
 		{"second key", "col2", "value2"},
@@ -1944,4 +1944,3 @@ func TestWriteBatchOutputNilStdout(t *testing.T) {
 		t.Error("expected output file to be created")
 	}
 }
-

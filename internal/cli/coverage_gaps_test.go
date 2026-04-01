@@ -814,7 +814,6 @@ func TestNewTranslator(t *testing.T) {
 	_ = tr3
 }
 
-
 func TestNormalizeValuesForTemplateNoDDTemplate(t *testing.T) {
 	tmpl := &tpl.Template{
 		Fields: []tpl.Field{
@@ -974,7 +973,6 @@ func TestNewInitCmd(t *testing.T) {
 		t.Error("init command should have RunE function")
 	}
 }
-
 
 // =====================================================================
 // timezone.go — printZoneInfo directly

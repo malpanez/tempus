@@ -693,4 +693,3 @@ func TestAlarmPromptI18nKeys(t *testing.T) {
 		}
 	}
 }
-

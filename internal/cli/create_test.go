@@ -242,7 +242,7 @@ func TestParseAllDayTimesEndDate(t *testing.T) {
 
 func TestParseTimedEventTimesEndStr(t *testing.T) {
 	tests := []struct {
-		name    string
+		name     string
 		startStr string
 		endStr   string
 		durStr   string

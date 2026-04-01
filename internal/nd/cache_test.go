@@ -6,9 +6,9 @@ import (
 
 func TestSpellCheckCacheNormalizeAndCheck(t *testing.T) {
 	corrections := map[string]string{
-		"meetng":  "meeting",
-		"doctr":   "doctor",
-		"lunhc":   "lunch",
+		"meetng": "meeting",
+		"doctr":  "doctor",
+		"lunhc":  "lunch",
 	}
 
 	t.Run("corrects known typo", func(t *testing.T) {
