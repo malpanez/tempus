@@ -380,10 +380,7 @@ func generateMeetingEvent(data map[string]string, translator *i18n.Translator) (
 	summary := translator.T(i18n.KeyMeetingTemplate, title)
 	event := calendar.NewEvent(summary, startTime, endTime)
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Set location
 	if location := data["location"]; location != "" {
@@ -431,10 +428,7 @@ func generateHolidayEvent(data map[string]string, translator *i18n.Translator) (
 	event := calendar.NewEvent(summary, startDate, endDate.AddDate(0, 0, 1))
 	event.AllDay = true
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	event.Location = destination
 
@@ -473,6 +467,12 @@ func splitAndTrim(s, sep string) []string {
 
 // ----- ADHD-friendly template generators -----
 
+func applyTimezone(event *calendar.Event, data map[string]string) {
+	if tz := data["timezone"]; tz != "" {
+		event.SetTimezone(tz)
+	}
+}
+
 func parseStartAndEnd(data map[string]string, defaultDur string) (time.Time, time.Time, error) {
 	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
@@ -501,10 +501,7 @@ func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calen
 	summary := fmt.Sprintf("🎯 Focus: %s", task)
 	event := calendar.NewEvent(summary, startTime, endTime)
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Build description
 	var description string
@@ -558,10 +555,7 @@ func generateMedicationEvent(data map[string]string, _ *i18n.Translator) (*calen
 	summary := fmt.Sprintf("💊 %s - %s", medName, dosage)
 	event := calendar.NewEvent(summary, medTime, endTime)
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Build description
 	var description string
@@ -620,10 +614,7 @@ func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*cale
 	}
 	event := calendar.NewEvent(summary, apptTime, endTime)
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Set location
 	if location := data["location"]; location != "" {
@@ -692,10 +683,7 @@ func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calen
 	summary := fmt.Sprintf("🔄 Transition: %s → %s", fromActivity, toActivity)
 	event := calendar.NewEvent(summary, startTime, endTime)
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Build description
 	description := fmt.Sprintf("Buffer time between activities\n\nFrom: %s\nTo: %s\n\n", fromActivity, toActivity)
@@ -733,10 +721,7 @@ func generateDeadlineEvent(data map[string]string, _ *i18n.Translator) (*calenda
 	event := calendar.NewEvent(summary, dueDate, dueDate.AddDate(0, 0, 1))
 	event.AllDay = true
 
-	// Set timezone
-	if tz := data["timezone"]; tz != "" {
-		event.SetTimezone(tz)
-	}
+	applyTimezone(event, data)
 
 	// Set priority
 	if priorityStr := data["priority"]; priorityStr != "" {
