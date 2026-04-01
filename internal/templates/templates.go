@@ -473,25 +473,29 @@ func splitAndTrim(s, sep string) []string {
 
 // ----- ADHD-friendly template generators -----
 
-func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
-	task := data["task"]
-
-	// Parse start time
+func parseStartAndEnd(data map[string]string, defaultDur string) (time.Time, time.Time, error) {
 	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
 	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
+		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
 	}
-
-	// Parse duration
 	durStr := strings.TrimSpace(data["duration"])
 	if durStr == "" {
-		durStr = "90m"
+		durStr = defaultDur
 	}
 	dur, err := parseHumanDuration(durStr)
 	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
+		return time.Time{}, time.Time{}, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
 	}
-	endTime := startTime.Add(dur)
+	return startTime, startTime.Add(dur), nil
+}
+
+func generateFocusBlockEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
+	task := data["task"]
+
+	startTime, endTime, err := parseStartAndEnd(data, "90m")
+	if err != nil {
+		return nil, err
+	}
 
 	// Create event
 	summary := fmt.Sprintf("🎯 Focus: %s", task)
@@ -604,22 +608,10 @@ func generateMedicationEvent(data map[string]string, _ *i18n.Translator) (*calen
 func generateAppointmentEvent(data map[string]string, _ *i18n.Translator) (*calendar.Event, error) {
 	title := data["title"]
 
-	// Parse appointment time
-	apptTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
+	apptTime, endTime, err := parseStartAndEnd(data, "30m")
 	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
+		return nil, err
 	}
-
-	// Parse duration
-	durStr := strings.TrimSpace(data["duration"])
-	if durStr == "" {
-		durStr = "30m"
-	}
-	dur, err := parseHumanDuration(durStr)
-	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
-	}
-	endTime := apptTime.Add(dur)
 
 	// Create event
 	summary := title
@@ -691,22 +683,10 @@ func generateTransitionEvent(data map[string]string, _ *i18n.Translator) (*calen
 	fromActivity := data["from_activity"]
 	toActivity := data["to_activity"]
 
-	// Parse start time
-	startTime, err := time.Parse(constants.DateTimeFormatISO, data["start_time"])
+	startTime, endTime, err := parseStartAndEnd(data, "15m")
 	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidStartTimeFormat, err)
+		return nil, err
 	}
-
-	// Parse duration
-	durStr := strings.TrimSpace(data["duration"])
-	if durStr == "" {
-		durStr = "15m"
-	}
-	dur, err := parseHumanDuration(durStr)
-	if err != nil {
-		return nil, fmt.Errorf(testutil.ErrMsgInvalidDurationFormat, err)
-	}
-	endTime := startTime.Add(dur)
 
 	// Create event
 	summary := fmt.Sprintf("🔄 Transition: %s → %s", fromActivity, toActivity)
