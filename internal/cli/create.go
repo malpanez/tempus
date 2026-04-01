@@ -8,6 +8,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/constants"
+	"tempus/internal/parsing"
 	"tempus/internal/testutil"
 
 	"github.com/spf13/cobra"
@@ -271,35 +272,11 @@ func addEventExDates(event *calendar.Event, exdates []string, startTZ string, al
 		tzForExdate = strings.TrimSpace(startTZ)
 	}
 
-	out := make([]time.Time, 0, len(exdates))
 	for _, raw := range exdates {
-		normalized := strings.TrimSpace(raw)
-		if normalized == "" {
-			continue
+		parsed, err := parsing.ParseExDateValues([]string{raw}, tzForExdate, allDay)
+		if err == nil {
+			event.ExDates = append(event.ExDates, parsed...)
 		}
-		normalized = strings.ReplaceAll(normalized, "T", " ")
-
-		datePart, timePart := SplitDateTime(normalized)
-		isDateOnly := strings.TrimSpace(timePart) == ""
-
-		if allDay || isDateOnly {
-			t, err := time.Parse("2006-01-02", datePart)
-			if err != nil {
-				continue
-			}
-			out = append(out, t)
-			continue
-		}
-
-		t, err := time.Parse("2006-01-02 15:04", normalized)
-		if err != nil {
-			continue
-		}
-		out = append(out, t)
-	}
-
-	if len(out) > 0 {
-		event.ExDates = append(event.ExDates, out...)
 	}
 }
 
