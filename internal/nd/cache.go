@@ -28,20 +28,12 @@ func (c *SpellCheckCache) NormalizeAndCheck(text string) string {
 	for i, word := range words {
 		lower := strings.ToLower(word)
 		if result, ok := c.cache[lower]; ok {
-			if len(word) > 0 && word[0] >= 'A' && word[0] <= 'Z' {
-				words[i] = strings.Title(result)
-			} else {
-				words[i] = result
-			}
+			words[i] = applyWordCase(word, result)
 			continue
 		}
 		if corrected, exists := c.corrections[lower]; exists {
 			c.cache[lower] = corrected
-			if len(word) > 0 && word[0] >= 'A' && word[0] <= 'Z' {
-				words[i] = strings.Title(corrected)
-			} else {
-				words[i] = corrected
-			}
+			words[i] = applyWordCase(word, corrected)
 		} else {
 			c.cache[lower] = word
 		}

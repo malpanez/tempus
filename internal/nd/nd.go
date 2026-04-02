@@ -11,6 +11,13 @@ import (
 	"github.com/google/uuid"
 )
 
+func applyWordCase(original, corrected string) string {
+	if len(original) > 0 && original[0] >= 'A' && original[0] <= 'Z' {
+		return strings.Title(corrected)
+	}
+	return corrected
+}
+
 func NormalizeAndSpellCheck(text string, corrections map[string]string) string {
 	if text == "" {
 		return text
@@ -24,11 +31,7 @@ func NormalizeAndSpellCheck(text string, corrections map[string]string) string {
 	for i, word := range words {
 		lower := strings.ToLower(word)
 		if corrected, exists := corrections[lower]; exists {
-			if len(word) > 0 && word[0] >= 'A' && word[0] <= 'Z' {
-				words[i] = strings.Title(corrected)
-			} else {
-				words[i] = corrected
-			}
+			words[i] = applyWordCase(word, corrected)
 		}
 	}
 
