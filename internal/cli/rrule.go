@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -28,10 +27,7 @@ Examples of what you can create:
 }
 
 func runRRuleHelper(app *App, _ *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	fmt.Fprintln(w, "RRULE Builder - Create recurring event patterns")
 	fmt.Fprintln(w)
 

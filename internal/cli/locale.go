@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"tempus/internal/i18n"
@@ -28,10 +27,7 @@ func NewLocaleCmd(app *App) *cobra.Command {
 }
 
 func runLocaleList(app *App, _ *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	locales := i18n.Locales()
 	if len(locales) == 0 {
 		fmt.Fprintln(w, "No locales found.")

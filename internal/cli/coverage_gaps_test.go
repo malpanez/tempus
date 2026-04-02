@@ -2715,7 +2715,7 @@ func TestRunTemplateCreateFromFileFormatError(t *testing.T) {
 }
 
 // =====================================================================
-// create.go — addEventExDates with allDay events and invalid dates
+// create.go — addExDates with allDay events and invalid dates
 // =====================================================================
 
 func TestAddEventExDatesAllDay(t *testing.T) {
@@ -2725,7 +2725,7 @@ func TestAddEventExDatesAllDay(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 2, 0, 0, 0, 0, time.UTC),
 		AllDay:    true,
 	}
-	addEventExDates(event, []string{"2025-06-08", "invalid-date", ""}, "UTC", true)
+	addExDates(event, []string{"2025-06-08", "invalid-date", ""}, "UTC", true)
 	if len(event.ExDates) != 1 {
 		t.Errorf("expected 1 valid exdate, got %d", len(event.ExDates))
 	}
@@ -2738,7 +2738,7 @@ func TestAddEventExDatesWithStartTZ(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 		StartTZ:   "Europe/Madrid",
 	}
-	addEventExDates(event, []string{"2025-06-08 10:00"}, "", false)
+	addExDates(event, []string{"2025-06-08 10:00"}, "", false)
 	if len(event.ExDates) != 1 {
 		t.Errorf("expected 1 exdate, got %d", len(event.ExDates))
 	}
@@ -2746,14 +2746,14 @@ func TestAddEventExDatesWithStartTZ(t *testing.T) {
 
 func TestAddEventExDatesEmptyList(t *testing.T) {
 	event := &calendar.Event{}
-	addEventExDates(event, []string{}, "UTC", false)
+	addExDates(event, []string{}, "UTC", false)
 	if len(event.ExDates) != 0 {
 		t.Error("expected no exdates for empty input")
 	}
 }
 
 // =====================================================================
-// batch.go — addBatchExDates with startTZ and error path
+// batch.go — addExDates with startTZ and error path
 // =====================================================================
 
 func TestAddBatchExDatesWithStartTZ(t *testing.T) {
@@ -2763,12 +2763,12 @@ func TestAddBatchExDatesWithStartTZ(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 		StartTZ:   "Europe/Madrid",
 	}
-	addBatchExDates(event, []string{"2025-06-08"}, "", false)
+	addExDates(event, []string{"2025-06-08"}, "", false)
 }
 
 func TestAddBatchExDatesEmpty(t *testing.T) {
 	event := &calendar.Event{}
-	addBatchExDates(event, []string{}, "UTC", false)
+	addExDates(event, []string{}, "UTC", false)
 }
 
 // =====================================================================
@@ -3089,7 +3089,7 @@ func TestParseEndTimeExactDateTime(t *testing.T) {
 }
 
 // =====================================================================
-// create.go — addEventExDates with date-only non-allDay event
+// create.go — addExDates with date-only non-allDay event
 // =====================================================================
 
 func TestAddEventExDatesDateOnlyNonAllDay(t *testing.T) {
@@ -3098,7 +3098,7 @@ func TestAddEventExDatesDateOnlyNonAllDay(t *testing.T) {
 		StartTime: time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 	}
-	addEventExDates(event, []string{"2025-06-08"}, "UTC", false)
+	addExDates(event, []string{"2025-06-08"}, "UTC", false)
 	if len(event.ExDates) != 1 {
 		t.Errorf("expected 1 exdate for date-only non-allday, got %d", len(event.ExDates))
 	}
@@ -3110,7 +3110,7 @@ func TestAddEventExDatesInvalidTimestamp(t *testing.T) {
 		StartTime: time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 	}
-	addEventExDates(event, []string{"not-a-valid-date 25:99"}, "UTC", false)
+	addExDates(event, []string{"not-a-valid-date 25:99"}, "UTC", false)
 	if len(event.ExDates) != 0 {
 		t.Error("expected no exdates for invalid date")
 	}

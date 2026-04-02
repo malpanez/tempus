@@ -390,7 +390,7 @@ func TestSetEventTimezonesEndInheritsStart(t *testing.T) {
 func TestAddEventExDates(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
 	exdates := []string{"2025-12-25", "2026-01-01", "invalid-date"}
-	addEventExDates(event, exdates, "UTC", true)
+	addExDates(event, exdates, "UTC", true)
 	if len(event.ExDates) != 2 {
 		t.Errorf("expected 2 valid exdates, got %d", len(event.ExDates))
 	}
@@ -398,7 +398,7 @@ func TestAddEventExDates(t *testing.T) {
 
 func TestAddEventExDatesEmpty(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
-	addEventExDates(event, []string{}, "UTC", false)
+	addExDates(event, []string{}, "UTC", false)
 	if len(event.ExDates) != 0 {
 		t.Errorf("expected 0 exdates, got %d", len(event.ExDates))
 	}

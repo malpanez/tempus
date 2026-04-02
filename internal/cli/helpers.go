@@ -12,6 +12,7 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/normalizer"
+	"tempus/internal/parsing"
 	"tempus/internal/utils"
 )
 
@@ -278,4 +279,27 @@ func SplitDateTime(s string) (string, string) {
 		return parts[0], ""
 	}
 	return "", ""
+}
+
+func stdoutWriter(app *App) io.Writer {
+	if app.Stdout != nil {
+		return app.Stdout
+	}
+	return os.Stdout
+}
+
+func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
+	if len(exdates) == 0 {
+		return
+	}
+	tzForEx := strings.TrimSpace(event.StartTZ)
+	if tzForEx == "" {
+		tzForEx = strings.TrimSpace(startTZ)
+	}
+	for _, raw := range exdates {
+		parsed, err := parsing.ParseExDateValues([]string{raw}, tzForEx, allDay)
+		if err == nil {
+			event.ExDates = append(event.ExDates, parsed...)
+		}
+	}
 }

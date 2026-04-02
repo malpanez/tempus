@@ -22,10 +22,7 @@ func NewLintCmd(app *App) *cobra.Command {
 }
 
 func runLint(app *App, cmd *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	paths, _ := cmd.Flags().GetStringArray("file")
 	if len(paths) == 0 {
 		return fmt.Errorf("--file is required (repeat flag for multiple files)")

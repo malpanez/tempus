@@ -8,7 +8,6 @@ import (
 
 	"tempus/internal/calendar"
 	"tempus/internal/constants"
-	"tempus/internal/parsing"
 	"tempus/internal/testutil"
 
 	"github.com/spf13/cobra"
@@ -241,7 +240,7 @@ func configureEvent(event *calendar.Event, opts *createOptions) {
 		event.RRule = strings.TrimSpace(opts.rrule)
 	}
 
-	addEventExDates(event, opts.exdates, opts.startTZ, opts.allDay)
+	addExDates(event, opts.exdates, opts.startTZ, opts.allDay)
 	addEventAlarms(event, opts.alarms, opts.startTZ)
 	addEventCategories(event, opts.categories)
 	addEventAttendees(event, opts.attendees)
@@ -262,23 +261,6 @@ func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
 	}
 }
 
-func addEventExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
-	if len(exdates) == 0 {
-		return
-	}
-
-	tzForExdate := strings.TrimSpace(event.StartTZ)
-	if tzForExdate == "" {
-		tzForExdate = strings.TrimSpace(startTZ)
-	}
-
-	for _, raw := range exdates {
-		parsed, err := parsing.ParseExDateValues([]string{raw}, tzForExdate, allDay)
-		if err == nil {
-			event.ExDates = append(event.ExDates, parsed...)
-		}
-	}
-}
 
 func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
 	if len(alarms) == 0 {

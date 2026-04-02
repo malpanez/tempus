@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -44,10 +43,7 @@ func NewTimezoneCmd(app *App) *cobra.Command {
 }
 
 func runTZList(app *App, cmd *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	search, _ := cmd.Flags().GetString("search")
 	country, _ := cmd.Flags().GetString("country")
 	region, _ := cmd.Flags().GetString("region")
@@ -102,10 +98,7 @@ func runTZList(app *App, cmd *cobra.Command, _ []string) error {
 }
 
 func runTZInfo(app *App, _ *cobra.Command, args []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	query := strings.TrimSpace(strings.Join(args, " "))
 	if query == "" {
 		return fmt.Errorf("please provide a timezone name or IANA identifier")

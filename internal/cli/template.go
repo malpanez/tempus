@@ -103,10 +103,7 @@ func newTemplateInitCmd(app *App) *cobra.Command {
 }
 
 func runTemplateList(app *App, cmd *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	tm, _, err := loadTemplateManager(cmd)
 	if err != nil {
 		return err
@@ -131,10 +128,7 @@ func runTemplateList(app *App, cmd *cobra.Command, _ []string) error {
 }
 
 func runTemplateCreate(app *App, cmd *cobra.Command, args []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	name := args[0]
 
 	tm, tr, err := loadTemplateManager(cmd)
@@ -210,10 +204,7 @@ func runTemplateCreate(app *App, cmd *cobra.Command, args []string) error {
 }
 
 func runTemplateCreateFromFile(app *App, tm *tpl.TemplateManager, tr *i18n.Translator, tmpl *tpl.Template, dd tpl.DataDrivenTemplate, params templateCreateParams) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	format, err := detectTemplateInputFormat(params.formatFlag, params.inputPath)
 	if err != nil {
 		return err
@@ -259,10 +250,7 @@ func runTemplateCreateFromFile(app *App, tm *tpl.TemplateManager, tr *i18n.Trans
 }
 
 func runTemplateDescribe(app *App, cmd *cobra.Command, args []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	name := args[0]
 	tm, _, err := loadTemplateManager(cmd)
 	if err != nil {
@@ -575,10 +563,7 @@ func deriveTemplateFilename(tm *tpl.TemplateManager, templateName string, values
 }
 
 func runTemplateValidate(app *App, cmd *cobra.Command, _ []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	templatesDirFlag, _ := cmd.Flags().GetString("templates-dir")
 	dirs := tpl.ResolveTemplateDirs(templatesDirFlag)
 	if len(dirs) == 0 {
@@ -630,10 +615,7 @@ func runTemplateValidate(app *App, cmd *cobra.Command, _ []string) error {
 }
 
 func runTemplateInit(app *App, cmd *cobra.Command, args []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	name := args[0]
 	dir, _ := cmd.Flags().GetString("dir")
 	format, _ := cmd.Flags().GetString("format")

@@ -229,10 +229,7 @@ func collectBatchWarnings(events []calendar.Event, opts *batchOptions) []string 
 }
 
 func handleDryRun(app *App, validationErrors, warnings []string, records []batchRecord, input, output string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	if len(validationErrors) > 0 {
 		PrintErr(w, "Validation failed with %d error(s):\n", len(validationErrors))
 		for _, errMsg := range validationErrors {
@@ -272,10 +269,7 @@ func printDryRunSummary(w io.Writer, records []batchRecord, input, output string
 }
 
 func writeBatchOutput(app *App, cal *calendar.Calendar, warnings []string, output string, eventCount int) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	if len(warnings) > 0 {
 		fmt.Fprintf(w, "\n")
 		for _, warning := range warnings {
@@ -636,7 +630,7 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 	}
 
 	addBatchCategories(event, rec.Categories, catCache)
-	addBatchExDates(event, rec.ExDates, startTZ, rec.AllDay)
+	addExDates(event, rec.ExDates, startTZ, rec.AllDay)
 	addBatchAlarms(event, rec.Alarms, startTZ)
 }
 
@@ -650,21 +644,6 @@ func addBatchCategories(event *calendar.Event, categories []string, catCache *nd
 	}
 }
 
-func addBatchExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
-	if len(exdates) == 0 {
-		return
-	}
-
-	tzForEx := event.StartTZ
-	if tzForEx == "" {
-		tzForEx = startTZ
-	}
-
-	parsed, err := parsing.ParseExDateValues(exdates, tzForEx, allDay)
-	if err == nil {
-		event.ExDates = append(event.ExDates, parsed...)
-	}
-}
 
 func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
 	if len(alarms) == 0 {
@@ -755,10 +734,7 @@ Examples:
 }
 
 func runBatchTemplate(app *App, cmd *cobra.Command, args []string) error {
-	w := app.Stdout
-	if w == nil {
-		w = os.Stdout
-	}
+	w := stdoutWriter(app)
 	templateType := strings.ToLower(strings.TrimSpace(args[0]))
 	output, _ := cmd.Flags().GetString("output")
 	format, _ := cmd.Flags().GetString("format")
