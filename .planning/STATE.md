@@ -112,6 +112,12 @@ None yet.
 
 - Phase 3: Verify charmbracelet/huh Go 1.23 compatibility before planning
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260403-087 | Reduce SonarCloud CPD duplication below 3% (stdoutWriter, addExDates, applyWordCase) | 2026-04-03 | 1f6faad | [260403-087-reduce-sonarcloud-cpd-duplication-below-](./quick/260403-087-reduce-sonarcloud-cpd-duplication-below-/) |
+
 ## Session Continuity
 
 Last session: 2026-03-30T20:41:22.639Z
