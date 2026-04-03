@@ -261,7 +261,6 @@ func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
 	}
 }
 
-
 func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
 	if len(alarms) == 0 {
 		return

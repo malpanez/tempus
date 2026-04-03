@@ -644,7 +644,6 @@ func addBatchCategories(event *calendar.Event, categories []string, catCache *nd
 	}
 }
 
-
 func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
 	if len(alarms) == 0 {
 		return
