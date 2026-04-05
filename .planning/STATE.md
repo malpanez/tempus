@@ -118,9 +118,11 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260403-087 | Reduce SonarCloud CPD duplication below 3% (stdoutWriter, addExDates, applyWordCase) | 2026-04-03 | 1f6faad | [260403-087-reduce-sonarcloud-cpd-duplication-below-](./quick/260403-087-reduce-sonarcloud-cpd-duplication-below-/) |
 | 260403-skg | Fix SonarCloud CPD 5.1% to below 3% by removing sonar.tests config | 2026-04-03 | a3066fd | [260403-skg-fix-sonarcloud-cpd-5-1-to-below-3-by-fix](./quick/260403-skg-fix-sonarcloud-cpd-5-1-to-below-3-by-fix/) |
+| 260405-2eo | Extract valueAsSlice helper to eliminate ValueAsStringSlice/ValueAsAlarmSlice CPD duplication | 2026-04-05 | ce5102a | [260405-2eo-fix-remaining-sonarcloud-cpd-5-1-by-extr](./quick/260405-2eo-fix-remaining-sonarcloud-cpd-5-1-by-extr/) |
+| 260405-ida | Extract parseMapsToRecords and newGeneratedEvent helpers to eliminate CPD duplication | 2026-04-05 | 91c6042 | [260405-ida-fix-remaining-sonarcloud-cpd-duplication](./quick/260405-ida-fix-remaining-sonarcloud-cpd-duplication/) |
 
 ## Session Continuity
 
-Last session: 2026-04-03T19:38:07Z
-Stopped at: Completed 260403-skg-PLAN.md
+Last session: 2026-04-05T00:00:00Z
+Stopped at: Completed 260405-ida-PLAN.md
 Resume file: None
