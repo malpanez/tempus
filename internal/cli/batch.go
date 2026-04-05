@@ -401,7 +401,7 @@ func csvValue(row []string, index map[string]int, key string) string {
 	return ""
 }
 
-func loadBatchFromJSON(path string) ([]batchRecord, error) {
+func loadBatchFromStructured(path string, unmarshal func([]byte, interface{}) error) ([]batchRecord, error) {
 	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
@@ -409,30 +409,19 @@ func loadBatchFromJSON(path string) ([]batchRecord, error) {
 	if len(strings.TrimSpace(string(data))) == 0 {
 		return nil, nil
 	}
-
 	var raw []map[string]interface{}
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
-
 	return parseMapsToRecords(raw), nil
 }
 
+func loadBatchFromJSON(path string) ([]batchRecord, error) {
+	return loadBatchFromStructured(path, json.Unmarshal)
+}
+
 func loadBatchFromYAML(path string) ([]batchRecord, error) {
-	data, err := os.ReadFile(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-	if len(strings.TrimSpace(string(data))) == 0 {
-		return nil, nil
-	}
-
-	var raw []map[string]interface{}
-	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return nil, err
-	}
-
-	return parseMapsToRecords(raw), nil
+	return loadBatchFromStructured(path, yaml.Unmarshal)
 }
 
 func parseMapsToRecords(raw []map[string]interface{}) []batchRecord {
@@ -598,14 +587,7 @@ func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error
 func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string, catCache *nd.CategoryCache) {
 	event.AllDay = rec.AllDay
 
-	if startTZ != "" {
-		event.SetStartTimezone(startTZ)
-	}
-	if endTZ != "" {
-		event.SetEndTimezone(endTZ)
-	} else if startTZ != "" {
-		event.SetEndTimezone(startTZ)
-	}
+	setEventTimezones(event, startTZ, endTZ)
 
 	event.Location = strings.TrimSpace(rec.Location)
 	event.Description = strings.TrimSpace(rec.Description)
