@@ -38,7 +38,7 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-func splitDateTime(s string) (string, string) {
+func SplitDateTime(s string) (string, string) {
 	parts := strings.Fields(s)
 	if len(parts) >= 2 {
 		return parts[0], parts[1]
@@ -49,7 +49,7 @@ func splitDateTime(s string) (string, string) {
 	return "", ""
 }
 
-func fmtDurationHuman(d time.Duration) string {
+func FmtDurationHuman(d time.Duration) string {
 	if d <= 0 {
 		return "0m"
 	}
@@ -356,12 +356,12 @@ func SetEndAndDuration(values map[string]string, endKey, durationKey, endDT stri
 		values[endKey] = endDT
 	}
 	if strings.TrimSpace(durationKey) != "" {
-		values[durationKey] = fmtDurationHuman(d)
+		values[durationKey] = FmtDurationHuman(d)
 	}
 }
 
 func AddDurationToStart(start, tz string, d time.Duration) string {
-	datePart, timePart := splitDateTime(start)
+	datePart, timePart := SplitDateTime(start)
 	st, err := ParseDateTimeWithTZ(datePart, timePart, tz)
 	if err != nil {
 		if t2, e2 := time.Parse("2006-01-02 15:04", start); e2 == nil {
@@ -400,7 +400,7 @@ func ParseExDateValues(values []string, tz string, allDay bool) ([]time.Time, er
 		}
 		normalized = strings.ReplaceAll(normalized, "T", " ")
 
-		datePart, timePart := splitDateTime(normalized)
+		datePart, timePart := SplitDateTime(normalized)
 		isDateOnly := strings.TrimSpace(timePart) == ""
 
 		if allDay || isDateOnly {

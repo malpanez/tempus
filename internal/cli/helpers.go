@@ -235,30 +235,11 @@ func PrependToday(clock, tz string) string {
 }
 
 func FmtDurationHuman(d time.Duration) string {
-	if d <= 0 {
-		return "0m"
-	}
-	totalMin := int(d.Minutes() + 0.5)
-	h := totalMin / 60
-	m := totalMin % 60
-	if h > 0 && m > 0 {
-		return fmt.Sprintf("%dh%dm", h, m)
-	}
-	if h > 0 {
-		return fmt.Sprintf("%dh", h)
-	}
-	return fmt.Sprintf("%dm", m)
+	return parsing.FmtDurationHuman(d)
 }
 
 func SplitDateTime(s string) (string, string) {
-	parts := strings.Fields(s)
-	if len(parts) >= 2 {
-		return parts[0], parts[1]
-	}
-	if len(parts) == 1 {
-		return parts[0], ""
-	}
-	return "", ""
+	return parsing.SplitDateTime(s)
 }
 
 func stdoutWriter(app *App) io.Writer {
