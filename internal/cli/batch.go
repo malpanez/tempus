@@ -415,26 +415,7 @@ func loadBatchFromJSON(path string) ([]batchRecord, error) {
 		return nil, err
 	}
 
-	records := make([]batchRecord, 0, len(raw))
-	for _, item := range raw {
-		rec := batchRecord{
-			Summary:     ValueAsString(item["summary"]),
-			Start:       ValueAsString(item["start"]),
-			End:         ValueAsString(item["end"]),
-			Duration:    ValueAsString(item["duration"]),
-			StartTZ:     ValueAsString(item["start_tz"]),
-			EndTZ:       ValueAsString(item["end_tz"]),
-			Location:    ValueAsString(item["location"]),
-			Description: ValueAsString(item["description"]),
-			RRule:       ValueAsString(item["rrule"]),
-			AllDay:      ValueAsBool(item["all_day"]),
-			ExDates:     ValueAsStringSlice(item["exdate"]),
-			Categories:  ValueAsStringSlice(item["categories"]),
-			Alarms:      ValueAsAlarmSlice(item["alarms"]),
-		}
-		records = append(records, rec)
-	}
-	return records, nil
+	return parseMapsToRecords(raw), nil
 }
 
 func loadBatchFromYAML(path string) ([]batchRecord, error) {
@@ -451,6 +432,10 @@ func loadBatchFromYAML(path string) ([]batchRecord, error) {
 		return nil, err
 	}
 
+	return parseMapsToRecords(raw), nil
+}
+
+func parseMapsToRecords(raw []map[string]interface{}) []batchRecord {
 	records := make([]batchRecord, 0, len(raw))
 	for _, item := range raw {
 		rec := batchRecord{
@@ -470,7 +455,7 @@ func loadBatchFromYAML(path string) ([]batchRecord, error) {
 		}
 		records = append(records, rec)
 	}
-	return records, nil
+	return records
 }
 
 func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache) (*calendar.Event, error) {
