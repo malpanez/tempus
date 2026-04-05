@@ -337,24 +337,33 @@ func GeneratePrepTimeEvents(events []calendar.Event, prepLabel string) []*calend
 	return prepEvents
 }
 
-func createTransitionEventIfNeeded(ev calendar.Event) *calendar.Event {
-	if !needsFocusTransition(ev.Summary) {
-		return nil
-	}
-
+func newGeneratedEvent(summary string, start, end time.Time, ev calendar.Event, categories []string) *calendar.Event {
 	return &calendar.Event{
 		UID:        GenerateUID(),
-		Summary:    "\U0001f504 Transition: " + StripEmoji(ev.Summary),
-		StartTime:  ev.EndTime,
-		EndTime:    ev.EndTime.Add(5 * time.Minute),
+		Summary:    summary,
+		StartTime:  start,
+		EndTime:    end,
 		StartTZ:    ev.StartTZ,
 		EndTZ:      ev.EndTZ,
 		AllDay:     false,
-		Categories: []string{"Transition"},
+		Categories: categories,
 		Status:     "CONFIRMED",
 		Created:    time.Now().UTC(),
 		LastMod:    time.Now().UTC(),
 	}
+}
+
+func createTransitionEventIfNeeded(ev calendar.Event) *calendar.Event {
+	if !needsFocusTransition(ev.Summary) {
+		return nil
+	}
+	return newGeneratedEvent(
+		"\U0001f504 Transition: "+StripEmoji(ev.Summary),
+		ev.EndTime,
+		ev.EndTime.Add(5*time.Minute),
+		ev,
+		[]string{"Transition"},
+	)
 }
 
 func createPrepEventIfNeeded(ev calendar.Event, prepLabel string) *calendar.Event {
@@ -365,20 +374,13 @@ func createPrepEventIfNeeded(ev calendar.Event, prepLabel string) *calendar.Even
 	if description == "Preparation" && prepLabel != "" {
 		description = prepLabel
 	}
-
-	return &calendar.Event{
-		UID:        GenerateUID(),
-		Summary:    "\u23f0 " + description + ": " + StripEmoji(ev.Summary),
-		StartTime:  ev.StartTime.Add(-duration),
-		EndTime:    ev.StartTime,
-		StartTZ:    ev.StartTZ,
-		EndTZ:      ev.EndTZ,
-		AllDay:     false,
-		Categories: []string{"Preparation"},
-		Status:     "CONFIRMED",
-		Created:    time.Now().UTC(),
-		LastMod:    time.Now().UTC(),
-	}
+	return newGeneratedEvent(
+		"\u23f0 "+description+": "+StripEmoji(ev.Summary),
+		ev.StartTime.Add(-duration),
+		ev.StartTime,
+		ev,
+		[]string{"Preparation"},
+	)
 }
 
 func needsFocusTransition(summary string) bool {
