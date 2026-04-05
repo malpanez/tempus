@@ -13,6 +13,7 @@ import (
 	"tempus/internal/calendar"
 	"tempus/internal/normalizer"
 	"tempus/internal/parsing"
+	"tempus/internal/testutil"
 	"tempus/internal/utils"
 )
 
@@ -265,6 +266,17 @@ func stdoutWriter(app *App) io.Writer {
 		return app.Stdout
 	}
 	return os.Stdout
+}
+
+func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
+	dur, err := calendar.ParseHumanDuration(durStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid duration %q: %v", durStr, err)
+	}
+	if dur <= 0 {
+		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
+	}
+	return startTime.Add(dur), nil
 }
 
 func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {

@@ -548,7 +548,7 @@ func parseBatchEndTime(rec batchRecord, startTime time.Time, endTZ, summary stri
 	case endStr != "":
 		return parseBatchExplicitEnd(endStr, startTime, endTZ, rec.End)
 	case strings.TrimSpace(rec.Duration) != "":
-		return parseBatchDurationEnd(rec.Duration, startTime)
+		return parseDurationEnd(startTime, rec.Duration)
 	default:
 		return startTime.Add(nd.GetSmartDefaultDuration(summary, startTime)), nil
 	}
@@ -571,17 +571,6 @@ func parseBatchExplicitEnd(endStr string, startTime time.Time, endTZ, originalEn
 		return time.Time{}, fmt.Errorf("invalid end time %q: %w", originalEnd, err)
 	}
 	return endTime, nil
-}
-
-func parseBatchDurationEnd(durStr string, startTime time.Time) (time.Time, error) {
-	dur, err := calendar.ParseHumanDuration(durStr)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid duration %q: %v", durStr, err)
-	}
-	if dur <= 0 {
-		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
-	}
-	return startTime.Add(dur), nil
 }
 
 func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string, catCache *nd.CategoryCache) {

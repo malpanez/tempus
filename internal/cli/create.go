@@ -199,17 +199,6 @@ func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
 	return endTime, nil
 }
 
-func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
-	d, err := calendar.ParseHumanDuration(durStr)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid duration: %v", err)
-	}
-	if d <= 0 {
-		return time.Time{}, fmt.Errorf(testutil.ErrMsgDurationGreaterThanZero)
-	}
-	return startTime.Add(d), nil
-}
-
 func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) *calendar.Calendar {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true

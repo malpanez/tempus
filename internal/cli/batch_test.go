@@ -1693,23 +1693,23 @@ func TestParseBatchDurationEndEdgeCases(t *testing.T) {
 	startTime := time.Date(2025, 5, 1, 10, 0, 0, 0, time.UTC)
 
 	t.Run("zero duration rejected", func(t *testing.T) {
-		_, err := parseBatchDurationEnd("0m", startTime)
+		_, err := parseDurationEnd(startTime, "0m")
 		if err == nil {
 			t.Error("expected error for zero duration, got nil")
 		}
 	})
 
 	t.Run("invalid duration string", func(t *testing.T) {
-		_, err := parseBatchDurationEnd("not-a-duration", startTime)
+		_, err := parseDurationEnd(startTime, "not-a-duration")
 		if err == nil {
 			t.Error("expected error for invalid duration string, got nil")
 		}
 	})
 
 	t.Run("valid duration 45m", func(t *testing.T) {
-		end, err := parseBatchDurationEnd("45m", startTime)
+		end, err := parseDurationEnd(startTime, "45m")
 		if err != nil {
-			t.Fatalf("parseBatchDurationEnd() error: %v", err)
+			t.Fatalf("parseDurationEnd() error: %v", err)
 		}
 		expected := startTime.Add(45 * time.Minute)
 		if !end.Equal(expected) {

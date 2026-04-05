@@ -1937,22 +1937,22 @@ func TestPrintTemplateOutputWithDifferentEndTZ(t *testing.T) {
 }
 
 // =====================================================================
-// batch.go — parseBatchDurationEnd with zero duration
+// batch.go — parseDurationEnd (unified) with zero duration
 // =====================================================================
 
 func TestParseBatchDurationEndZero(t *testing.T) {
 	start := time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC)
-	_, err := parseBatchDurationEnd("0m", start)
+	_, err := parseDurationEnd(start, "0m")
 	if err == nil {
-		t.Error("parseBatchDurationEnd() expected error for zero duration")
+		t.Error("parseDurationEnd() expected error for zero duration")
 	}
 }
 
 func TestParseBatchDurationEndInvalid(t *testing.T) {
 	start := time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC)
-	_, err := parseBatchDurationEnd("not-a-duration", start)
+	_, err := parseDurationEnd(start, "not-a-duration")
 	if err == nil {
-		t.Error("parseBatchDurationEnd() expected error for invalid duration")
+		t.Error("parseDurationEnd() expected error for invalid duration")
 	}
 }
 
@@ -2792,14 +2792,14 @@ func TestDeriveTemplateFilenameGuessStartDate(t *testing.T) {
 }
 
 // =====================================================================
-// batch.go — parseBatchDurationEnd valid case
+// batch.go — parseDurationEnd (unified) valid case
 // =====================================================================
 
 func TestParseBatchDurationEndValid(t *testing.T) {
 	start := time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC)
-	end, err := parseBatchDurationEnd("45m", start)
+	end, err := parseDurationEnd(start, "45m")
 	if err != nil {
-		t.Fatalf("parseBatchDurationEnd() error: %v", err)
+		t.Fatalf("parseDurationEnd() error: %v", err)
 	}
 	expected := start.Add(45 * time.Minute)
 	if !end.Equal(expected) {
