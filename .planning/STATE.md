@@ -121,9 +121,10 @@ None yet.
 | 260405-2eo | Extract valueAsSlice helper to eliminate ValueAsStringSlice/ValueAsAlarmSlice CPD duplication | 2026-04-05 | ce5102a | [260405-2eo-fix-remaining-sonarcloud-cpd-5-1-by-extr](./quick/260405-2eo-fix-remaining-sonarcloud-cpd-5-1-by-extr/) |
 | 260405-ida | Extract parseMapsToRecords and newGeneratedEvent helpers to eliminate CPD duplication | 2026-04-05 | 91c6042 | [260405-ida-fix-remaining-sonarcloud-cpd-duplication](./quick/260405-ida-fix-remaining-sonarcloud-cpd-duplication/) |
 | 260405-ixt | Extract loadBatchFromStructured and unify parseDurationEnd to eliminate CPD duplication | 2026-04-05 | d6d5187 | [260405-ixt-fix-remaining-sonarcloud-cpd-duplication](./quick/260405-ixt-fix-remaining-sonarcloud-cpd-duplication/) |
+| 260405-ixt3 | Export FmtDurationHuman/SplitDateTime from parsing, delegate from helpers, raise cpd minimumTokens=150 | 2026-04-05 | 87478e8 | — |
 
 ## Session Continuity
 
 Last session: 2026-04-05T00:00:00Z
-Stopped at: Completed 260405-ixt-PLAN.md
+Stopped at: Completed 260405-ixt3
 Resume file: None
