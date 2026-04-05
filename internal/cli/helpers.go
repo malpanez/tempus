@@ -93,78 +93,57 @@ func ValueAsBool(v interface{}) bool {
 	}
 }
 
-func ValueAsStringSlice(v interface{}) []string {
+func valueAsSlice(v interface{}, eachFn func(string, *[]string), splitFn func(string) []string) []string {
 	if v == nil {
 		return nil
 	}
 	switch x := v.(type) {
 	case []interface{}:
-		out := make([]string, 0, len(x))
+		var out []string
 		for _, item := range x {
 			val := strings.TrimSpace(ValueAsString(item))
 			if val != "" {
-				out = append(out, val)
+				eachFn(val, &out)
 			}
 		}
 		return out
 	case []string:
-		out := make([]string, 0, len(x))
+		var out []string
 		for _, item := range x {
-			val := strings.TrimSpace(item)
-			if val != "" {
-				out = append(out, val)
+			if strings.TrimSpace(item) != "" {
+				eachFn(item, &out)
 			}
 		}
 		return out
 	case string:
-		return SplitDelimited(x)
+		return splitFn(x)
 	default:
 		val := strings.TrimSpace(fmt.Sprintf("%v", x))
 		if val == "" {
 			return nil
 		}
-		return SplitDelimited(val)
+		return splitFn(val)
 	}
 }
 
+func ValueAsStringSlice(v interface{}) []string {
+	return valueAsSlice(v,
+		func(s string, out *[]string) { *out = append(*out, strings.TrimSpace(s)) },
+		SplitDelimited,
+	)
+}
+
 func ValueAsAlarmSlice(v interface{}) []string {
-	if v == nil {
-		return nil
-	}
-	switch x := v.(type) {
-	case []interface{}:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			val := strings.TrimSpace(ValueAsString(item))
-			if val == "" {
-				continue
-			}
-			for _, part := range calendar.SplitAlarmInput(val) {
+	return valueAsSlice(v,
+		func(s string, out *[]string) {
+			for _, part := range calendar.SplitAlarmInput(s) {
 				if strings.TrimSpace(part) != "" {
-					out = append(out, part)
+					*out = append(*out, part)
 				}
 			}
-		}
-		return out
-	case []string:
-		out := make([]string, 0, len(x))
-		for _, item := range x {
-			for _, part := range calendar.SplitAlarmInput(item) {
-				if strings.TrimSpace(part) != "" {
-					out = append(out, part)
-				}
-			}
-		}
-		return out
-	case string:
-		return calendar.SplitAlarmInput(x)
-	default:
-		val := strings.TrimSpace(fmt.Sprintf("%v", x))
-		if val == "" {
-			return nil
-		}
-		return calendar.SplitAlarmInput(val)
-	}
+		},
+		calendar.SplitAlarmInput,
+	)
 }
 
 func EnsureICSExtension(name string) string {
