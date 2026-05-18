@@ -74,7 +74,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: golangci-lint
@@ -130,7 +130,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Build binary
@@ -246,7 +246,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Generate coverage report
@@ -260,8 +260,8 @@ jobs:
           total_coverage=$(go tool cover -func=.coverage/profile.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${total_coverage}%"
 
-          # Target: 75% minimum coverage
-          threshold=75
+          # Target: 79% minimum coverage
+          threshold=79
           if (( $(echo "$total_coverage < $threshold" | bc -l) )); then
             echo "❌ Coverage ${total_coverage}% is below threshold ${threshold}%"
             exit 1
