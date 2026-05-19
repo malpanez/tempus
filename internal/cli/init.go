@@ -122,11 +122,11 @@ func runInit(app *App) error {
 		}
 	}
 
-	PrintOK(app.Stdout, fmt.Sprintf("\n> Config saved to %s\n\n", configFile))
-	PrintOK(app.Stdout, fmt.Sprintf("  Timezone:      %s\n", timezone))
-	PrintOK(app.Stdout, fmt.Sprintf("  Language:      %s\n", language))
-	PrintOK(app.Stdout, fmt.Sprintf("  Output dir:    %s\n", outputDir))
-	PrintOK(app.Stdout, fmt.Sprintf("  Alarm profile: %s\n", alarmProfile))
+	PrintOK(app.Stdout, "\n> Config saved to %s\n\n", configFile)
+	PrintOK(app.Stdout, "  Timezone:      %s\n", timezone)
+	PrintOK(app.Stdout, "  Language:      %s\n", language)
+	PrintOK(app.Stdout, "  Output dir:    %s\n", outputDir)
+	PrintOK(app.Stdout, "  Alarm profile: %s\n", alarmProfile)
 	PrintOK(app.Stdout, "\nNext: tempus create --start today --duration 1h\n")
 	return nil
 }
