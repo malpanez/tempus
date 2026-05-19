@@ -1,8 +1,8 @@
 module tempus
 
-go 1.23.0
+go 1.26.0
 
-toolchain go1.24.9
+toolchain go1.26.0
 
 require (
 	github.com/charmbracelet/huh v1.0.0

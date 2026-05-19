@@ -34,7 +34,7 @@ Actual: Error: "duration must be <= 1h"
 
 Environment:
 - OS: Ubuntu 22.04
-- Go: 1.24
+- Go: 1.26
 - Tempus: v0.5.0
 ```
 
@@ -109,7 +109,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Prerequisites
 
-- Go 1.24 or later
+- Go 1.26 or later
 - Git
 
 ### Getting Started

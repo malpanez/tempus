@@ -115,7 +115,7 @@ Windows (PowerShell):
 # Add to PATH if not already there
 ```
 
-### From source (Go 1.24+)
+### From source (Go 1.26+)
 
 Linux/macOS:
 ```bash
@@ -600,7 +600,7 @@ tempus version
 tempus version 0.5.0
 Built: 2025-03-14 10:23:45
 Commit: a1b2c3d
-Go: go1.24.0
+Go: go1.26.0
 Platform: linux/amd64
 ```
 
