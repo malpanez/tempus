@@ -2,8 +2,6 @@ module tempus
 
 go 1.26.0
 
-toolchain go1.26.0
-
 require (
 	github.com/charmbracelet/huh v1.0.0
 	github.com/google/uuid v1.6.0
