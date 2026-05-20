@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"tempus/internal/calendar"
 
@@ -13,7 +15,11 @@ import (
 
 func applyWordCase(original, corrected string) string {
 	if len(original) > 0 && original[0] >= 'A' && original[0] <= 'Z' {
-		return strings.Title(corrected)
+		if corrected == "" {
+			return corrected
+		}
+		r, size := utf8.DecodeRuneInString(corrected)
+		return string(unicode.ToUpper(r)) + corrected[size:]
 	}
 	return corrected
 }

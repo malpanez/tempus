@@ -70,7 +70,7 @@ func runConfigAlarmProfiles(_ *App, _ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if cfg.AlarmProfiles == nil || len(cfg.AlarmProfiles) == 0 {
+	if len(cfg.AlarmProfiles) == 0 {
 		fmt.Println("No alarm profiles configured.")
 		return nil
 	}

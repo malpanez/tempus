@@ -161,7 +161,7 @@ func printZoneInfo(w interface{ Write([]byte) (int, error) }, z *tzpkg.TimezoneI
 func cityToIANA(s string) (string, error) {
 	x := strings.ToLower(strings.TrimSpace(s))
 	if x == "" {
-		return "", fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
+		return "", fmt.Errorf("unknown city %q; use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
 	}
 
 	if x == "melilla" || x == "ceuta" {
@@ -205,5 +205,5 @@ func cityToIANA(s string) (string, error) {
 		return "Europe/Madrid", nil
 	}
 
-	return "", fmt.Errorf("Unknown city '%s'. Use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
+	return "", fmt.Errorf("unknown city %q; use 'tempus timezone list --search %s' to find the IANA identifier", s, s)
 }

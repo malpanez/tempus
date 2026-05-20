@@ -797,7 +797,7 @@ func TestGetTimezoneSystemFallback(t *testing.T) {
 	}
 
 	if zone == nil {
-		t.Error("GetTimezone returned nil zone without error")
+		t.Fatal("GetTimezone returned nil zone without error")
 	}
 
 	if zone.IANA == "" {
@@ -862,7 +862,7 @@ func TestSuggestTimezoneEmptyInput(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			results := tm.SuggestTimezone(tt.input)
 
-			if results != nil && len(results) > 0 {
+			if len(results) > 0 {
 				t.Errorf("SuggestTimezone(%q) expected nil or empty, got %d results", tt.input, len(results))
 			}
 		})

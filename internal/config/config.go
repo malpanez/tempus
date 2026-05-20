@@ -272,14 +272,14 @@ func ValidateOutputDir(dir string) error {
 	}
 	info, err := os.Stat(dir)
 	if err != nil {
-		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+		return fmt.Errorf("directory %q does not exist or is not writable", dir)
 	}
 	if !info.IsDir() {
 		return fmt.Errorf("'%s' is not a directory", dir)
 	}
 	f, err := os.CreateTemp(dir, ".tempus-test-*")
 	if err != nil {
-		return fmt.Errorf("Directory '%s' does not exist or is not writable.", dir)
+		return fmt.Errorf("directory %q does not exist or is not writable", dir)
 	}
 	f.Close()
 	os.Remove(f.Name())

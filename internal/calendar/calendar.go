@@ -495,15 +495,15 @@ func formatICSDuration(d time.Duration) string {
 	}
 	sb.WriteString("P")
 	if days > 0 {
-		sb.WriteString(fmt.Sprintf("%dD", days))
+		fmt.Fprintf(&sb, "%dD", days)
 	}
 	if hours > 0 || mins > 0 || secs > 0 {
 		sb.WriteByte('T')
 		if hours > 0 {
-			sb.WriteString(fmt.Sprintf("%dH", hours))
+			fmt.Fprintf(&sb, "%dH", hours)
 		}
 		if mins > 0 {
-			sb.WriteString(fmt.Sprintf("%dM", mins))
+			fmt.Fprintf(&sb, "%dM", mins)
 		}
 		if secs > 0 {
 			sb.WriteString(fmt.Sprintf("%dS", secs))

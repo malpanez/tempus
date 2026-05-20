@@ -249,7 +249,7 @@ func TestFindSubcommand(t *testing.T) {
 
 	found := findSubcommand(parent, "set")
 	if found == nil {
-		t.Error("findSubcommand() for 'set' returned nil")
+		t.Fatal("findSubcommand() for 'set' returned nil")
 	}
 	if !strings.HasPrefix(found.Use, "set") {
 		t.Errorf("findSubcommand() for 'set' returned Use=%q", found.Use)
