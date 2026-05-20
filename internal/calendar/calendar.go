@@ -506,7 +506,7 @@ func formatICSDuration(d time.Duration) string {
 			fmt.Fprintf(&sb, "%dM", mins)
 		}
 		if secs > 0 {
-			sb.WriteString(fmt.Sprintf("%dS", secs))
+			fmt.Fprintf(&sb, "%dS", secs)
 		}
 	}
 	out := sb.String()

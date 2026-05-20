@@ -44,8 +44,8 @@ func TestCityToIANA(t *testing.T) {
 				if err == nil {
 					t.Errorf("cityToIANA(%q) expected error, got nil", tt.city)
 				} else {
-					if !strings.Contains(err.Error(), "Unknown city") {
-						t.Errorf("cityToIANA(%q) error = %q, want substring %q", tt.city, err.Error(), "Unknown city")
+					if !strings.Contains(err.Error(), "unknown city") {
+						t.Errorf("cityToIANA(%q) error = %q, want substring %q", tt.city, err.Error(), "unknown city")
 					}
 					if !strings.Contains(err.Error(), "tempus timezone list --search") {
 						t.Errorf("cityToIANA(%q) error = %q, want substring %q", tt.city, err.Error(), "tempus timezone list --search")
