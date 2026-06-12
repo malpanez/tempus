@@ -141,6 +141,9 @@ func TestInteractiveCreatesPipeline(t *testing.T) {
 	tmpDir := t.TempDir()
 	app := TestApp()
 	app.Config.OutputDir = tmpDir
+	app.Config.AlarmProfiles = map[string][]string{
+		"adhd-default": {"-2h", "-1h", "-30m", "-10m"},
+	}
 
 	vars := &interactiveVars{
 		summary:   "Team Meeting",
@@ -184,9 +187,15 @@ func TestInteractiveCreatesPipeline(t *testing.T) {
 		output:     filepath.Join(tmpDir, Slugify(vars.summary)+".ics"),
 	}
 
-	cal := createCalendarWithEvent(opts, result.Start, result.End)
+	cal, err := createCalendarWithEvent(opts, result.Start, result.End, app.Config)
+	if err != nil {
+		t.Fatalf("createCalendarWithEvent() error: %v", err)
+	}
 	if len(cal.Events) != 1 {
 		t.Fatalf("calendar has %d events, want 1", len(cal.Events))
+	}
+	if len(cal.Events[0].Alarms) != 4 {
+		t.Errorf("expected 4 alarms from adhd-default profile, got %d", len(cal.Events[0].Alarms))
 	}
 	if cal.Events[0].Summary != "Team Meeting" {
 		t.Errorf("event Summary = %q, want %q", cal.Events[0].Summary, "Team Meeting")
@@ -286,6 +295,9 @@ func TestCreateEventFromWizard(t *testing.T) {
 	tmpDir := t.TempDir()
 	app := TestApp()
 	app.Config.OutputDir = tmpDir
+	app.Config.AlarmProfiles = map[string][]string{
+		"single": {"-15m"},
+	}
 
 	vars := &interactiveVars{
 		summary:   "Stand Up",

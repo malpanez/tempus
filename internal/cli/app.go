@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"tempus/internal/config"
@@ -19,8 +20,13 @@ type App struct {
 
 func SetupPersistentPreRunE(app *App) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		configPath, _ := cmd.Flags().GetString("config")
+		cfg, err := config.LoadFrom(configPath)
 		if err != nil {
+			if configPath != "" {
+				return fmt.Errorf("config file %q: %w", configPath, err)
+			}
+			fmt.Fprintf(app.Stderr, "Warning: could not load config (%v), using defaults\n", err)
 			cfg = &config.Config{
 				Language:   "en",
 				Timezone:   "UTC",

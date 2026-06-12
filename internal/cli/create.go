@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/config"
 	"tempus/internal/constants"
 	"tempus/internal/testutil"
 
@@ -63,7 +64,10 @@ func runCreate(app *App, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cal := createCalendarWithEvent(opts, startTime, endTime)
+	cal, err := createCalendarWithEvent(opts, startTime, endTime, app.Config)
+	if err != nil {
+		return err
+	}
 	return writeCalendarOutput(app, cal, opts.output)
 }
 
@@ -199,7 +203,7 @@ func parseEndTime(startTime time.Time, endStr string) (time.Time, error) {
 	return endTime, nil
 }
 
-func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) *calendar.Calendar {
+func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time, cfg *config.Config) (*calendar.Calendar, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 	cal.Name = opts.summary
@@ -208,13 +212,15 @@ func createCalendarWithEvent(opts *createOptions, startTime, endTime time.Time) 
 	}
 
 	event := calendar.NewEvent(opts.summary, startTime, endTime)
-	configureEvent(event, opts)
+	if err := configureEvent(event, opts, cfg); err != nil {
+		return nil, err
+	}
 	cal.AddEvent(event)
 
-	return cal
+	return cal, nil
 }
 
-func configureEvent(event *calendar.Event, opts *createOptions) {
+func configureEvent(event *calendar.Event, opts *createOptions, cfg *config.Config) error {
 	event.AllDay = opts.allDay
 	if opts.location != "" {
 		event.Location = opts.location
@@ -229,14 +235,19 @@ func configureEvent(event *calendar.Event, opts *createOptions) {
 		event.RRule = strings.TrimSpace(opts.rrule)
 	}
 
-	addExDates(event, opts.exdates, opts.startTZ, opts.allDay)
-	addEventAlarms(event, opts.alarms, opts.startTZ)
+	if err := addExDates(event, opts.exdates, opts.startTZ, opts.allDay); err != nil {
+		return err
+	}
+	if err := addEventAlarms(event, opts.alarms, opts.startTZ, cfg); err != nil {
+		return err
+	}
 	addEventCategories(event, opts.categories)
 	addEventAttendees(event, opts.attendees)
 
 	if opts.priority > 0 {
 		event.Priority = opts.priority
 	}
+	return nil
 }
 
 func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
@@ -250,9 +261,9 @@ func setEventTimezones(event *calendar.Event, startTZ, endTZ string) {
 	}
 }
 
-func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
+func addEventAlarms(event *calendar.Event, alarms []string, startTZ string, cfg *config.Config) error {
 	if len(alarms) == 0 {
-		return
+		return nil
 	}
 
 	defaultAlarmTZ := strings.TrimSpace(event.StartTZ)
@@ -260,10 +271,16 @@ func addEventAlarms(event *calendar.Event, alarms []string, startTZ string) {
 		defaultAlarmTZ = strings.TrimSpace(startTZ)
 	}
 
-	parsed, err := calendar.ParseAlarmSpecs(alarms, defaultAlarmTZ)
-	if err == nil && len(parsed) > 0 {
-		event.Alarms = append(event.Alarms, parsed...)
+	expanded, err := expandAlarmProfiles(cfg, alarms)
+	if err != nil {
+		return err
 	}
+	parsed, err := calendar.ParseAlarmSpecs(expanded, defaultAlarmTZ)
+	if err != nil {
+		return err
+	}
+	event.Alarms = append(event.Alarms, parsed...)
+	return nil
 }
 
 func addEventCategories(event *calendar.Event, categories []string) {

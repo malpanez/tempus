@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -50,7 +51,11 @@ func runQuick(app *App, cmd *cobra.Command, args []string) error {
 	finalTZ := resolveQuickTimezone(cmd)
 	applyTimezoneToDetails(&details, finalTZ)
 
-	if !confirmQuickEvent(app, details, finalTZ) {
+	confirmed, err := confirmQuickEvent(app, details, finalTZ)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
 		fmt.Println("Operation cancelled.")
 		return nil
 	}
@@ -96,7 +101,7 @@ func applyTimezoneToDetails(details *quickParsedEvent, tz string) {
 	}
 }
 
-func confirmQuickEvent(app *App, details quickParsedEvent, tz string) bool {
+func confirmQuickEvent(app *App, details quickParsedEvent, tz string) (bool, error) {
 	fmt.Println("I understood the following event:")
 	fmt.Printf("  Summary:   %s\n", details.Summary)
 	fmt.Printf("  Start:     %s\n", details.StartTime.Format(constants.DateTimeFormatRFC1123))
@@ -119,10 +124,13 @@ func confirmQuickEvent(app *App, details quickParsedEvent, tz string) bool {
 		),
 	)
 	if err := form.Run(); err != nil {
-		return false
+		if errors.Is(err, huh.ErrUserAborted) {
+			return false, fmt.Errorf("event creation aborted")
+		}
+		return false, fmt.Errorf("interactive form: %w", err)
 	}
 	_ = app
-	return confirmed
+	return confirmed, nil
 }
 
 func getQuickOutput(cmd *cobra.Command, summary string) string {

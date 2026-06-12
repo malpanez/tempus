@@ -156,6 +156,9 @@ IANA validation; invalid zone = fatal error.
       VEVENT; fix unfolding; add checks for TZID↔VTIMEZONE, UNTIL type, CATEGORIES.
 - [ ] 3.6 i18n: sync `locales/` ↔ `internal/i18n/locales/` (123 keys), wire
       `alarm_prompt_*` into `promptAlarmField`, remove hardcoded Spanish, un-skip test.
+- [ ] 3.8 Wizard option labels out of sync with config: interactive.go says
+      "ADHD Default (-2h, -30m, -5m)" but the real profile is -2h,-1h,-30m,-10m
+      (config.go:40). Same check for the other profile labels. (Found in phase 1.)
 - [ ] 3.7 Key-parity test across locale files (build fails on drift).
 
 ### Verification

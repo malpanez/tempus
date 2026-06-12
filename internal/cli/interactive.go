@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -214,7 +215,10 @@ func createEventFromWizard(app *App, vars *interactiveVars) error {
 		return fmt.Errorf("invalid date/time: %w", err)
 	}
 
-	cal := createCalendarWithEvent(opts, result.Start, result.End)
+	cal, err := createCalendarWithEvent(opts, result.Start, result.End, app.Config)
+	if err != nil {
+		return err
+	}
 	return writeCalendarOutput(app, cal, opts.output)
 }
 
@@ -229,7 +233,10 @@ func runInteractive(app *App, cmd *cobra.Command) error {
 
 	form := buildInteractiveForm(vars)
 	if err := form.Run(); err != nil {
-		return nil
+		if errors.Is(err, huh.ErrUserAborted) {
+			return fmt.Errorf("event creation aborted")
+		}
+		return fmt.Errorf("interactive form: %w", err)
 	}
 
 	if !vars.confirmed {

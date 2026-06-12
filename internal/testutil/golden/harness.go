@@ -118,6 +118,11 @@ func NormalizeICS(ics string) string {
 	return ics
 }
 
+// writeFile is a small helper for tests that need fixture files.
+func writeFile(path, content string) error {
+	return os.WriteFile(path, []byte(content), 0o600)
+}
+
 // CompareGolden checks got against testdata/golden/<name>.ics. With -update,
 // it (re)writes the golden file instead and fails the test as a reminder that
 // goldens changed and the diff needs human review.

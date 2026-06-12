@@ -1518,9 +1518,9 @@ func TestRunBatchTemplateWriteError(t *testing.T) {
 }
 
 func TestExpandAlarmProfilesEmpty(t *testing.T) {
-	result, err := expandAlarmProfilesWithError([]string{"  ", ""})
+	result, err := expandAlarmProfiles(TestApp().Config, []string{"  ", ""})
 	if err != nil {
-		t.Fatalf("expandAlarmProfilesWithError() error for whitespace specs: %v", err)
+		t.Fatalf("expandAlarmProfiles() error for whitespace specs: %v", err)
 	}
 	if len(result) != 0 {
 		t.Errorf("expected 0 results for whitespace-only specs, got %d", len(result))
@@ -1535,7 +1535,7 @@ func TestBuildBatchCalendarWhitespaceNameAndTZ(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err != nil {
 		t.Fatalf("buildBatchCalendar() error: %v", err)
 	}
@@ -1795,13 +1795,13 @@ func TestIsAlarmFieldFalse(t *testing.T) {
 }
 
 // =====================================================================
-// batch.go — expandAlarmProfilesWithError with unknown profile
+// helpers.go — expandAlarmProfiles with unknown profile
 // =====================================================================
 
 func TestExpandAlarmProfilesUnknownProfile(t *testing.T) {
-	_, err := expandAlarmProfilesWithError([]string{"profile:nonexistent-profile-xyz"})
+	_, err := expandAlarmProfiles(TestApp().Config, []string{"profile:nonexistent-profile-xyz"})
 	if err == nil {
-		t.Error("expandAlarmProfilesWithError() expected error for unknown profile")
+		t.Fatal("expandAlarmProfiles() expected error for unknown profile")
 	}
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("expected 'not found' in error, got: %v", err)
@@ -1809,13 +1809,16 @@ func TestExpandAlarmProfilesUnknownProfile(t *testing.T) {
 }
 
 func TestExpandAlarmProfilesKnownProfile(t *testing.T) {
-	result, err := expandAlarmProfilesWithError([]string{"profile:adhd-default"})
-	if err != nil {
-		t.Logf("expandAlarmProfilesWithError('adhd-default') error (profile may not exist in test config): %v", err)
-		return
+	cfg := TestApp().Config
+	cfg.AlarmProfiles = map[string][]string{
+		"adhd-default": {"-2h", "-1h", "-30m", "-10m"},
 	}
-	if len(result) == 0 {
-		t.Logf("adhd-default profile returned empty alarms (profile not configured in test env)")
+	result, err := expandAlarmProfiles(cfg, []string{"profile:adhd-default"})
+	if err != nil {
+		t.Fatalf("expandAlarmProfiles('profile:adhd-default') error: %v", err)
+	}
+	if len(result) != 4 {
+		t.Errorf("expected 4 expanded alarm specs from adhd-default, got %d: %v", len(result), result)
 	}
 }
 
@@ -2553,27 +2556,33 @@ func TestRunCreateWithAllOptions(t *testing.T) {
 }
 
 // =====================================================================
-// batch.go — addBatchAlarms with invalid alarm specs
+// create.go — addEventAlarms with invalid alarm specs
 // =====================================================================
 
-func TestAddBatchAlarmsInvalidSpec(t *testing.T) {
+func TestAddEventAlarmsInvalidSpec(t *testing.T) {
 	event := &calendar.Event{
 		Summary:   "Test",
 		StartTime: time.Now(),
 		EndTime:   time.Now().Add(time.Hour),
 	}
-	addBatchAlarms(event, []string{"not-a-valid-alarm-spec-xyz"}, "UTC")
-	// Invalid specs are silently dropped — just verify no panic and no alarm added
-	_ = event
+	err := addEventAlarms(event, []string{"not-a-valid-alarm-spec-xyz"}, "UTC", TestApp().Config)
+	if err == nil {
+		t.Fatal("addEventAlarms() expected error for invalid alarm spec, got nil")
+	}
+	if len(event.Alarms) != 0 {
+		t.Errorf("expected 0 alarms after invalid spec, got %d", len(event.Alarms))
+	}
 }
 
-func TestAddBatchAlarmsWithStartTZ(t *testing.T) {
+func TestAddEventAlarmsWithStartTZ(t *testing.T) {
 	event := &calendar.Event{
 		Summary:   "Test",
 		StartTime: time.Now(),
 		EndTime:   time.Now().Add(time.Hour),
 	}
-	addBatchAlarms(event, []string{"-15m"}, "Europe/Madrid")
+	if err := addEventAlarms(event, []string{"-15m"}, "Europe/Madrid", TestApp().Config); err != nil {
+		t.Fatalf("addEventAlarms() error: %v", err)
+	}
 	if len(event.Alarms) == 0 {
 		t.Error("expected alarm to be added with valid spec")
 	}
@@ -2717,9 +2726,9 @@ func TestAddEventExDatesAllDay(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 2, 0, 0, 0, 0, time.UTC),
 		AllDay:    true,
 	}
-	addExDates(event, []string{"2025-06-08", "invalid-date", ""}, "UTC", true)
-	if len(event.ExDates) != 1 {
-		t.Errorf("expected 1 valid exdate, got %d", len(event.ExDates))
+	err := addExDates(event, []string{"2025-06-08", "invalid-date", ""}, "UTC", true)
+	if err == nil {
+		t.Fatal("addExDates() expected error for invalid exdate, got nil")
 	}
 }
 
@@ -2730,7 +2739,9 @@ func TestAddEventExDatesWithStartTZ(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 		StartTZ:   "Europe/Madrid",
 	}
-	addExDates(event, []string{"2025-06-08 10:00"}, "", false)
+	if err := addExDates(event, []string{"2025-06-08 10:00"}, "", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 	if len(event.ExDates) != 1 {
 		t.Errorf("expected 1 exdate, got %d", len(event.ExDates))
 	}
@@ -2738,7 +2749,9 @@ func TestAddEventExDatesWithStartTZ(t *testing.T) {
 
 func TestAddEventExDatesEmptyList(t *testing.T) {
 	event := &calendar.Event{}
-	addExDates(event, []string{}, "UTC", false)
+	if err := addExDates(event, []string{}, "UTC", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 	if len(event.ExDates) != 0 {
 		t.Error("expected no exdates for empty input")
 	}
@@ -2755,12 +2768,16 @@ func TestAddBatchExDatesWithStartTZ(t *testing.T) {
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 		StartTZ:   "Europe/Madrid",
 	}
-	addExDates(event, []string{"2025-06-08"}, "", false)
+	if err := addExDates(event, []string{"2025-06-08"}, "", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 }
 
 func TestAddBatchExDatesEmpty(t *testing.T) {
 	event := &calendar.Event{}
-	addExDates(event, []string{}, "UTC", false)
+	if err := addExDates(event, []string{}, "UTC", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 }
 
 // =====================================================================
@@ -3090,7 +3107,9 @@ func TestAddEventExDatesDateOnlyNonAllDay(t *testing.T) {
 		StartTime: time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 	}
-	addExDates(event, []string{"2025-06-08"}, "UTC", false)
+	if err := addExDates(event, []string{"2025-06-08"}, "UTC", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 	if len(event.ExDates) != 1 {
 		t.Errorf("expected 1 exdate for date-only non-allday, got %d", len(event.ExDates))
 	}
@@ -3102,7 +3121,10 @@ func TestAddEventExDatesInvalidTimestamp(t *testing.T) {
 		StartTime: time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC),
 		EndTime:   time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC),
 	}
-	addExDates(event, []string{"not-a-valid-date 25:99"}, "UTC", false)
+	err := addExDates(event, []string{"not-a-valid-date 25:99"}, "UTC", false)
+	if err == nil {
+		t.Fatal("addExDates() expected error for invalid date, got nil")
+	}
 	if len(event.ExDates) != 0 {
 		t.Error("expected no exdates for invalid date")
 	}
@@ -3271,7 +3293,9 @@ func TestConfigureBatchEventWithEndTZ(t *testing.T) {
 		Location:   "Room 1",
 		Categories: []string{"Work"},
 	}
-	configureBatchEvent(event, rec, "Europe/Madrid", "America/New_York", catCache)
+	if err := configureBatchEvent(event, rec, "Europe/Madrid", "America/New_York", catCache, TestApp().Config); err != nil {
+		t.Fatalf("configureBatchEvent() error: %v", err)
+	}
 	if event.StartTZ != "Europe/Madrid" {
 		t.Errorf("StartTZ = %q, want %q", event.StartTZ, "Europe/Madrid")
 	}
@@ -3320,17 +3344,20 @@ func TestRunLocaleListNilStdoutFallback(t *testing.T) {
 }
 
 // =====================================================================
-// batch.go — addBatchAlarms with profile that triggers expandAlarmProfiles error
+// create.go — addEventAlarms with profile that triggers expandAlarmProfiles error
 // =====================================================================
 
-func TestAddBatchAlarmsWithUnknownProfile(t *testing.T) {
+func TestAddEventAlarmsWithUnknownProfile(t *testing.T) {
 	event := &calendar.Event{
 		Summary:   "Test",
 		StartTime: time.Now(),
 		EndTime:   time.Now().Add(time.Hour),
 	}
-	// unknown profile - should silently fail and not add alarms
-	addBatchAlarms(event, []string{"profile:nonexistent-profile-xyz"}, "UTC")
+	// unknown profile - must fail loud and not add alarms
+	err := addEventAlarms(event, []string{"profile:nonexistent-profile-xyz"}, "UTC", TestApp().Config)
+	if err == nil {
+		t.Fatal("addEventAlarms() expected error for unknown profile, got nil")
+	}
 	if len(event.Alarms) != 0 {
 		t.Errorf("expected 0 alarms for unknown profile, got %d", len(event.Alarms))
 	}

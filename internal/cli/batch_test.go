@@ -335,7 +335,7 @@ func TestBuildEventFromBatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ev, err := buildEventFromBatch(tt.record, tt.fallbackTZ, nd.NewSpellCheckCache(nil), nd.NewCategoryCache())
+			ev, err := buildEventFromBatch(tt.record, tt.fallbackTZ, nd.NewSpellCheckCache(nil), nd.NewCategoryCache(), TestApp().Config)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("buildEventFromBatch() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -432,7 +432,7 @@ func TestBuildEventFromBatchWithCategories(t *testing.T) {
 		Categories: []string{"work", "urgent", "meeting"},
 	}
 
-	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache())
+	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache(), TestApp().Config)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
@@ -450,7 +450,7 @@ func TestBuildEventFromBatchWithRRule(t *testing.T) {
 		RRule:   testutil.RRuleDaily5Count,
 	}
 
-	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache())
+	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache(), TestApp().Config)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
@@ -526,7 +526,7 @@ func TestBuildEventFromBatchAllDayEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := buildEventFromBatch(tt.record, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache())
+			_, err := buildEventFromBatch(tt.record, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache(), TestApp().Config)
 			if (err != nil) != tt.wantErr {
 				t.Errorf(testutil.ErrMsgBuildEventFromBatchError+", wantErr %v", err, tt.wantErr)
 			}
@@ -545,7 +545,7 @@ func TestBuildEventFromBatchWithExDatesAndAlarms(t *testing.T) {
 		Alarms:  []string{"15m", "30m"},
 	}
 
-	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache())
+	ev, err := buildEventFromBatch(rec, "", nd.NewSpellCheckCache(nil), nd.NewCategoryCache(), TestApp().Config)
 	if err != nil {
 		t.Fatalf(testutil.ErrMsgBuildEventFromBatchError, err)
 	}
@@ -983,7 +983,7 @@ func TestBatchJSONSupportsAllDayAndDuration(t *testing.T) {
 	}
 }
 
-func TestExpandAlarmProfilesWithError(t *testing.T) {
+func TestExpandAlarmProfiles(t *testing.T) {
 	tests := []struct {
 		name      string
 		specs     []string
@@ -997,16 +997,16 @@ func TestExpandAlarmProfilesWithError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := expandAlarmProfilesWithError(tt.specs)
+			result, err := expandAlarmProfiles(TestApp().Config, tt.specs)
 			if tt.wantErr {
 				if err == nil {
-					t.Errorf("expandAlarmProfilesWithError(%v) expected error, got nil", tt.specs)
+					t.Errorf("expandAlarmProfiles(%v) expected error, got nil", tt.specs)
 				} else if !strings.Contains(err.Error(), tt.errSubstr) {
-					t.Errorf("expandAlarmProfilesWithError(%v) error = %q, want substring %q", tt.specs, err.Error(), tt.errSubstr)
+					t.Errorf("expandAlarmProfiles(%v) error = %q, want substring %q", tt.specs, err.Error(), tt.errSubstr)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("expandAlarmProfilesWithError(%v) unexpected error: %v", tt.specs, err)
+					t.Errorf("expandAlarmProfiles(%v) unexpected error: %v", tt.specs, err)
 				}
 				_ = result
 			}
@@ -1515,7 +1515,7 @@ func TestBuildBatchCalendarWithDryRun(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err != nil {
 		t.Fatalf("buildBatchCalendar() unexpected error: %v", err)
 	}
@@ -1538,7 +1538,7 @@ func TestBuildBatchCalendarWithName(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err != nil {
 		t.Fatalf("buildBatchCalendar() error: %v", err)
 	}
@@ -1555,7 +1555,7 @@ func TestBuildBatchCalendarNonDryRunError(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	_, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	_, _, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err == nil {
 		t.Fatal("buildBatchCalendar() expected error for record with empty summary in non-dry-run mode")
 	}
@@ -1569,7 +1569,7 @@ func TestBuildBatchCalendarWithPrepTime(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err != nil {
 		t.Fatalf("buildBatchCalendar() error: %v", err)
 	}
@@ -1865,7 +1865,7 @@ func TestBuildBatchCalendarDefaultTZ(t *testing.T) {
 	spellCache := nd.NewSpellCheckCache(nil)
 	catCache := nd.NewCategoryCache()
 
-	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, _, err := buildBatchCalendar(records, opts, spellCache, catCache, TestApp().Config)
 	if err != nil {
 		t.Fatalf("buildBatchCalendar() error: %v", err)
 	}
