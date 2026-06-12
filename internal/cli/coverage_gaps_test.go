@@ -3604,3 +3604,42 @@ func TestRunLintMultipleFiles(t *testing.T) {
 		t.Fatalf("runLint() multiple valid files error: %v", err)
 	}
 }
+
+func TestRunTZListRegionFilters(t *testing.T) {
+	app := TestApp()
+	var buf bytes.Buffer
+	app.Stdout = &buf
+	cmd := NewTimezoneCmd(app)
+	listCmd, _, err := cmd.Find([]string{"list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := listCmd.Flags().Set("region", "asia"); err != nil {
+		t.Fatal(err)
+	}
+	if err := runTZList(app, listCmd, nil); err != nil {
+		t.Fatalf("runTZList(region=asia) error: %v", err)
+	}
+	out := buf.String()
+	if strings.Contains(out, "Europe/Madrid") {
+		t.Error("region=asia must not list European zones")
+	}
+	if !strings.Contains(out, "Asia/") {
+		t.Error("region=asia must list Asian zones")
+	}
+}
+
+func TestRunTZListUnknownRegionErrors(t *testing.T) {
+	app := TestApp()
+	cmd := NewTimezoneCmd(app)
+	listCmd, _, err := cmd.Find([]string{"list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := listCmd.Flags().Set("region", "narnia"); err != nil {
+		t.Fatal(err)
+	}
+	if err := runTZList(app, listCmd, nil); err == nil {
+		t.Error("unknown region must be an error, not a silent full listing")
+	}
+}

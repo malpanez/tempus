@@ -95,8 +95,17 @@ func alarmProfileOptions(cfg *config.Config, tr *i18n.Translator) []huh.Option[s
 	)
 }
 
+// The wizard runs as a sequence of small forms with explicit control flow
+// instead of one form with WithHideFunc groups: huh v1.0's accessible mode
+// (forced by TERM=dumb, used by screen readers) ignores hide functions and
+// would prompt for conditional fields regardless of earlier answers.
+
 func buildInteractiveForm(app *App, vars *interactiveVars) *huh.Form {
-	return huh.NewForm(
+	return huh.NewForm(append(coreWizardGroups(app, vars), confirmWizardGroup(vars))...)
+}
+
+func coreWizardGroups(app *App, vars *interactiveVars) []*huh.Group {
+	return []*huh.Group{
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Event name").
@@ -149,67 +158,79 @@ func buildInteractiveForm(app *App, vars *interactiveVars) *huh.Form {
 				Options(alarmProfileOptions(app.Config, app.Translator)...).
 				Value(&vars.alarmProf),
 		).Title("Step 4/7 - Alarms"),
+	}
+}
 
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Custom alarm offsets (comma-separated, e.g. -2h,-30m,-5m)").
-				Value(&vars.customAlarm).
-				Validate(func(s string) error {
-					if strings.TrimSpace(s) == "" {
-						return fmt.Errorf("at least one alarm offset is required")
-					}
-					return nil
-				}),
-		).Title("Step 4/7 - Custom Alarms").WithHideFunc(func() bool {
-			return vars.alarmProf != "custom"
-		}),
-
-		huh.NewGroup(
-			huh.NewMultiSelect[string]().
-				Title("Categories (optional, use space to select)").
-				Options(
-					huh.NewOption("Work", "work"),
-					huh.NewOption("Health", "health"),
-					huh.NewOption("Personal", "personal"),
-					huh.NewOption("Travel", "travel"),
-					huh.NewOption("School", "school"),
-					huh.NewOption("Finance", "finance"),
-					huh.NewOption("Other...", "other"),
-				).
-				Value(&vars.categories),
-		).Title("Step 5/7 - Categories"),
-
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Custom category name").
-				Value(&vars.customCat),
-		).Title("Step 5/7 - Custom Category").WithHideFunc(func() bool {
-			for _, c := range vars.categories {
-				if c == "other" {
-					return false
+func customAlarmGroup(vars *interactiveVars) *huh.Group {
+	return huh.NewGroup(
+		huh.NewInput().
+			Title("Custom alarm offsets (comma-separated, e.g. -2h,-30m,-5m)").
+			Value(&vars.customAlarm).
+			Validate(func(s string) error {
+				if strings.TrimSpace(s) == "" {
+					return fmt.Errorf("at least one alarm offset is required")
 				}
-			}
-			return true
-		}),
+				return nil
+			}),
+	).Title("Step 4/7 - Custom Alarms")
+}
 
-		huh.NewGroup(
-			huh.NewInput().Title("Location (optional)").Value(&vars.location),
-			huh.NewInput().Title("Description (optional)").Value(&vars.description),
-		).Title("Step 6/7 - Details"),
+func categoriesGroup(vars *interactiveVars) *huh.Group {
+	return huh.NewGroup(
+		huh.NewMultiSelect[string]().
+			Title("Categories (optional, use space to select)").
+			Options(
+				huh.NewOption("Work", "work"),
+				huh.NewOption("Health", "health"),
+				huh.NewOption("Personal", "personal"),
+				huh.NewOption("Travel", "travel"),
+				huh.NewOption("School", "school"),
+				huh.NewOption("Finance", "finance"),
+				huh.NewOption("Other...", "other"),
+			).
+			Value(&vars.categories),
+	).Title("Step 5/7 - Categories")
+}
 
-		huh.NewGroup(
-			huh.NewNote().
-				Title("Event Summary").
-				DescriptionFunc(func() string {
-					return buildSummaryDescription(vars)
-				}, vars),
-			huh.NewConfirm().
-				Title("Create this event?").
-				Affirmative("Yes, create it").
-				Negative("No, cancel").
-				Value(&vars.confirmed),
-		).Title("Step 7/7 - Confirm"),
-	)
+func customCategoryGroup(vars *interactiveVars) *huh.Group {
+	return huh.NewGroup(
+		huh.NewInput().
+			Title("Custom category name").
+			Value(&vars.customCat),
+	).Title("Step 5/7 - Custom Category")
+}
+
+func detailsGroup(vars *interactiveVars) *huh.Group {
+	return huh.NewGroup(
+		huh.NewInput().Title("Location (optional)").Value(&vars.location),
+		huh.NewInput().Title("Description (optional)").Value(&vars.description),
+	).Title("Step 6/7 - Details")
+}
+
+func confirmWizardGroup(vars *interactiveVars) *huh.Group {
+	return huh.NewGroup(
+		huh.NewNote().
+			Title("Event Summary").
+			DescriptionFunc(func() string {
+				return buildSummaryDescription(vars)
+			}, vars),
+		huh.NewConfirm().
+			Title("Create this event?").
+			Affirmative("Yes, create it").
+			Negative("No, cancel").
+			Value(&vars.confirmed),
+	).Title("Step 7/7 - Confirm")
+}
+
+// runWizardForm wraps form.Run with the shared abort/error handling.
+func runWizardForm(form *huh.Form) error {
+	if err := form.Run(); err != nil {
+		if errors.Is(err, huh.ErrUserAborted) {
+			return fmt.Errorf("event creation aborted")
+		}
+		return fmt.Errorf("interactive form: %w", err)
+	}
+	return nil
 }
 
 func buildSummaryDescription(vars *interactiveVars) string {
@@ -322,12 +343,24 @@ func runInteractive(app *App, cmd *cobra.Command) error {
 		vars.alarmProf = "adhd-default"
 	}
 
-	form := buildInteractiveForm(app, vars)
-	if err := form.Run(); err != nil {
-		if errors.Is(err, huh.ErrUserAborted) {
-			return fmt.Errorf("event creation aborted")
+	if err := runWizardForm(huh.NewForm(coreWizardGroups(app, vars)...)); err != nil {
+		return err
+	}
+	if vars.alarmProf == "custom" {
+		if err := runWizardForm(huh.NewForm(customAlarmGroup(vars))); err != nil {
+			return err
 		}
-		return fmt.Errorf("interactive form: %w", err)
+	}
+	if err := runWizardForm(huh.NewForm(categoriesGroup(vars))); err != nil {
+		return err
+	}
+	if hasOtherCategory(vars.categories) {
+		if err := runWizardForm(huh.NewForm(customCategoryGroup(vars))); err != nil {
+			return err
+		}
+	}
+	if err := runWizardForm(huh.NewForm(detailsGroup(vars), confirmWizardGroup(vars))); err != nil {
+		return err
 	}
 
 	if !vars.confirmed {
@@ -336,6 +369,15 @@ func runInteractive(app *App, cmd *cobra.Command) error {
 	}
 
 	return createEventFromWizard(app, vars)
+}
+
+func hasOtherCategory(categories []string) bool {
+	for _, c := range categories {
+		if c == "other" {
+			return true
+		}
+	}
+	return false
 }
 
 func processCategories(categories []string, customCat string) []string {

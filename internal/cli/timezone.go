@@ -52,13 +52,26 @@ func runTZList(app *App, cmd *cobra.Command, _ []string) error {
 	tm := tzpkg.NewTimezoneManager()
 
 	var zones []*tzpkg.TimezoneInfo
+	regionVal := strings.ToLower(strings.TrimSpace(region))
 	switch {
-	case showAll:
+	case showAll || regionVal == "":
 		zones = tm.ListTimezones()
-	case strings.EqualFold(strings.TrimSpace(region), "europe"):
+	case regionVal == "europe":
 		zones = tm.GetEuropeanTimezones()
 	default:
-		zones = tm.ListTimezones()
+		// IANA zone names are Region/City — filter by prefix so every
+		// region value works instead of silently listing everything.
+		prefix := regionVal + "/"
+		all := tm.ListTimezones()
+		zones = make([]*tzpkg.TimezoneInfo, 0, len(all))
+		for _, z := range all {
+			if strings.HasPrefix(strings.ToLower(z.IANA), prefix) {
+				zones = append(zones, z)
+			}
+		}
+		if len(zones) == 0 {
+			return fmt.Errorf("unknown region %q: use an IANA region prefix (africa, america, antarctica, asia, atlantic, australia, europe, indian, pacific)", region)
+		}
 	}
 
 	search = strings.ToLower(strings.TrimSpace(search))
