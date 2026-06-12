@@ -140,6 +140,30 @@ func TestGoldenRRuleUntil(t *testing.T) {
 	CompareGolden(t, *update, "rrule_until", ics)
 }
 
+// TestGoldenTokyoNoDST: programmatic VTIMEZONE for a zone without DST —
+// single STANDARD block, no RRULE (phase 5).
+func TestGoldenTokyoNoDST(t *testing.T) {
+	ics := runAndReadICS(t, nil,
+		"create", "Tokyo Meeting",
+		"--start", "2030-05-10 10:30",
+		"--duration", "1h",
+		"--start-tz", "Asia/Tokyo",
+	)
+	CompareGolden(t, *update, "create_tokyo", ics)
+}
+
+// TestGoldenNewYorkDST: programmatic VTIMEZONE with US DST rules
+// (2nd Sunday of March / 1st Sunday of November).
+func TestGoldenNewYorkDST(t *testing.T) {
+	ics := runAndReadICS(t, nil,
+		"create", "NY Meeting",
+		"--start", "2030-05-10 10:30",
+		"--duration", "1h",
+		"--start-tz", "America/New_York",
+	)
+	CompareGolden(t, *update, "create_new_york", ics)
+}
+
 // TestGoldensPassOwnLint: every golden the tool generates must pass the
 // tool's own RFC 5545 gate. This closes the loop between emission and lint.
 func TestGoldensPassOwnLint(t *testing.T) {

@@ -1282,20 +1282,22 @@ func TestCalendarWithIncludeVTZAllDayEvents(t *testing.T) {
 	}
 }
 
-func TestCalendarWithIncludeVTZUnknownTimezone(t *testing.T) {
+func TestCalendarWithIncludeVTZAnyIANATimezone(t *testing.T) {
 	cal := NewCalendar()
 	cal.IncludeVTZ = true
 
 	start := time.Now()
 	event := NewEvent("Test", start, start.Add(1*time.Hour))
-	event.SetTimezone("America/Los_Angeles") // Not in knownVTZ
+	event.SetTimezone("America/Los_Angeles")
 
 	cal.AddEvent(event)
 	ics := cal.ToICS()
 
-	// Unknown timezone should not produce VTIMEZONE block
-	if strings.Contains(ics, "TZID:America/Los_Angeles") {
-		t.Error("Unknown timezone should not generate VTIMEZONE block")
+	if !strings.Contains(ics, "TZID:America/Los_Angeles") {
+		t.Error("any loadable IANA timezone must generate a VTIMEZONE block")
+	}
+	if !strings.Contains(ics, "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU") {
+		t.Error("America/Los_Angeles VTIMEZONE should carry the 2nd-Sunday-of-March DST rule")
 	}
 }
 
@@ -1313,8 +1315,10 @@ func TestKnownVTZ(t *testing.T) {
 		{testutil.TZEuropeLondon, true},
 		{testutil.TZAmericaSaoPaulo, true},
 		{testutil.TZAtlanticCanary, true},
-		{testutil.TZAmericaNewYork, false}, // Not in knownVTZ
+		{testutil.TZAmericaNewYork, true},
+		{"Asia/Tokyo", true},
 		{"Invalid/Zone", false},
+		{"UTC", false},
 		{"", false},
 	}
 

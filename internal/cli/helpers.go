@@ -312,16 +312,6 @@ func ResolveTimezone(input string) (string, error) {
 	return "", fmt.Errorf("invalid timezone %q: not an IANA zone or known city alias; try 'tempus timezone list --search %s'", input, input)
 }
 
-// warnMissingVTZ tells the user when a zone has no embedded VTIMEZONE
-// definition: the ICS is still usable in modern clients, but strict ones
-// (Outlook classic) may not resolve the TZID. UTC needs no VTIMEZONE.
-func warnMissingVTZ(w io.Writer, tz string) {
-	if tz == "" || tz == "UTC" || calendar.HasVTZDefinition(tz) {
-		return
-	}
-	fmt.Fprintf(w, "Warning: no VTIMEZONE definition embedded for %q — most clients resolve IANA names, but strict ones (e.g. Outlook classic) may not\n", tz)
-}
-
 // expandAlarmProfiles resolves profile:<name> specs against the loaded
 // configuration. Unknown profiles are an error naming the available ones.
 func expandAlarmProfiles(cfg *config.Config, alarmSpecs []string) ([]string, error) {
