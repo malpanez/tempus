@@ -1,6 +1,9 @@
 # Build stage
 FROM golang:1.26-alpine AS builder
 
+# Version injected at build time (release.yml passes --build-arg VERSION=vX.Y.Z)
+ARG VERSION=dev
+
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -14,8 +17,8 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags="-s -w -X main.version=${VERSION:-dev}" \
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w -X main.version=${VERSION}" \
     -o tempus .
 
 # Final stage
