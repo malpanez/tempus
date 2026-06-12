@@ -13,6 +13,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 type interactiveVars struct {
@@ -28,6 +29,7 @@ type interactiveVars struct {
 	customCat   string
 	location    string
 	description string
+	output      string
 	confirmed   bool
 }
 
@@ -251,11 +253,14 @@ func createEventFromWizard(app *App, vars *interactiveVars) error {
 	processedCategories := processCategories(vars.categories, vars.customCat)
 	alarmSpecs := resolveAlarmSpecs(vars.alarmProf, vars.customAlarm)
 
-	outputDir := app.Config.OutputDir
-	if outputDir == "" {
-		outputDir = "."
+	output := strings.TrimSpace(vars.output)
+	if output == "" {
+		outputDir := app.Config.OutputDir
+		if outputDir == "" {
+			outputDir = "."
+		}
+		output = filepath.Join(outputDir, Slugify(vars.summary)+".ics")
 	}
-	output := filepath.Join(outputDir, Slugify(vars.summary)+".ics")
 
 	opts := &createOptions{
 		summary:     vars.summary,
@@ -290,11 +295,30 @@ func createEventFromWizard(app *App, vars *interactiveVars) error {
 	return writeCalendarOutput(app, cal, opts.output)
 }
 
+// wizardCompatibleFlags are the create flags that --interactive honors;
+// any other changed flag is a hard error — the wizard must never silently
+// ignore something the user typed.
+var wizardCompatibleFlags = map[string]bool{
+	"interactive": true,
+	"output":      true,
+}
+
 func runInteractive(app *App, cmd *cobra.Command) error {
+	var incompatible []string
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		if !wizardCompatibleFlags[f.Name] {
+			incompatible = append(incompatible, "--"+f.Name)
+		}
+	})
+	if len(incompatible) > 0 {
+		return fmt.Errorf("flags %s cannot be combined with --interactive: the wizard collects those values itself (only -o/--output is honored)", strings.Join(incompatible, ", "))
+	}
+
 	vars := &interactiveVars{
 		timezone:  app.Config.Timezone,
 		alarmProf: app.Config.DefaultAlarmProfile,
 	}
+	vars.output, _ = cmd.Flags().GetString("output")
 	if vars.alarmProf == "" {
 		vars.alarmProf = "adhd-default"
 	}

@@ -101,6 +101,24 @@ func TestNegativeInvalidGlobalTZ(t *testing.T) {
 	}
 }
 
+// TestNegativeInteractiveWithIncompatibleFlags: the wizard must never
+// silently ignore flags the user typed — anything other than -o errors out.
+func TestNegativeInteractiveWithIncompatibleFlags(t *testing.T) {
+	workDir := t.TempDir()
+	res := RunCLI(t, binPath, workDir, nil, "",
+		"create", "-i",
+		"--start", "2030-05-10 10:30",
+		"--duration", "45m",
+	)
+	if res.ExitCode == 0 {
+		t.Fatalf("create -i with --start must fail, got exit 0\nstdout: %s\nstderr: %s", res.Stdout, res.Stderr)
+	}
+	combined := res.Stderr + res.Stdout
+	if !strings.Contains(combined, "--start") || !strings.Contains(combined, "--duration") {
+		t.Errorf("error should name the incompatible flags, got: %s", combined)
+	}
+}
+
 func TestNegativeBatchInvalidExDateRow(t *testing.T) {
 	workDir := t.TempDir()
 	csvPath := filepath.Join(workDir, "bad.csv")
