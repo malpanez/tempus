@@ -115,6 +115,11 @@
   "weekday_sa": "Saturday",
   "weekday_su": "Sunday",
 
+  "alarm_profile_name_adhd_default": "ADHD Default",
+  "alarm_profile_name_adhd_countdown": "ADHD Countdown",
+  "alarm_profile_name_medication": "Medication",
+  "alarm_profile_name_single": "Single",
+
   "alarm_prompt_suggested": "Suggested reminders:",
   "alarm_prompt_keep_or_change": "Press Enter to keep them or type 'n' to change",
   "alarm_prompt_yes_short": "y",
