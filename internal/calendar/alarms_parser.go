@@ -228,6 +228,13 @@ func parseKeyValueAlarmSpec(spec, defaultTZ string) (Alarm, error) {
 	}
 
 	al := createAlarmFromParams(params)
+	// RFC 5545 §3.6.6: EMAIL alarms require DESCRIPTION, SUMMARY, and at
+	// least one ATTENDEE; tempus has no alarm-level attendee support, so
+	// emitting EMAIL would always produce invalid output. AUDIO needs only
+	// ACTION+TRIGGER and DISPLAY is the portable default.
+	if al.Action != actionDisplay && al.Action != "AUDIO" {
+		return Alarm{}, fmt.Errorf("unsupported alarm action %q in alarm %q: only DISPLAY and AUDIO produce valid RFC 5545 output", al.Action, spec)
+	}
 	triggerMode := determineAlarmTriggerMode(params)
 
 	repeat, repeatDur, err := parseAlarmRepeatParams(params, spec)

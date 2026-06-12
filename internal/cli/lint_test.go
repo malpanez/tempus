@@ -116,6 +116,7 @@ func TestLintICSFile(t *testing.T) {
 VERSION:2.0
 BEGIN:VEVENT
 UID:test@example.com
+DTSTAMP:20250401T090000Z
 SUMMARY:Test Event
 DTSTART:20250501T100000Z
 DTEND:20250501T110000Z
@@ -147,6 +148,7 @@ END:VCALENDAR`,
 			content: `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
+DTSTAMP:20250401T090000Z
 SUMMARY:Test
 DTSTART:20250501T100000Z
 DTEND:20250501T110000Z
@@ -155,13 +157,64 @@ END:VCALENDAR`,
 			wantErr: true,
 		},
 		{
-			name: "missing SUMMARY",
+			name: "missing SUMMARY is valid per RFC 5545",
 			content: `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 UID:test@example.com
+DTSTAMP:20250401T090000Z
 DTSTART:20250501T100000Z
 DTEND:20250501T110000Z
+END:VEVENT
+END:VCALENDAR`,
+			wantErr: false,
+		},
+		{
+			name: "missing DTSTAMP",
+			content: `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:test@example.com
+SUMMARY:Test
+DTSTART:20250501T100000Z
+DTEND:20250501T110000Z
+END:VEVENT
+END:VCALENDAR`,
+			wantErr: true,
+		},
+		{
+			name: "unclosed VEVENT",
+			content: `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:test@example.com
+DTSTAMP:20250401T090000Z
+DTSTART:20250501T100000Z
+END:VCALENDAR`,
+			wantErr: true,
+		},
+		{
+			name: "UNTIL date with timed DTSTART",
+			content: `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:test@example.com
+DTSTAMP:20250401T090000Z
+DTSTART:20250501T100000Z
+RRULE:FREQ=WEEKLY;UNTIL=20251231
+END:VEVENT
+END:VCALENDAR`,
+			wantErr: true,
+		},
+		{
+			name: "unescaped semicolon in CATEGORIES",
+			content: `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:test@example.com
+DTSTAMP:20250401T090000Z
+DTSTART:20250501T100000Z
+CATEGORIES:work;personal
 END:VEVENT
 END:VCALENDAR`,
 			wantErr: true,
@@ -172,6 +225,7 @@ END:VCALENDAR`,
 VERSION:2.0
 BEGIN:VEVENT
 UID:test@example.com
+DTSTAMP:20250401T090000Z
 SUMMARY:Test
 DTEND:20250501T110000Z
 END:VEVENT
@@ -184,6 +238,7 @@ END:VCALENDAR`,
 VERSION:2.0
 BEGIN:VEVENT
 UID:test@example.com
+DTSTAMP:20250401T090000Z
 SUMMARY:Test
 DTSTART:20250501T100000Z
 DURATION:PT1H
@@ -201,7 +256,7 @@ END:VCALENDAR`,
 				t.Fatalf(testutil.ErrMsgFailedToWriteTestFile, err)
 			}
 
-			err := lintICSFile(path)
+			_, err := lintICSFile(path)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("lintICSFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -210,14 +265,14 @@ END:VCALENDAR`,
 
 	t.Run("directory instead of file", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		err := lintICSFile(tmpDir)
+		_, err := lintICSFile(tmpDir)
 		if err == nil {
 			t.Error("lintICSFile() expected error for directory, got nil")
 		}
 	})
 
 	t.Run("non-existent file", func(t *testing.T) {
-		err := lintICSFile("/non/existent/file.ics")
+		_, err := lintICSFile("/non/existent/file.ics")
 		if err == nil {
 			t.Error("lintICSFile() expected error for non-existent file, got nil")
 		}
@@ -232,6 +287,7 @@ VERSION:2.0
 PRODID:-//Tempus//Test//EN
 BEGIN:VEVENT
 UID:test-1
+DTSTAMP:20250101T090000Z
 SUMMARY:Valid event
 DTSTART:20250101T100000Z
 DTEND:20250101T110000Z

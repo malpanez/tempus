@@ -113,5 +113,24 @@
   "weekday_th": "Thursday",
   "weekday_fr": "Friday",
   "weekday_sa": "Saturday",
-  "weekday_su": "Sunday"
+  "weekday_su": "Sunday",
+
+  "alarm_profile_name_adhd_default": "ADHD Default",
+  "alarm_profile_name_adhd_countdown": "ADHD Countdown",
+  "alarm_profile_name_medication": "Medication",
+  "alarm_profile_name_single": "Single",
+
+  "alarm_prompt_suggested": "Suggested reminders:",
+  "alarm_prompt_keep_or_change": "Press Enter to keep them or type 'n' to change",
+  "alarm_prompt_yes_short": "y",
+  "alarm_prompt_yes_long": "yes",
+  "alarm_prompt_add_up_to": "Add up to 4 reminders. Use formats like -15m, +10m, 2025-03-01 09:15 or trigger=-15m,description=Text.",
+  "alarm_prompt_help_hint": "Type '?' for examples or leave empty to finish.",
+  "alarm_prompt_reminder_n": "Reminder #%d (-15m, +10m, trigger=..., ? for help)",
+  "alarm_prompt_examples_header": "Examples:",
+  "alarm_prompt_example_before": "  -15m                 -> 15 minutes before",
+  "alarm_prompt_example_after": "  +5m                  -> 5 minutes after",
+  "alarm_prompt_example_trigger": "  trigger=-30m,description=Find taxi",
+  "alarm_prompt_example_absolute": "  trigger=2025-03-01 09:15,description=Check-in",
+  "alarm_prompt_optional_desc": "Optional description (Enter for default)"
 }

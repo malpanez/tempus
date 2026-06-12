@@ -113,5 +113,24 @@
   "weekday_th": "Déardaoin",
   "weekday_fr": "Dé hAoine",
   "weekday_sa": "Dé Sathairn",
-  "weekday_su": "Dé Domhnaigh"
+  "weekday_su": "Dé Domhnaigh",
+
+  "alarm_profile_name_adhd_default": "ADHD réamhshocraithe",
+  "alarm_profile_name_adhd_countdown": "ADHD comhaireamh síos",
+  "alarm_profile_name_medication": "Cógais",
+  "alarm_profile_name_single": "Aonair",
+
+  "alarm_prompt_suggested": "Meabhrúcháin mholta:",
+  "alarm_prompt_keep_or_change": "Brúigh Enter chun iad a choinneáil nó clóscríobh 'n' chun iad a athrú",
+  "alarm_prompt_yes_short": "s",
+  "alarm_prompt_yes_long": "sea",
+  "alarm_prompt_add_up_to": "Cuir suas le 4 mheabhrúchán. Úsáid formáidí cosúil le -15m, +10m, 2025-03-01 09:15 nó trigger=-15m,description=Téacs.",
+  "alarm_prompt_help_hint": "Clóscríobh '?' le haghaidh samplaí nó fág folamh chun críochnú.",
+  "alarm_prompt_reminder_n": "Meabhrúchán #%d (-15m, +10m, trigger=..., ? le haghaidh cabhrach)",
+  "alarm_prompt_examples_header": "Samplaí:",
+  "alarm_prompt_example_before": "  -15m                 -> 15 nóiméad roimhe",
+  "alarm_prompt_example_after": "  +5m                  -> 5 nóiméad ina dhiaidh",
+  "alarm_prompt_example_trigger": "  trigger=-30m,description=Faigh tacsaí",
+  "alarm_prompt_example_absolute": "  trigger=2025-03-01 09:15,description=Check-in",
+  "alarm_prompt_optional_desc": "Cur síos roghnach (Enter don cheann réamhshocraithe)"
 }

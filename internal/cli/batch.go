@@ -610,7 +610,7 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 	event.Description = strings.TrimSpace(rec.Description)
 
 	if strings.TrimSpace(rec.RRule) != "" {
-		event.RRule = strings.TrimSpace(rec.RRule)
+		event.RRule = NormalizeRRuleUntil(strings.TrimSpace(rec.RRule), rec.AllDay)
 	}
 
 	addBatchCategories(event, rec.Categories, catCache)

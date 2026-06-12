@@ -152,18 +152,19 @@ IANA validation; invalid zone = fatal error.
 
 ### Tasks
 
-- [ ] 3.1 Escape `;`/`,` in CATEGORIES values (calendar.go:321).
-- [ ] 3.2 ACTION:EMAIL VALARMs require DESCRIPTION + ATTENDEE at build time.
-- [ ] 3.3 `rrule` helper: UNTIL value type matches DTSTART (UTC date-time for timed).
-- [ ] 3.4 Drop ATTENDEE when METHOD:PUBLISH (or drop METHOD — document the choice).
-- [ ] 3.5 `tempus lint`: stop requiring SUMMARY/DTEND; require DTSTAMP; detect unclosed
-      VEVENT; fix unfolding; add checks for TZID↔VTIMEZONE, UNTIL type, CATEGORIES.
-- [ ] 3.6 i18n: sync `locales/` ↔ `internal/i18n/locales/` (123 keys), wire
-      `alarm_prompt_*` into `promptAlarmField`, remove hardcoded Spanish, un-skip test.
-- [ ] 3.8 Wizard option labels out of sync with config: interactive.go says
-      "ADHD Default (-2h, -30m, -5m)" but the real profile is -2h,-1h,-30m,-10m
-      (config.go:40). Same check for the other profile labels. (Found in phase 1.)
-- [ ] 3.7 Key-parity test across locale files (build fails on drift).
+- [x] 3.1 CATEGORIES values TEXT-escaped individually before joining.
+- [x] 3.2 Alarm actions restricted to DISPLAY/AUDIO at parse time; EMAIL fails loud (cannot supply required ATTENDEE).
+- [x] 3.3 rrule helper asks all-day vs timed; create/batch normalize date-only UNTIL on timed events to T235959Z.
+- [x] 3.4 METHOD omitted when attendees present (documented: REQUEST would need an ORGANIZER we do not model).
+- [x] 3.5 `tempus lint` rewritten: DTSTAMP required, SUMMARY/DTEND optional, unclosed
+      VEVENT detected, RFC unfolding, UNTIL-type and CATEGORIES-escaping errors,
+      TZID↔VTIMEZONE warning, positional args; goldens must pass own lint (E2E test).
+- [x] 3.6 Locale trees synced (127 keys × 8 files, identical), promptAlarmField fully
+      localized via translator + App writer, skip removed, per-language assertions.
+- [x] 3.8 Wizard labels generated from config profile definitions (alarmProfileOptions);
+      localized display names via alarm_profile_name_* keys; anti-drift test asserts
+      every label contains exactly the offsets from config. No offsets hardcoded anywhere.
+- [x] 3.7 TestLocaleKeyParity: any key/value drift between languages or trees fails the build.
 
 ### Verification
 

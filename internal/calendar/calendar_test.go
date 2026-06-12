@@ -2202,14 +2202,20 @@ func TestAlarmsParserParseKeyValueAlarmSpec(t *testing.T) {
 			},
 		},
 		{
-			name:    "with action",
-			spec:    "trigger=15m,action=EMAIL",
+			name:    "with audio action",
+			spec:    "trigger=15m,action=AUDIO",
 			wantErr: false,
 			check: func(t *testing.T, a Alarm) {
-				if a.Action != "EMAIL" {
-					t.Errorf("Action = %q, want EMAIL", a.Action)
+				if a.Action != "AUDIO" {
+					t.Errorf("Action = %q, want AUDIO", a.Action)
 				}
 			},
+		},
+		{
+			name:    "email action is rejected",
+			spec:    "trigger=15m,action=EMAIL",
+			wantErr: true,
+			check:   func(t *testing.T, a Alarm) {},
 		},
 		{
 			name:    "with description",
@@ -2830,7 +2836,7 @@ func TestAlarmsParserIntegrationAbsoluteAlarms(t *testing.T) {
 }
 
 func TestAlarmsParserIntegrationComplexKeyValue(t *testing.T) {
-	input := "trigger=15m,action=EMAIL,description=Meeting reminder,summary=Important Meeting,repeat=3,repeat_duration=5m"
+	input := "trigger=15m,action=DISPLAY,description=Meeting reminder,summary=Important Meeting,repeat=3,repeat_duration=5m"
 	alarms, err := ParseAlarmsFromString(input, "UTC")
 	if err != nil {
 		t.Fatalf(testutil.AlarmParseError, input, err)
@@ -2840,8 +2846,8 @@ func TestAlarmsParserIntegrationComplexKeyValue(t *testing.T) {
 	}
 
 	alarm := alarms[0]
-	if alarm.Action != "EMAIL" {
-		t.Errorf("Action = %q, want EMAIL", alarm.Action)
+	if alarm.Action != "DISPLAY" {
+		t.Errorf("Action = %q, want DISPLAY", alarm.Action)
 	}
 	if alarm.Description != "Meeting reminder" {
 		t.Errorf("Description = %q, want 'Meeting reminder'", alarm.Description)

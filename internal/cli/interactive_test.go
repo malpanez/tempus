@@ -396,7 +396,7 @@ func TestInteractiveFormStructure(t *testing.T) {
 		alarmProf: "adhd-default",
 	}
 
-	form := buildInteractiveForm(vars)
+	form := buildInteractiveForm(TestApp(), vars)
 	if form == nil {
 		t.Fatal("buildInteractiveForm() returned nil")
 	}

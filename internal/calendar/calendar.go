@@ -137,6 +137,15 @@ func (c *Calendar) AddEvent(event *Event) {
 	}
 }
 
+func (c *Calendar) hasAttendees() bool {
+	for i := range c.Events {
+		if len(c.Events[i].Attendees) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // SetDefaultTimezone sets the default timezone for the calendar metadata.
 // This value is emitted as X-WR-TIMEZONE for better compatibility with Google Calendar.
 func (c *Calendar) SetDefaultTimezone(tz string) {
@@ -184,7 +193,12 @@ func (c *Calendar) ToICS() string {
 	writeProp(&b, "PRODID", c.ProdID)
 	writeProp(&b, "VERSION", c.Version)
 	writeProp(&b, "CALSCALE", c.CalScale)
-	if strings.TrimSpace(c.Method) != "" {
+	// RFC 5545 §3.8.4.1 forbids ATTENDEE when publishing calendar
+	// information (METHOD:PUBLISH). Events with attendees therefore drop
+	// METHOD entirely: without it the object is plain calendar data, where
+	// ATTENDEE is acceptable, and we avoid claiming iTIP semantics
+	// (REQUEST would require an ORGANIZER we don't model).
+	if strings.TrimSpace(c.Method) != "" && !c.hasAttendees() {
 		writeProp(&b, "METHOD", c.Method)
 	}
 	if strings.TrimSpace(c.Name) != "" {
@@ -321,7 +335,11 @@ func (e *Event) writeOptionalProperties(b *strings.Builder) {
 	}
 
 	if len(e.Categories) > 0 {
-		writeProp(b, "CATEGORIES", strings.Join(e.Categories, ","))
+		escaped := make([]string, 0, len(e.Categories))
+		for _, c := range e.Categories {
+			escaped = append(escaped, escapeText(c))
+		}
+		writeProp(b, "CATEGORIES", strings.Join(escaped, ","))
 	}
 
 	if e.Priority > 0 {

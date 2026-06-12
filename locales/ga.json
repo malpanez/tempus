@@ -115,6 +115,11 @@
   "weekday_sa": "Dé Sathairn",
   "weekday_su": "Dé Domhnaigh",
 
+  "alarm_profile_name_adhd_default": "ADHD réamhshocraithe",
+  "alarm_profile_name_adhd_countdown": "ADHD comhaireamh síos",
+  "alarm_profile_name_medication": "Cógais",
+  "alarm_profile_name_single": "Aonair",
+
   "alarm_prompt_suggested": "Meabhrúcháin mholta:",
   "alarm_prompt_keep_or_change": "Brúigh Enter chun iad a choinneáil nó clóscríobh 'n' chun iad a athrú",
   "alarm_prompt_yes_short": "s",

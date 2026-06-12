@@ -270,7 +270,7 @@ func configureEvent(event *calendar.Event, opts *createOptions, cfg *config.Conf
 	setEventTimezones(event, opts.startTZ, opts.endTZ)
 
 	if strings.TrimSpace(opts.rrule) != "" {
-		event.RRule = strings.TrimSpace(opts.rrule)
+		event.RRule = NormalizeRRuleUntil(strings.TrimSpace(opts.rrule), opts.allDay)
 	}
 
 	if err := addExDates(event, opts.exdates, opts.startTZ, opts.allDay); err != nil {

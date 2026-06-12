@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -309,8 +310,8 @@ func TestRunLintNoFiles(t *testing.T) {
 	if err == nil {
 		t.Fatal("runLint() expected error when no --file provided")
 	}
-	if !strings.Contains(err.Error(), "--file is required") {
-		t.Errorf("expected '--file is required' error, got: %v", err)
+	if !strings.Contains(err.Error(), "no files to lint") {
+		t.Errorf("expected 'no files to lint' error, got: %v", err)
 	}
 }
 
@@ -322,6 +323,7 @@ VERSION:2.0
 BEGIN:VEVENT
 UID:test-uid-001@tempus
 SUMMARY:Test Event
+DTSTAMP:20250401T090000Z
 DTSTART:20250501T100000Z
 DTEND:20250501T110000Z
 END:VEVENT
@@ -910,7 +912,7 @@ func TestPromptAlarmFieldKeepDefaults(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Alarms", "-15m|-5m")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Alarms", "-15m|-5m")
 	if result == "" {
 		t.Error("promptAlarmField() should return non-empty when keeping defaults")
 	}
@@ -921,7 +923,7 @@ func TestPromptAlarmFieldNoDefault(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Alarms", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Alarms", "")
 	_ = result
 }
 
@@ -2152,6 +2154,7 @@ VERSION:2.0
 BEGIN:VEVENT
 UID:lint-test-uid@tempus
 SUMMARY:Lint RunE Test
+DTSTAMP:20250401T090000Z
 DTSTART:20250601T100000Z
 DTEND:20250601T110000Z
 END:VEVENT
@@ -2965,7 +2968,7 @@ func TestPromptAlarmFieldChangeDefaults(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("n\n-15m\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "-30m|-5m")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "-30m|-5m")
 	if result == "" {
 		t.Error("promptAlarmField() should return non-empty result")
 	}
@@ -2977,7 +2980,7 @@ func TestPromptAlarmFieldHelpInput(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("?\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
@@ -2987,7 +2990,7 @@ func TestPromptAlarmFieldInvalidAlarmSpec(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("not-valid-alarm\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
@@ -2997,7 +3000,7 @@ func TestPromptAlarmFieldWithDescription(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("-15m\nMy reminder\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
@@ -3574,7 +3577,7 @@ func TestRunLintMultipleFiles(t *testing.T) {
 
 	makeICS := func(name, uid string) string {
 		icsPath := filepath.Join(tmpDir, name)
-		content := "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:" + uid + "\nSUMMARY:Test\nDTSTART:20250601T100000Z\nDTEND:20250601T110000Z\nEND:VEVENT\nEND:VCALENDAR\n"
+		content := "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:" + uid + "\nSUMMARY:Test\nDTSTAMP:20250401T090000Z\nDTSTART:20250601T100000Z\nDTEND:20250601T110000Z\nEND:VEVENT\nEND:VCALENDAR\n"
 		if err := os.WriteFile(icsPath, []byte(content), 0644); err != nil {
 			panic(err)
 		}
