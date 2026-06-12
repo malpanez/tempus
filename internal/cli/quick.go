@@ -51,7 +51,6 @@ func runQuick(app *App, cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	warnMissingVTZ(app.Stderr, finalTZ)
 	applyTimezoneToDetails(&details, finalTZ)
 
 	confirmed, err := confirmQuickEvent(app, details, finalTZ)

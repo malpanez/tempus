@@ -248,7 +248,6 @@ func createEventFromWizard(app *App, vars *interactiveVars) error {
 		tz = ""
 	}
 	vars.timezone = tz
-	warnMissingVTZ(app.Stderr, tz)
 
 	processedCategories := processCategories(vars.categories, vars.customCat)
 	alarmSpecs := resolveAlarmSpecs(vars.alarmProf, vars.customAlarm)

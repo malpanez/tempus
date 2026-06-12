@@ -62,7 +62,6 @@ func runCreate(app *App, cmd *cobra.Command, args []string) error {
 	if err := resolveCreateTimezones(opts, app.Config); err != nil {
 		return err
 	}
-	warnMissingVTZ(app.Stderr, opts.startTZ)
 
 	startTime, endTime, err := parseCreateTimes(opts)
 	if err != nil {

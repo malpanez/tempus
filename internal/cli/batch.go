@@ -102,7 +102,6 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 		defaultTZ = ""
 	}
 	opts.defaultTZ = defaultTZ
-	warnMissingVTZ(app.Stderr, defaultTZ)
 
 	records, _, err := loadBatchInput(opts)
 	if err != nil {
