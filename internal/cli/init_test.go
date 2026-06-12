@@ -50,9 +50,7 @@ func TestInitCmdExistingConfigNoOverwrite(t *testing.T) {
 		t.Fatalf("failed to write config: %v", err)
 	}
 
-	if runtime.GOOS == "windows" {
-		t.Skip("huh forms block reading the console on windows non-TTY instead of erroring")
-	}
+	skipIfWindowsConsole(t)
 
 	app := TestApp()
 	err := runInit(app)
@@ -70,6 +68,8 @@ func TestInitCmdExistingConfigNoOverwrite(t *testing.T) {
 }
 
 func TestInitCmdNoExistingConfig(t *testing.T) {
+	skipIfWindowsConsole(t)
+
 	tmpDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
@@ -77,5 +77,14 @@ func TestInitCmdNoExistingConfig(t *testing.T) {
 	err := runInit(app)
 	if err != nil {
 		t.Fatalf("runInit returned error on fresh config: %v", err)
+	}
+}
+
+// skipIfWindowsConsole skips tests that drive huh forms without a TTY:
+// on windows the form blocks reading the console instead of erroring.
+func skipIfWindowsConsole(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("huh forms block reading the console on windows non-TTY instead of erroring")
 	}
 }
