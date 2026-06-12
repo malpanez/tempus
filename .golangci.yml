@@ -1,58 +1,28 @@
-# golangci-lint configuration for Tempus
+# golangci-lint v2 configuration for Tempus
 # Documentation: https://golangci-lint.run/usage/configuration/
+
+version: "2"
 
 run:
   timeout: 5m
-  tests: true
   build-tags: []
 
 linters:
-  disable-all: true
+  default: none
   enable:
-    # Critical: Bugs & Correctness only for v0.5.0
-    - govet          # Vet examines Go source code
-    - staticcheck    # Go static analysis
-    - typecheck      # Type checking
-    - gofmt          # Check formatting only
-    - goimports      # Check imports only
+    - govet
+    - staticcheck
 
-linters-settings:
-  govet:
-    enable-all: false
-    enable:
-      - atomic
-      - bools
-      - buildtag
-      - nilfunc
-      - printf
-    disable:
-      - shadow       # Too many false positives
-      - fieldalignment
+  settings:
+    govet:
+      enable:
+        - atomic
+        - bools
+        - buildtag
+        - nilfunc
+        - printf
 
-issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-  exclude-rules:
-    # Exclude staticcheck SA1019 (deprecated)
-    - linters:
-        - staticcheck
-      text: "SA1019:"
-
-    # Exclude staticcheck SA5011 (nil pointer checks in tests are intentional)
-    - linters:
-        - staticcheck
-      text: "SA5011"
-
-    # Exclude staticcheck SA9003 (empty branches in test code are OK)
-    - linters:
-        - staticcheck
-      text: "SA9003"
-
-  fix: false
-
-output:
-  sort-results: true
-  print-issued-lines: true
-  print-linter-name: true
+formatters:
+  enable:
+    - gofmt
+    - goimports

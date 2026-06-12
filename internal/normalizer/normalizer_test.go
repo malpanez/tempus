@@ -60,6 +60,10 @@ func TestParseHumanDuration(t *testing.T) {
 		{"90", 90 * time.Minute, false},
 		{"1:30", 90 * time.Minute, false},
 		{"2:15", 135 * time.Minute, false},
+		{"1d", 24 * time.Hour, false},
+		{"3d", 72 * time.Hour, false},
+		{"1w", 7 * 24 * time.Hour, false},
+		{"2w", 14 * 24 * time.Hour, false},
 		{"", 0, true},
 		{"invalid", 0, true},
 	}

@@ -206,7 +206,7 @@ Hi HN! I'm a neurodivergent developer who struggled with traditional calendar to
 - Deadlines (escalating countdown reminders)
 
 **Tech stack:**
-- Go 1.24 with Cobra/Viper
+- Go 1.26 with Cobra/Viper
 - RFC 5545 compliant ICS generation
 - Embedded IANA timezone database
 - Universal calendar compatibility (no vendor lock-in)

@@ -19,7 +19,7 @@ jobs:
       matrix:
         # ubuntu-slim for regular pushes, full multi-OS matrix for PRs/releases
         os: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')) && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-slim"]') }}
-        go-version: ['1.24']
+        go-version: ['1.26']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
@@ -74,11 +74,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.26'
           cache: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: latest
           args: --timeout=5m
@@ -90,7 +90,7 @@ jobs:
       matrix:
         # ubuntu-slim for regular pushes, full multi-OS matrix for PRs/releases
         os: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')) && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-slim"]') }}
-        go-version: ['1.24']
+        go-version: ['1.26']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
@@ -130,7 +130,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.26'
           cache: true
 
       - name: Build binary
@@ -246,7 +246,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.23'
+          go-version: '1.26'
           cache: true
 
       - name: Generate coverage report
@@ -260,8 +260,8 @@ jobs:
           total_coverage=$(go tool cover -func=.coverage/profile.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${total_coverage}%"
 
-          # Target: 75% minimum coverage
-          threshold=75
+          # Target: 79% minimum coverage
+          threshold=79
           if (( $(echo "$total_coverage < $threshold" | bc -l) )); then
             echo "❌ Coverage ${total_coverage}% is below threshold ${threshold}%"
             exit 1
