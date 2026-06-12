@@ -51,8 +51,8 @@ func TestInitCmdExistingConfigNoOverwrite(t *testing.T) {
 
 	app := TestApp()
 	err := runInit(app)
-	if err != nil {
-		t.Fatalf("runInit returned error: %v", err)
+	if err == nil {
+		t.Fatal("runInit expected error when interactive form cannot run (non-TTY), got nil")
 	}
 
 	after, err := os.ReadFile(configFile)

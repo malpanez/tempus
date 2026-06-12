@@ -76,6 +76,18 @@ var defaultConfig = Config{
 // Load loads configuration from file or creates defaults in memory.
 // It reads ~/.config/tempus/config.yaml (or OS-specific dir) with a fallback to current dir.
 func Load() (*Config, error) {
+	return LoadFrom("")
+}
+
+// LoadFrom loads configuration from an explicit file path. A non-empty path
+// that cannot be read is an error — the user pointed at it deliberately.
+// An empty path falls back to the standard search locations.
+func LoadFrom(path string) (*Config, error) {
+	if path != "" {
+		viper.SetConfigFile(path)
+		return loadFromViper(true)
+	}
+
 	configDir, err := getConfigDir()
 	if err != nil {
 		return nil, err
@@ -85,6 +97,10 @@ func Load() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configDir)
 	viper.AddConfigPath(".")
+	return loadFromViper(false)
+}
+
+func loadFromViper(explicitFile bool) (*Config, error) {
 
 	// Defaults
 	viper.SetDefault("language", defaultConfig.Language)
@@ -104,6 +120,9 @@ func Load() (*Config, error) {
 
 	// Try to read config file
 	if err := viper.ReadInConfig(); err != nil {
+		if explicitFile {
+			return nil, fmt.Errorf("reading config file: %w", err)
+		}
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, err
 		}

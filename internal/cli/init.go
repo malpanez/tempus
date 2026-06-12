@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,7 +40,10 @@ func runInit(app *App) error {
 				Value(&overwrite),
 		))
 		if err := form.Run(); err != nil {
-			return nil
+			if errors.Is(err, huh.ErrUserAborted) {
+				return fmt.Errorf("init aborted")
+			}
+			return fmt.Errorf("interactive form: %w", err)
 		}
 		if !overwrite {
 			PrintOK(app.Stdout, "Config unchanged. Use 'tempus config set <key> <value>' for individual changes.\n")

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
+	"tempus/internal/config"
 	"tempus/internal/normalizer"
 	"tempus/internal/parsing"
 	"tempus/internal/testutil"
@@ -260,9 +261,9 @@ func parseDurationEnd(startTime time.Time, durStr string) (time.Time, error) {
 	return startTime.Add(dur), nil
 }
 
-func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) {
+func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay bool) error {
 	if len(exdates) == 0 {
-		return
+		return nil
 	}
 	tzForEx := strings.TrimSpace(event.StartTZ)
 	if tzForEx == "" {
@@ -270,8 +271,34 @@ func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay 
 	}
 	for _, raw := range exdates {
 		parsed, err := parsing.ParseExDateValues([]string{raw}, tzForEx, allDay)
-		if err == nil {
-			event.ExDates = append(event.ExDates, parsed...)
+		if err != nil {
+			return fmt.Errorf("invalid exdate %q: %w", raw, err)
 		}
+		event.ExDates = append(event.ExDates, parsed...)
 	}
+	return nil
+}
+
+// expandAlarmProfiles resolves profile:<name> specs against the loaded
+// configuration. Unknown profiles are an error naming the available ones.
+func expandAlarmProfiles(cfg *config.Config, alarmSpecs []string) ([]string, error) {
+	expanded := make([]string, 0, len(alarmSpecs))
+	for _, spec := range alarmSpecs {
+		spec = strings.TrimSpace(spec)
+		if spec == "" {
+			continue
+		}
+		if name, ok := strings.CutPrefix(spec, "profile:"); ok {
+			name = strings.TrimSpace(name)
+			profile := cfg.GetAlarmProfile(name)
+			if profile == nil {
+				return nil, fmt.Errorf("alarm profile %q not found. Available: %s",
+					name, strings.Join(cfg.ListAlarmProfiles(), ", "))
+			}
+			expanded = append(expanded, profile...)
+			continue
+		}
+		expanded = append(expanded, spec)
+	}
+	return expanded, nil
 }

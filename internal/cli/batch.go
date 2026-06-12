@@ -102,7 +102,7 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 	spellCache := nd.NewSpellCheckCache(corrections)
 	catCache := nd.NewCategoryCache()
 
-	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache)
+	cal, validationErrors, err := buildBatchCalendar(records, opts, spellCache, catCache, app.Config)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func loadBatchInput(opts *batchOptions) ([]batchRecord, batchFormat, error) {
 	return records, format, nil
 }
 
-func buildBatchCalendar(records []batchRecord, opts *batchOptions, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache) (*calendar.Calendar, []string, error) {
+func buildBatchCalendar(records []batchRecord, opts *batchOptions, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache, cfg *config.Config) (*calendar.Calendar, []string, error) {
 	cal := calendar.NewCalendar()
 	cal.IncludeVTZ = true
 
@@ -178,7 +178,7 @@ func buildBatchCalendar(records []batchRecord, opts *batchOptions, spellCache *n
 
 	var validationErrors []string
 	for i, rec := range records {
-		ev, err := buildEventFromBatch(rec, opts.defaultTZ, spellCache, catCache)
+		ev, err := buildEventFromBatch(rec, opts.defaultTZ, spellCache, catCache, cfg)
 		if err != nil {
 			if opts.dryRun {
 				validationErrors = append(validationErrors, fmt.Sprintf("Row %d: %v", i+1, err))
@@ -444,7 +444,7 @@ func parseMapsToRecords(raw []map[string]interface{}) []batchRecord {
 	return records
 }
 
-func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache) (*calendar.Event, error) {
+func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.SpellCheckCache, catCache *nd.CategoryCache, cfg *config.Config) (*calendar.Event, error) {
 	summary, startStr, err := validateBatchRecord(rec, spellCache)
 	if err != nil {
 		return nil, err
@@ -458,7 +458,9 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.Spel
 
 	summaryWithEmoji := nd.AddEmojiToSummary(summary, rec.Categories)
 	event := calendar.NewEvent(summaryWithEmoji, startTime, endTime)
-	configureBatchEvent(event, rec, startTZ, endTZ, catCache)
+	if err := configureBatchEvent(event, rec, startTZ, endTZ, catCache, cfg); err != nil {
+		return nil, err
+	}
 
 	return event, nil
 }
@@ -570,7 +572,7 @@ func parseBatchExplicitEnd(endStr string, startTime time.Time, endTZ, originalEn
 	return endTime, nil
 }
 
-func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string, catCache *nd.CategoryCache) {
+func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ string, catCache *nd.CategoryCache, cfg *config.Config) error {
 	event.AllDay = rec.AllDay
 
 	setEventTimezones(event, startTZ, endTZ)
@@ -583,8 +585,10 @@ func configureBatchEvent(event *calendar.Event, rec batchRecord, startTZ, endTZ 
 	}
 
 	addBatchCategories(event, rec.Categories, catCache)
-	addExDates(event, rec.ExDates, startTZ, rec.AllDay)
-	addBatchAlarms(event, rec.Alarms, startTZ)
+	if err := addExDates(event, rec.ExDates, startTZ, rec.AllDay); err != nil {
+		return err
+	}
+	return addEventAlarms(event, rec.Alarms, startTZ, cfg)
 }
 
 func addBatchCategories(event *calendar.Event, categories []string, catCache *nd.CategoryCache) {
@@ -595,58 +599,6 @@ func addBatchCategories(event *calendar.Event, categories []string, catCache *nd
 			event.AddCategory(validated)
 		}
 	}
-}
-
-func addBatchAlarms(event *calendar.Event, alarms []string, startTZ string) {
-	if len(alarms) == 0 {
-		return
-	}
-
-	defaultAlarmTZ := event.StartTZ
-	if defaultAlarmTZ == "" {
-		defaultAlarmTZ = startTZ
-	}
-
-	expandedAlarms, err := expandAlarmProfilesWithError(alarms)
-	if err != nil {
-		return
-	}
-	parsed, err := calendar.ParseAlarmSpecs(expandedAlarms, defaultAlarmTZ)
-	if err == nil {
-		event.Alarms = append(event.Alarms, parsed...)
-	}
-}
-
-func expandAlarmProfilesWithError(alarmSpecs []string) ([]string, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config for alarm profiles: %w", err)
-	}
-
-	expanded := make([]string, 0, len(alarmSpecs))
-	for _, spec := range alarmSpecs {
-		spec = strings.TrimSpace(spec)
-		if spec == "" {
-			continue
-		}
-
-		if strings.HasPrefix(spec, "profile:") {
-			profileName := strings.TrimPrefix(spec, "profile:")
-			profileName = strings.TrimSpace(profileName)
-
-			profile := cfg.GetAlarmProfile(profileName)
-			if profile != nil {
-				expanded = append(expanded, profile...)
-			} else {
-				names := cfg.ListAlarmProfiles()
-				return nil, fmt.Errorf("profile '%s' not found. Available: %s", profileName, strings.Join(names, ", "))
-			}
-		} else {
-			expanded = append(expanded, spec)
-		}
-	}
-
-	return expanded, nil
 }
 
 // ========================================================================

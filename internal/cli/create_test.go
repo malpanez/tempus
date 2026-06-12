@@ -328,7 +328,10 @@ func TestCreateCalendarWithEvent(t *testing.T) {
 	start := time.Date(2025, 12, 16, 10, 0, 0, 0, time.UTC)
 	end := time.Date(2025, 12, 16, 11, 0, 0, 0, time.UTC)
 
-	cal := createCalendarWithEvent(opts, start, end)
+	cal, err := createCalendarWithEvent(opts, start, end, TestApp().Config)
+	if err != nil {
+		t.Fatalf("createCalendarWithEvent() error: %v", err)
+	}
 	if cal == nil {
 		t.Fatal("createCalendarWithEvent() returned nil")
 	}
@@ -349,7 +352,9 @@ func TestConfigureEvent(t *testing.T) {
 		attendees:   []string{"alice@example.com"},
 		priority:    3,
 	}
-	configureEvent(event, opts)
+	if err := configureEvent(event, opts, TestApp().Config); err != nil {
+		t.Fatalf("configureEvent() error: %v", err)
+	}
 
 	if event.Location != "Room A" {
 		t.Errorf("Location = %q, want %q", event.Location, "Room A")
@@ -390,15 +395,28 @@ func TestSetEventTimezonesEndInheritsStart(t *testing.T) {
 func TestAddEventExDates(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
 	exdates := []string{"2025-12-25", "2026-01-01", "invalid-date"}
-	addExDates(event, exdates, "UTC", true)
+	err := addExDates(event, exdates, "UTC", true)
+	if err == nil {
+		t.Fatal("addExDates() expected error for invalid exdate, got nil")
+	}
+}
+
+func TestAddEventExDatesValid(t *testing.T) {
+	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
+	exdates := []string{"2025-12-25", "2026-01-01"}
+	if err := addExDates(event, exdates, "UTC", true); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 	if len(event.ExDates) != 2 {
-		t.Errorf("expected 2 valid exdates, got %d", len(event.ExDates))
+		t.Errorf("expected 2 exdates, got %d", len(event.ExDates))
 	}
 }
 
 func TestAddEventExDatesEmpty(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
-	addExDates(event, []string{}, "UTC", false)
+	if err := addExDates(event, []string{}, "UTC", false); err != nil {
+		t.Fatalf("addExDates() error: %v", err)
+	}
 	if len(event.ExDates) != 0 {
 		t.Errorf("expected 0 exdates, got %d", len(event.ExDates))
 	}
@@ -406,7 +424,9 @@ func TestAddEventExDatesEmpty(t *testing.T) {
 
 func TestAddEventAlarms(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
-	addEventAlarms(event, []string{"-15m", "-1h"}, "UTC")
+	if err := addEventAlarms(event, []string{"-15m", "-1h"}, "UTC", TestApp().Config); err != nil {
+		t.Fatalf("addEventAlarms() error: %v", err)
+	}
 	if len(event.Alarms) != 2 {
 		t.Errorf("expected 2 alarms, got %d", len(event.Alarms))
 	}
@@ -414,7 +434,9 @@ func TestAddEventAlarms(t *testing.T) {
 
 func TestAddEventAlarmsEmpty(t *testing.T) {
 	event := calendar.NewEvent("Test", time.Now(), time.Now().Add(time.Hour))
-	addEventAlarms(event, []string{}, "UTC")
+	if err := addEventAlarms(event, []string{}, "UTC", TestApp().Config); err != nil {
+		t.Fatalf("addEventAlarms() error: %v", err)
+	}
 	if len(event.Alarms) != 0 {
 		t.Errorf("expected 0 alarms, got %d", len(event.Alarms))
 	}
