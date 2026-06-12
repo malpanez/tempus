@@ -380,7 +380,7 @@ func loadTemplateFromCSV(path string) ([]map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only file, close error is harmless
 
 	reader := csv.NewReader(f)
 	reader.TrimLeadingSpace = true

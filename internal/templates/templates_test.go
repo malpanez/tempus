@@ -1268,13 +1268,6 @@ func TestAlarmGeneration(t *testing.T) {
 				t.Fatalf("generator failed: %v", err)
 			}
 
-			// Type assertion to check alarms
-			type eventWithAlarms interface {
-				GetAlarms() int
-			}
-
-			// We need to count alarms manually since we can't do proper type assertion here
-			// This is a simplified check
 			if event == nil {
 				t.Error(testutil.ErrMsgEventIsNil)
 			}

@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -57,8 +56,6 @@ type batchOptions struct {
 	addPrepTime     bool
 	prepLabel       string
 }
-
-var icsDurationRegex = regexp.MustCompile(`(?i)^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$`)
 
 func NewBatchCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
@@ -333,7 +330,7 @@ func loadBatchFromCSV(path string) ([]batchRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only file, close error is harmless
 
 	reader := csv.NewReader(f)
 	reader.TrimLeadingSpace = true

@@ -13,8 +13,6 @@ import (
 	"tempus/internal/config"
 	"tempus/internal/nd"
 	"tempus/internal/testutil"
-
-	"github.com/spf13/cobra"
 )
 
 func TestDetectBatchFormat(t *testing.T) {
@@ -1043,10 +1041,6 @@ func TestCSVValue(t *testing.T) {
 			}
 		})
 	}
-}
-
-func newBatchCmdForTest() *cobra.Command {
-	return NewBatchCmd(TestApp())
 }
 
 func TestGetBasicTemplate(t *testing.T) {
