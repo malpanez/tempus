@@ -1,0 +1,2 @@
+# ICS files use CRLF line endings per RFC 5545 — never convert
+*.ics -text
