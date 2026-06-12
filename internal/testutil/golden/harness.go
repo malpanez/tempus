@@ -52,13 +52,20 @@ func RepoRoot(t *testing.T) string {
 }
 
 // BuildBinary compiles the tempus binary once into dir and returns its path.
+// When GOLDEN_COVERDIR is set, the binary is built with -cover so CLI runs
+// emit coverage counters into that directory (via GOCOVERDIR in RunCLI).
 func BuildBinary(dir, repoRoot string) (string, error) {
 	name := "tempus-golden"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
 	bin := filepath.Join(dir, name)
-	cmd := exec.Command("go", "build", "-o", bin, ".")
+	args := []string{"build"}
+	if os.Getenv("GOLDEN_COVERDIR") != "" {
+		args = append(args, "-cover")
+	}
+	args = append(args, "-o", bin, ".")
+	cmd := exec.Command("go", args...)
 	cmd.Dir = repoRoot
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("building tempus: %v\n%s", err, out)
@@ -87,6 +94,9 @@ func RunCLI(t *testing.T, bin, workDir string, extraEnv []string, stdin string, 
 		"TZ=UTC",
 		"TERM=dumb",
 		"PATH=" + os.Getenv("PATH"),
+	}
+	if coverDir := os.Getenv("GOLDEN_COVERDIR"); coverDir != "" {
+		env = append(env, "GOCOVERDIR="+coverDir)
 	}
 	cmd.Env = append(env, extraEnv...)
 	if stdin != "" {
