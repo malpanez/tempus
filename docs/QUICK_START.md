@@ -65,8 +65,7 @@ For **more control** over your event:
 ### Step 1: Basic Event
 
 ```bash
-tempus create \
-  --summary "Doctor appointment" \
+tempus create "Doctor appointment" \
   --start "2025-12-28 14:00" \
   --duration 30m \
   --output doctor.ics
@@ -75,13 +74,12 @@ tempus create \
 ### Step 2: Add Details
 
 ```bash
-tempus create \
-  --summary "Doctor appointment" \
+tempus create "Doctor appointment" \
   --start "2025-12-28 14:00" \
   --duration 30m \
   --location "Medical Center, 5th Ave" \
-  --categories "health,appointment" \
-  --alarms "-1d,-1h,-15m" \
+  --category health --category appointment \
+  --alarm -24h --alarm -1h --alarm -15m \
   --output doctor.ics
 ```
 
@@ -442,7 +440,7 @@ tempus batch -i /home/user/events.csv -o calendar.ics
 │    tempus quick "meeting tomorrow at 3pm"                    │
 │                                                              │
 │  SINGLE EVENT (controlled):                                  │
-│    tempus create --summary "Meeting" \                       │
+│    tempus create "Meeting" \                                 │
 │                  --start "2025-12-28 15:00" \               │
 │                  --duration 1h                              │
 │                                                              │
