@@ -23,7 +23,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Get version from tag
@@ -39,54 +39,38 @@ jobs:
         run: go test -v ./...
 
       - name: Build binaries
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p dist
-
-          # Linux AMD64
-          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-linux-amd64 .
-
-          # Linux ARM64
-          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-linux-arm64 .
-
-          # macOS AMD64 (Intel)
-          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-darwin-amd64 .
-
-          # macOS ARM64 (Apple Silicon)
-          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-darwin-arm64 .
-
-          # Windows AMD64
-          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-windows-amd64.exe .
-
-          # Windows ARM64
-          GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/tempus-windows-arm64.exe .
+          for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            GOOS="${platform%/*}"
+            GOARCH="${platform#*/}"
+            ext=""
+            [ "$GOOS" = "windows" ] && ext=".exe"
+            echo "Building $GOOS/$GOARCH"
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="-s -w -X main.version=${VERSION}" -o "dist/tempus-${GOOS}-${GOARCH}${ext}" .
+          done
 
       - name: Create archives
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           cd dist
-
-          # Linux AMD64
-          tar -czf tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz tempus-linux-amd64
-          sha256sum tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz > tempus-${{ steps.version.outputs.version }}-linux-amd64.tar.gz.sha256
-
-          # Linux ARM64
-          tar -czf tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz tempus-linux-arm64
-          sha256sum tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz > tempus-${{ steps.version.outputs.version }}-linux-arm64.tar.gz.sha256
-
-          # macOS AMD64
-          tar -czf tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz tempus-darwin-amd64
-          sha256sum tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz > tempus-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz.sha256
-
-          # macOS ARM64
-          tar -czf tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz tempus-darwin-arm64
-          sha256sum tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz > tempus-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz.sha256
-
-          # Windows AMD64
-          zip tempus-${{ steps.version.outputs.version }}-windows-amd64.zip tempus-windows-amd64.exe
-          sha256sum tempus-${{ steps.version.outputs.version }}-windows-amd64.zip > tempus-${{ steps.version.outputs.version }}-windows-amd64.zip.sha256
-
-          # Windows ARM64
-          zip tempus-${{ steps.version.outputs.version }}-windows-arm64.zip tempus-windows-arm64.exe
-          sha256sum tempus-${{ steps.version.outputs.version }}-windows-arm64.zip > tempus-${{ steps.version.outputs.version }}-windows-arm64.zip.sha256
+          for binary in tempus-*; do
+            case "$binary" in
+              *.exe)
+                archive="tempus-${VERSION}-${binary#tempus-}"
+                archive="${archive%.exe}.zip"
+                zip "$archive" "$binary"
+                ;;
+              *)
+                archive="tempus-${VERSION}-${binary#tempus-}.tar.gz"
+                tar -czf "$archive" "$binary"
+                ;;
+            esac
+            sha256sum "$archive" > "$archive.sha256"
+          done
 
       - name: Generate changelog
         id: changelog
@@ -163,6 +147,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository }}:latest

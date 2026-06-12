@@ -27,6 +27,11 @@ linters:
         - nilfunc
         - printf
 
+issues:
+  # Never truncate audit output: report every issue, even repeated ones.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
 formatters:
   enable:
     - gofmt

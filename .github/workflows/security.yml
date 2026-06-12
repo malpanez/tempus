@@ -2,7 +2,7 @@ name: Security Scan
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
   # Run weekly on Mondays at 00:00 UTC for proactive scanning
   schedule:
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Run Gosec Security Scanner
@@ -38,17 +38,6 @@ jobs:
         with:
           sarif_file: gosec-results.sarif
 
-      - name: Run gosec with detailed output
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt=json -out=gosec-report.json -no-fail ./... || true
-
-      - name: Upload gosec report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: gosec-report
-          path: gosec-report.json
-
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-slim
@@ -60,7 +49,6 @@ jobs:
 
       - name: Dependency Review
         uses: actions/dependency-review-action@46a3c492319c890177366b6ef46d6b4f89743ed4 # v4
-        continue-on-error: true
         with:
           fail-on-severity: moderate
 
@@ -75,15 +63,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Run govulncheck
-        # Continue on error as govulncheck may find unreachable vulnerabilities (exit code 3)
-        continue-on-error: true
         run: govulncheck ./...
 
   codeql:
@@ -104,7 +90,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Initialize CodeQL
@@ -149,29 +135,10 @@ jobs:
           path: ./
           extra_args: --only-verified
 
-  dependency-check:
-    name: Dependency Vulnerability Check
-    runs-on: ubuntu-slim
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
-        with:
-          go-version: '1.26'
-          cache: true
-
-      - name: Check for known vulnerabilities in dependencies
-        run: |
-          echo "Checking for known vulnerabilities in go.mod dependencies"
-          go list -json -m all | jq -r '.Path + "@" + .Version' | sort
-
   security-summary:
     name: Security Summary
     runs-on: ubuntu-slim
-    needs: [gosec, govulncheck, codeql, secrets-scan, dependency-check]
+    needs: [gosec, govulncheck, codeql, secrets-scan]
     if: always()
 
     steps:
@@ -183,6 +150,5 @@ jobs:
           echo "✅ **GovulnCheck**: ${{ needs.govulncheck.result }}" >> $GITHUB_STEP_SUMMARY
           echo "✅ **CodeQL**: ${{ needs.codeql.result }}" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Secret Scan**: ${{ needs.secrets-scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Dependency Check**: ${{ needs.dependency-check.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "For detailed results, check individual job outputs above." >> $GITHUB_STEP_SUMMARY

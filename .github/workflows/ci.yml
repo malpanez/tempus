@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   # Run weekly on Sundays at 00:00 UTC even if no PRs/pushes
   schedule:
     - cron: '0 0 * * 0'
@@ -19,9 +19,11 @@ jobs:
       matrix:
         # ubuntu-slim for regular pushes, full multi-OS matrix for PRs/releases
         os: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')) && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-slim"]') }}
+        # Label only: keeps required-check names stable ("Test (ubuntu-latest, 1.26)").
+        # The actual toolchain comes from go.mod via go-version-file.
         go-version: ['1.26']
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -30,7 +32,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
           cache: true
 
       - name: Check formatting
@@ -51,13 +53,32 @@ jobs:
         shell: bash
         run: |
           mkdir -p .coverage
+          # On Linux, instrument the golden E2E binary too (GOLDEN_COVERDIR →
+          # go build -cover + GOCOVERDIR) so CLI paths only exercised end-to-end
+          # count towards coverage.
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            mkdir -p .coverage/e2e-raw
+            export GOLDEN_COVERDIR="$PWD/.coverage/e2e-raw"
+          fi
           go test -v -race -coverprofile=.coverage/profile.out -covermode=atomic ./...
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            go tool covdata textfmt -i=.coverage/e2e-raw -o=.coverage/e2e.out
+          fi
+
+      - name: Upload coverage artifact
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-slim'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-profile
+          path: |
+            .coverage/profile.out
+            .coverage/e2e.out
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-slim'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
-          file: ./.coverage/profile.out
+          files: ./.coverage/profile.out,./.coverage/e2e.out
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -74,13 +95,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
-          version: latest
+          version: v2.12.2
           args: --timeout=5m
 
   build:
@@ -90,6 +111,8 @@ jobs:
       matrix:
         # ubuntu-slim for regular pushes, full multi-OS matrix for PRs/releases
         os: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/')) && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-slim"]') }}
+        # Label only: keeps required-check names stable ("Build (ubuntu-latest, 1.26)").
+        # The actual toolchain comes from go.mod via go-version-file.
         go-version: ['1.26']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -101,7 +124,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
           cache: true
 
       - name: Build
@@ -118,7 +141,9 @@ jobs:
 
   functional-tests:
     name: Functional Tests
-    if: always()
+    # Run only when every gate actually succeeded; !cancelled() keeps the
+    # check reported (as failed/skipped) instead of silently bypassing needs.
+    if: ${{ !cancelled() && needs.test.result == 'success' && needs.lint.result == 'success' && needs.build.result == 'success' }}
     needs: [test, lint, build]
     runs-on: ubuntu-slim
     timeout-minutes: 10
@@ -130,7 +155,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Build binary
@@ -234,7 +259,7 @@ jobs:
 
   coverage-check:
     name: Coverage Check
-    if: always()
+    if: ${{ !cancelled() && needs.test.result == 'success' }}
     needs: test
     runs-on: ubuntu-slim
     timeout-minutes: 10
@@ -246,14 +271,17 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
-      - name: Generate coverage report
-        run: |
-          mkdir -p .coverage
-          go test -v -coverprofile=.coverage/profile.out -covermode=atomic ./...
-          go tool cover -func=.coverage/profile.out > coverage.txt
+      - name: Download coverage artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: coverage-profile
+          path: .coverage
+
+      - name: Generate coverage summary
+        run: go tool cover -func=.coverage/profile.out > coverage.txt
 
       - name: Check coverage threshold
         run: |
