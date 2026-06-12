@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 	"tempus/internal/config"
 	"tempus/internal/nd"
 	"tempus/internal/testutil"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestDetectBatchFormat(t *testing.T) {
@@ -591,10 +594,11 @@ func TestRunBatchTemplateWithFormatFlag(t *testing.T) {
 		format   string
 		contains string
 	}{
-		{"school-event-csv", "school-event", "csv", "summary,start_date"},
+		{"school-event-csv", "school-event", "csv", "summary,start,end"},
 		{"school-event-yaml", "school-event", "yaml", "summary:"},
-		{"recruiter-meeting-csv", "recruiter-meeting", "csv", "company,role"},
-		{"travel-day-yaml", "travel-day", "yaml", "destination_timezone:"},
+		{"recruiter-meeting-csv", "recruiter-meeting", "csv", "Acme Corp"},
+		{"travel-day-yaml", "travel-day", "yaml", "end_tz: Europe/London"},
+		{"travel-json", "travel", "json", "\"summary\""},
 		{"basic-default", "basic", "csv", "summary,start"},
 	}
 
@@ -1043,74 +1047,86 @@ func TestCSVValue(t *testing.T) {
 	}
 }
 
-func TestGetBasicTemplate(t *testing.T) {
-	content := getBasicTemplate()
-	if content == "" {
-		t.Error("getBasicTemplate() returned empty string")
-	}
-	if !strings.Contains(content, "summary") {
-		t.Error("basic template should contain 'summary' field")
-	}
-	if !strings.Contains(content, "start") {
-		t.Error("basic template should contain 'start' field")
+// batchTemplateTestTypes lists every canonical batch template type.
+var batchTemplateTestTypes = []string{
+	"basic", "adhd-routine", "medication", "work-meetings", "medical",
+	"travel", "family", "school-event", "recruiter-meeting", "travel-day",
+}
+
+func TestBatchTemplateCSVFormat(t *testing.T) {
+	wantHeader := strings.Join(batchTemplateColumns, ",")
+	for _, typ := range batchTemplateTestTypes {
+		t.Run(typ, func(t *testing.T) {
+			content, err := getBatchTemplateContent(typ, "csv")
+			if err != nil {
+				t.Fatalf("getBatchTemplateContent(%q, csv) error: %v", typ, err)
+			}
+			rows, err := csv.NewReader(strings.NewReader(content)).ReadAll()
+			if err != nil {
+				t.Fatalf("CSV template for %q does not parse: %v", typ, err)
+			}
+			if len(rows) < 2 {
+				t.Fatalf("expected header + at least 1 event row, got %d rows", len(rows))
+			}
+			if got := strings.Join(rows[0], ","); got != wantHeader {
+				t.Errorf("CSV header = %q, want %q", got, wantHeader)
+			}
+			for i, row := range rows[1:] {
+				if strings.TrimSpace(row[0]) == "" {
+					t.Errorf("row %d: summary is empty", i+1)
+				}
+				if strings.TrimSpace(row[1]) == "" {
+					t.Errorf("row %d: start is empty", i+1)
+				}
+			}
+		})
 	}
 }
 
-func TestGetADHDRoutineTemplate(t *testing.T) {
-	content := getADHDRoutineTemplate()
-	if content == "" {
-		t.Error("getADHDRoutineTemplate() returned empty string")
-	}
-	if !strings.Contains(content, "Morning") && !strings.Contains(content, "medication") {
-		t.Error("ADHD routine template should contain morning or medication events")
-	}
-}
-
-func TestGetMedicationTemplate(t *testing.T) {
-	content := getMedicationTemplate()
-	if content == "" {
-		t.Error("getMedicationTemplate() returned empty string")
-	}
-	if !strings.Contains(content, "medication") && !strings.Contains(content, "Medication") {
-		t.Error("medication template should contain medication-related content")
+func TestBatchTemplateYAMLFormat(t *testing.T) {
+	for _, typ := range batchTemplateTestTypes {
+		t.Run(typ, func(t *testing.T) {
+			content, err := getBatchTemplateContent(typ, "yaml")
+			if err != nil {
+				t.Fatalf("getBatchTemplateContent(%q, yaml) error: %v", typ, err)
+			}
+			var events []map[string]interface{}
+			if err := yaml.Unmarshal([]byte(content), &events); err != nil {
+				t.Fatalf("YAML template for %q does not parse: %v", typ, err)
+			}
+			assertTemplateEventMaps(t, typ, events)
+		})
 	}
 }
 
-func TestGetWorkMeetingsTemplate(t *testing.T) {
-	content := getWorkMeetingsTemplate()
-	if content == "" {
-		t.Error("getWorkMeetingsTemplate() returned empty string")
-	}
-	if !strings.Contains(content, "meeting") && !strings.Contains(content, "Meeting") {
-		t.Error("work meetings template should contain meeting-related content")
-	}
-}
-
-func TestGetMedicalTemplate(t *testing.T) {
-	content := getMedicalTemplate()
-	if content == "" {
-		t.Error("getMedicalTemplate() returned empty string")
-	}
-	if !strings.Contains(content, "appointment") && !strings.Contains(content, "medical") {
-		t.Error("medical template should contain appointment or medical content")
+func TestBatchTemplateJSONFormat(t *testing.T) {
+	for _, typ := range batchTemplateTestTypes {
+		t.Run(typ, func(t *testing.T) {
+			content, err := getBatchTemplateContent(typ, "json")
+			if err != nil {
+				t.Fatalf("getBatchTemplateContent(%q, json) error: %v", typ, err)
+			}
+			var events []map[string]interface{}
+			if err := json.Unmarshal([]byte(content), &events); err != nil {
+				t.Fatalf("JSON template for %q does not parse: %v", typ, err)
+			}
+			assertTemplateEventMaps(t, typ, events)
+		})
 	}
 }
 
-func TestGetTravelTemplate(t *testing.T) {
-	content := getTravelTemplate()
-	if content == "" {
-		t.Error("getTravelTemplate() returned empty string")
+func assertTemplateEventMaps(t *testing.T, typ string, events []map[string]interface{}) {
+	t.Helper()
+	if len(events) == 0 {
+		t.Fatalf("template %q has no events", typ)
 	}
-	if !strings.Contains(content, "flight") && !strings.Contains(content, "Flight") &&
-		!strings.Contains(content, "travel") && !strings.Contains(content, "Travel") {
-		t.Error("travel template should contain flight or travel-related content")
-	}
-}
-
-func TestGetFamilyTemplate(t *testing.T) {
-	content := getFamilyTemplate()
-	if content == "" {
-		t.Error("getFamilyTemplate() returned empty string")
+	for i, ev := range events {
+		if ValueAsString(ev["summary"]) == "" {
+			t.Errorf("event %d: summary is empty", i+1)
+		}
+		if ValueAsString(ev["start"]) == "" {
+			t.Errorf("event %d: start is empty", i+1)
+		}
 	}
 }
 
@@ -1124,10 +1140,16 @@ func TestGetBatchTemplateContent(t *testing.T) {
 		{"basic", "basic", false, false},
 		{"adhd-routine", "adhd-routine", false, false},
 		{"medication", "medication", false, false},
+		{"meds alias", "meds", false, false},
 		{"work-meetings", "work-meetings", false, false},
+		{"work alias", "work", false, false},
 		{"medical", "medical", false, false},
+		{"health alias", "health", false, false},
 		{"travel", "travel", false, false},
 		{"family", "family", false, false},
+		{"school-event", "school-event", false, false},
+		{"recruiter-meeting", "recruiter-meeting", false, false},
+		{"travel-day", "travel-day", false, false},
 		{"unknown", "unknown-template", true, true},
 		{"empty", "", true, true},
 	}
@@ -1149,90 +1171,45 @@ func TestGetBatchTemplateContent(t *testing.T) {
 	}
 }
 
-func TestSchoolEventTemplateCSV(t *testing.T) {
-	content := getSchoolEventTemplateCSV()
-	if content == "" {
-		t.Fatal("getSchoolEventTemplateCSV() returned empty string")
+func TestBatchTemplateUnknownTypeListsAvailable(t *testing.T) {
+	_, err := getBatchTemplateContent("nope", "csv")
+	if err == nil {
+		t.Fatal("expected error for unknown template type")
 	}
-	requiredHeaders := []string{"summary", "start_date", "end_date", "category", "location", "alarm", "notes"}
-	for _, h := range requiredHeaders {
-		if !strings.Contains(content, h) {
-			t.Errorf("getSchoolEventTemplateCSV() missing header %q", h)
-		}
-	}
-	lines := strings.Split(strings.TrimSpace(content), "\n")
-	if len(lines) < 4 {
-		t.Errorf("getSchoolEventTemplateCSV() expected at least 3 example rows + header, got %d lines", len(lines))
-	}
-}
-
-func TestSchoolEventTemplateYAML(t *testing.T) {
-	content := getSchoolEventTemplateYAML()
-	if content == "" {
-		t.Fatal("getSchoolEventTemplateYAML() returned empty string")
-	}
-	for _, key := range []string{"summary:", "start_date:"} {
-		if !strings.Contains(content, key) {
-			t.Errorf("getSchoolEventTemplateYAML() missing key %q", key)
+	for _, typ := range batchTemplateTestTypes {
+		if !strings.Contains(err.Error(), typ) {
+			t.Errorf("unknown-type error should list %q, got: %v", typ, err)
 		}
 	}
 }
 
-func TestRecruiterMeetingTemplateCSV(t *testing.T) {
-	content := getRecruiterMeetingTemplateCSV()
-	if content == "" {
-		t.Fatal("getRecruiterMeetingTemplateCSV() returned empty string")
-	}
-	requiredHeaders := []string{"summary", "start_date", "time", "duration", "timezone", "alarm", "add_prep_time", "company", "role", "recruiter", "notes"}
-	for _, h := range requiredHeaders {
-		if !strings.Contains(content, h) {
-			t.Errorf("getRecruiterMeetingTemplateCSV() missing header %q", h)
-		}
-	}
-	lines := strings.Split(strings.TrimSpace(content), "\n")
-	if len(lines) < 2 {
-		t.Errorf("getRecruiterMeetingTemplateCSV() expected at least 1 example row + header, got %d lines", len(lines))
-	}
-}
-
-func TestRecruiterMeetingTemplateYAML(t *testing.T) {
-	content := getRecruiterMeetingTemplateYAML()
-	if content == "" {
-		t.Fatal("getRecruiterMeetingTemplateYAML() returned empty string")
-	}
-	for _, key := range []string{"summary:", "company:"} {
-		if !strings.Contains(content, key) {
-			t.Errorf("getRecruiterMeetingTemplateYAML() missing key %q", key)
-		}
-	}
-}
-
-func TestTravelDayTemplateCSV(t *testing.T) {
-	content := getTravelDayTemplateCSV()
-	if content == "" {
-		t.Fatal("getTravelDayTemplateCSV() returned empty string")
-	}
-	requiredHeaders := []string{"summary", "start_date", "time", "end_time", "timezone", "destination_timezone", "category", "location", "add_prep_time", "alarm", "notes"}
-	for _, h := range requiredHeaders {
-		if !strings.Contains(content, h) {
-			t.Errorf("getTravelDayTemplateCSV() missing header %q", h)
-		}
-	}
-	lines := strings.Split(strings.TrimSpace(content), "\n")
-	if len(lines) < 5 {
-		t.Errorf("getTravelDayTemplateCSV() expected at least 4 example rows + header, got %d lines", len(lines))
-	}
-}
-
-func TestTravelDayTemplateYAML(t *testing.T) {
-	content := getTravelDayTemplateYAML()
-	if content == "" {
-		t.Fatal("getTravelDayTemplateYAML() returned empty string")
-	}
-	for _, key := range []string{"summary:", "destination_timezone:"} {
-		if !strings.Contains(content, key) {
-			t.Errorf("getTravelDayTemplateYAML() missing key %q", key)
-		}
+func TestBatchTemplateCSVLoadsWithBatchLoader(t *testing.T) {
+	for _, typ := range batchTemplateTestTypes {
+		t.Run(typ, func(t *testing.T) {
+			content, err := getBatchTemplateContent(typ, "csv")
+			if err != nil {
+				t.Fatalf("getBatchTemplateContent(%q, csv) error: %v", typ, err)
+			}
+			path := filepath.Join(t.TempDir(), "events.csv")
+			if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+				t.Fatalf("writing template: %v", err)
+			}
+			records, err := loadBatchFromCSV(path)
+			if err != nil {
+				t.Fatalf("loadBatchFromCSV() error: %v", err)
+			}
+			if len(records) == 0 {
+				t.Fatal("loadBatchFromCSV() returned no records")
+			}
+			for i, rec := range records {
+				if strings.TrimSpace(rec.Summary) == "" {
+					t.Errorf("record %d: summary is empty", i+1)
+				}
+				if strings.TrimSpace(rec.Start) == "" {
+					t.Errorf("record %d: start is empty", i+1)
+				}
+			}
+		})
 	}
 }
 

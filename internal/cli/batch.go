@@ -634,6 +634,42 @@ func addBatchCategories(event *calendar.Event, categories []string, catCache *nd
 // Batch Template Generator
 // ========================================================================
 
+// batchTemplateEvent is the single source of truth for batch template
+// content. Its fields and yaml/json tags mirror the batch loader columns
+// exactly, so every rendered format (csv, yaml, json) round-trips through
+// `tempus batch -i <file>` without translation.
+type batchTemplateEvent struct {
+	Summary     string   `yaml:"summary" json:"summary"`
+	Start       string   `yaml:"start" json:"start"`
+	End         string   `yaml:"end,omitempty" json:"end,omitempty"`
+	Duration    string   `yaml:"duration,omitempty" json:"duration,omitempty"`
+	StartTZ     string   `yaml:"start_tz,omitempty" json:"start_tz,omitempty"`
+	EndTZ       string   `yaml:"end_tz,omitempty" json:"end_tz,omitempty"`
+	Location    string   `yaml:"location,omitempty" json:"location,omitempty"`
+	Description string   `yaml:"description,omitempty" json:"description,omitempty"`
+	RRule       string   `yaml:"rrule,omitempty" json:"rrule,omitempty"`
+	AllDay      bool     `yaml:"all_day,omitempty" json:"all_day,omitempty"`
+	ExDate      []string `yaml:"exdate,omitempty" json:"exdate,omitempty"`
+	Categories  []string `yaml:"categories,omitempty" json:"categories,omitempty"`
+	Alarms      []string `yaml:"alarms,omitempty" json:"alarms,omitempty"`
+}
+
+// batchTemplateColumns is the exact header understood by loadBatchFromCSV.
+var batchTemplateColumns = []string{
+	"summary", "start", "end", "duration", "start_tz", "end_tz",
+	"location", "description", "rrule", "all_day", "exdate",
+	"categories", "alarms",
+}
+
+const batchTemplateTypesList = "basic, adhd-routine, medication, work-meetings, medical, travel, family, school-event, recruiter-meeting, travel-day"
+
+const (
+	templateTZMadrid   = "Europe/Madrid"
+	templateTZLondon   = "Europe/London"
+	templateRRWeekdays = "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;COUNT=20"
+	templateRRDaily30  = "FREQ=DAILY;COUNT=30"
+)
+
 func NewBatchTemplateCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "template [type]",
@@ -641,18 +677,25 @@ func NewBatchTemplateCmd(app *App) *cobra.Command {
 		Long: `Generate template files to quickly start creating events.
 
 Available template types:
-  basic             - Simple 3-event example (CSV)
-  adhd-routine      - Daily ADHD routine with medication and focus blocks (CSV)
-  medication        - Medication schedule with triple alarms (YAML)
-  work-meetings     - Recurring team meetings (CSV)
-  medical           - Healthcare appointments with prep reminders (CSV)
-  travel            - Travel itinerary with flights and hotels (JSON)
-  family            - Family calendar with mixed events (CSV)
+  basic              - Simple 3-event example
+  adhd-routine       - Daily ADHD routine with medication and focus blocks
+  medication         - Medication schedule with triple alarms
+  work-meetings      - Recurring team meetings
+  medical            - Healthcare appointments with prep reminders
+  travel             - Travel itinerary with flights and hotels
+  family             - Family calendar with mixed events
+  school-event       - School term dates, pickups, and activities
+  recruiter-meeting  - Job interview calls with prep reminders
+  travel-day         - Single-day travel itinerary across timezones
+
+Every template can be generated as CSV, YAML, or JSON (--format), and the
+generated file is always loadable with: tempus batch -i <file>
 
 Examples:
   tempus batch template basic -o my-events.csv
   tempus batch template adhd-routine -o routine.csv
-  tempus batch template medication -o meds.yaml`,
+  tempus batch template medication -o meds.yaml -f yaml
+  tempus batch template travel -o trip.json -f json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runBatchTemplate(app, cmd, args)
@@ -661,7 +704,7 @@ Examples:
 
 	cmd.Flags().StringP("output", "o", "", "Output file path (required)")
 	_ = cmd.MarkFlagRequired("output")
-	cmd.Flags().StringP("format", "f", "csv", "Template format: csv or yaml")
+	cmd.Flags().StringP("format", "f", "csv", "Template format: csv, yaml, or json")
 
 	return cmd
 }
@@ -674,10 +717,6 @@ func runBatchTemplate(app *App, cmd *cobra.Command, args []string) error {
 
 	if output == "" {
 		return fmt.Errorf("--output is required")
-	}
-
-	if format != "csv" && format != "yaml" {
-		return fmt.Errorf("--format must be 'csv' or 'yaml', got %q", format)
 	}
 
 	content, err := getBatchTemplateContent(templateType, format)
@@ -696,309 +735,487 @@ func runBatchTemplate(app *App, cmd *cobra.Command, args []string) error {
 }
 
 func getBatchTemplateContent(templateType, format string) (string, error) {
-	switch templateType {
-	case "basic":
-		return getBasicTemplate(), nil
-	case "adhd-routine":
-		return getADHDRoutineTemplate(), nil
-	case "medication", "meds":
-		return getMedicationTemplate(), nil
-	case "work-meetings", "work":
-		return getWorkMeetingsTemplate(), nil
-	case "medical", "health":
-		return getMedicalTemplate(), nil
-	case "travel":
-		return getTravelTemplate(), nil
-	case "family":
-		return getFamilyTemplate(), nil
-	case "school-event":
-		if format == "yaml" {
-			return getSchoolEventTemplateYAML(), nil
-		}
-		return getSchoolEventTemplateCSV(), nil
-	case "recruiter-meeting":
-		if format == "yaml" {
-			return getRecruiterMeetingTemplateYAML(), nil
-		}
-		return getRecruiterMeetingTemplateCSV(), nil
-	case "travel-day":
-		if format == "yaml" {
-			return getTravelDayTemplateYAML(), nil
-		}
-		return getTravelDayTemplateCSV(), nil
+	events, err := batchTemplateEvents(templateType)
+	if err != nil {
+		return "", err
+	}
+
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "csv":
+		return renderBatchTemplateCSV(events)
+	case "yaml", "yml":
+		return renderBatchTemplateYAML(events)
+	case "json":
+		return renderBatchTemplateJSON(events)
 	default:
-		return "", fmt.Errorf("unknown template type: %s\nAvailable: basic, adhd-routine, medication, work-meetings, medical, travel, family, school-event, recruiter-meeting, travel-day", templateType)
+		return "", fmt.Errorf("--format must be 'csv', 'yaml', or 'json', got %q", format)
 	}
 }
 
-func getSchoolEventTemplateCSV() string {
-	return `summary,start_date,end_date,category,location,alarm,notes
-School starts Q3,2025-09-01,,trimester,IES Cervantes,-1d,
-Half-term holiday,2025-10-27,2025-10-31,vacation,,,"Emma and Leo - no school"
-Parent-teacher meeting,2025-11-15T17:00,,activity,IES Cervantes,adhd-default,"Emma - bring report card"
-Emma pickup 17:00,2025-09-02T17:00,,transport,IES Cervantes,single,"Gate 2"
-End of year concert,2025-06-20T18:00,,activity,School auditorium,-2h,"Bring camera"
-`
+func batchTemplateEvents(templateType string) ([]batchTemplateEvent, error) {
+	switch templateType {
+	case "basic":
+		return basicTemplateEvents(), nil
+	case "adhd-routine":
+		return adhdRoutineTemplateEvents(), nil
+	case "medication", "meds":
+		return medicationTemplateEvents(), nil
+	case "work-meetings", "work":
+		return workMeetingsTemplateEvents(), nil
+	case "medical", "health":
+		return medicalTemplateEvents(), nil
+	case "travel":
+		return travelTemplateEvents(), nil
+	case "family":
+		return familyTemplateEvents(), nil
+	case "school-event":
+		return schoolEventTemplateEvents(), nil
+	case "recruiter-meeting":
+		return recruiterMeetingTemplateEvents(), nil
+	case "travel-day":
+		return travelDayTemplateEvents(), nil
+	default:
+		return nil, fmt.Errorf("unknown template type: %s\nAvailable: %s", templateType, batchTemplateTypesList)
+	}
 }
 
-func getSchoolEventTemplateYAML() string {
-	return `- summary: "School starts Q3"
-  start_date: "2025-09-01"
-  category: trimester
-  location: "IES Cervantes"
-  alarm: "-1d"
-
-- summary: "Half-term holiday"
-  start_date: "2025-10-27"
-  end_date: "2025-10-31"
-  category: vacation
-  notes: "Emma and Leo - no school"
-
-- summary: "Parent-teacher meeting"
-  start_date: "2025-11-15T17:00"
-  category: activity
-  location: "IES Cervantes"
-  alarm: adhd-default
-  notes: "Emma - bring report card"
-
-- summary: "Emma pickup 17:00"
-  start_date: "2025-09-02T17:00"
-  category: transport
-  location: "IES Cervantes"
-  alarm: single
-  notes: "Gate 2"
-
-- summary: "End of year concert"
-  start_date: "2025-06-20T18:00"
-  category: activity
-  location: "School auditorium"
-  alarm: "-2h"
-  notes: "Bring camera"
-`
+func renderBatchTemplateCSV(events []batchTemplateEvent) (string, error) {
+	var buf strings.Builder
+	w := csv.NewWriter(&buf)
+	if err := w.Write(batchTemplateColumns); err != nil {
+		return "", fmt.Errorf("writing template header: %w", err)
+	}
+	for _, ev := range events {
+		allDay := ""
+		if ev.AllDay {
+			allDay = "true"
+		}
+		row := []string{
+			ev.Summary, ev.Start, ev.End, ev.Duration, ev.StartTZ, ev.EndTZ,
+			ev.Location, ev.Description, ev.RRule, allDay,
+			strings.Join(ev.ExDate, ";"),
+			strings.Join(ev.Categories, ";"),
+			// "||" is the loader's multi-alarm separator; ";" cannot be
+			// used here because key=value alarm specs contain ";" internally.
+			strings.Join(ev.Alarms, "||"),
+		}
+		if err := w.Write(row); err != nil {
+			return "", fmt.Errorf("writing template row: %w", err)
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return "", fmt.Errorf("rendering CSV template: %w", err)
+	}
+	return buf.String(), nil
 }
 
-func getRecruiterMeetingTemplateCSV() string {
-	return `summary,start_date,time,duration,timezone,alarm,add_prep_time,company,role,recruiter,notes
-Call with Sarah @ Acme Corp,2025-12-16,10:00,30m,Europe/Madrid,adhd-default,true,Acme Corp,Senior Developer,Sarah Jones,"LinkedIn: linkedin.com/in/sarah"
-Technical interview @ StartupX,2025-12-18,15:00,1h,America/New_York,adhd-default,true,StartupX,Backend Engineer,Mike Chen,"Phone: +1-555-0123"
-`
+func renderBatchTemplateYAML(events []batchTemplateEvent) (string, error) {
+	data, err := yaml.Marshal(events)
+	if err != nil {
+		return "", fmt.Errorf("rendering YAML template: %w", err)
+	}
+	return string(data), nil
 }
 
-func getRecruiterMeetingTemplateYAML() string {
-	return `- summary: "Call with Sarah @ Acme Corp"
-  start_date: "2025-12-16"
-  time: "10:00"
-  duration: 30m
-  timezone: Europe/Madrid
-  alarm: adhd-default
-  add_prep_time: true
-  company: "Acme Corp"
-  role: "Senior Developer"
-  recruiter: "Sarah Jones"
-  notes: "LinkedIn: linkedin.com/in/sarah"
-
-- summary: "Technical interview @ StartupX"
-  start_date: "2025-12-18"
-  time: "15:00"
-  duration: 1h
-  timezone: America/New_York
-  alarm: adhd-default
-  add_prep_time: true
-  company: "StartupX"
-  role: "Backend Engineer"
-  recruiter: "Mike Chen"
-  notes: "Phone: +1-555-0123"
-`
+func renderBatchTemplateJSON(events []batchTemplateEvent) (string, error) {
+	data, err := json.MarshalIndent(events, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("rendering JSON template: %w", err)
+	}
+	return string(data) + "\n", nil
 }
 
-func getTravelDayTemplateCSV() string {
-	return `summary,start_date,time,end_time,timezone,destination_timezone,category,location,add_prep_time,alarm,notes
-MAD -> LHR BA456,2025-12-20,08:30,11:00,Europe/Madrid,Europe/London,flight,Madrid Barajas T4,true,-2h,"Booking: ABC123"
-Arrive London Heathrow,2025-12-20,11:00,,Europe/London,,transfer,Heathrow T5,false,,"Take Heathrow Express to Paddington"
-Hotel check-in Hilton London,2025-12-20,15:00,,Europe/London,,accommodation,Hilton London Paddington,false,-1h,"Booking ref: HIL789"
-Walking tour South Bank,2025-12-20,17:00,19:00,Europe/London,,activity,Waterloo Bridge,false,-30m,"Comfortable shoes"
-`
+func basicTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Team Meeting", Start: "2030-12-16 10:00", Duration: "1h",
+			StartTZ: templateTZMadrid, Location: "Conference Room",
+			Description: "Weekly sync",
+			Categories:  []string{"Work", "Meeting"},
+			Alarms:      []string{"-15m"},
+		},
+		{
+			Summary: "Lunch Break", Start: "2030-12-16 13:00", Duration: "1h",
+			StartTZ:    templateTZMadrid,
+			Categories: []string{"Break"},
+		},
+		{
+			Summary: "Doctor Appointment", Start: "2030-12-17 09:00", Duration: "45m",
+			StartTZ: templateTZMadrid, Location: "Medical Center",
+			Categories: []string{"Health"},
+			Alarms:     []string{"trigger=-1d;description=Confirm appointment", "-2h"},
+		},
+	}
 }
 
-func getTravelDayTemplateYAML() string {
-	return `- summary: "MAD -> LHR BA456"
-  start_date: "2025-12-20"
-  time: "08:30"
-  end_time: "11:00"
-  timezone: Europe/Madrid
-  destination_timezone: Europe/London
-  category: flight
-  location: "Madrid Barajas T4"
-  add_prep_time: true
-  alarm: "-2h"
-  notes: "Booking: ABC123"
-
-- summary: "Arrive London Heathrow"
-  start_date: "2025-12-20"
-  time: "11:00"
-  timezone: Europe/London
-  category: transfer
-  location: "Heathrow T5"
-  add_prep_time: false
-  notes: "Take Heathrow Express to Paddington"
-
-- summary: "Hotel check-in Hilton London"
-  start_date: "2025-12-20"
-  time: "15:00"
-  timezone: Europe/London
-  category: accommodation
-  location: "Hilton London Paddington"
-  add_prep_time: false
-  alarm: "-1h"
-  notes: "Booking ref: HIL789"
-
-- summary: "Walking tour South Bank"
-  start_date: "2025-12-20"
-  time: "17:00"
-  end_time: "19:00"
-  timezone: Europe/London
-  category: activity
-  location: "Waterloo Bridge"
-  add_prep_time: false
-  alarm: "-30m"
-  notes: "Comfortable shoes"
-`
+func adhdRoutineTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Morning Medication", Start: "2030-12-16 08:00", Duration: "5m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Take morning meds with food",
+			Categories:  []string{"Health", "Medication"},
+			Alarms:      []string{"profile:medication"},
+		},
+		{
+			Summary: "Deep Focus Block", Start: "2030-12-16 09:00", Duration: "2h",
+			StartTZ: templateTZMadrid, RRule: templateRRWeekdays,
+			Description: "NO meetings - deep work only",
+			Categories:  []string{"Work", "Focus"},
+			Alarms: []string{
+				"trigger=-10m;description=Prepare workspace and eliminate distractions",
+				"-1m",
+				"trigger=2030-12-16 10:30;description=Halfway - stay focused",
+			},
+		},
+		{
+			Summary: "Transition Buffer", Start: "2030-12-16 11:00", Duration: "15m",
+			StartTZ: templateTZMadrid, RRule: templateRRWeekdays,
+			Description: "Stretch and reset before next task",
+			Categories:  []string{"Break", "Transition"},
+			Alarms:      []string{"-1m"},
+		},
+		{
+			Summary: "Lunch + Walk", Start: "2030-12-16 13:00", Duration: "1h",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Eat away from desk - go outside",
+			Categories:  []string{"Break", "Health"},
+			Alarms: []string{
+				"-5m",
+				"trigger=2030-12-16 13:30;description=Time to walk",
+			},
+		},
+		{
+			Summary: "Evening Medication", Start: "2030-12-16 20:00", Duration: "5m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Take evening meds",
+			Categories:  []string{"Health", "Medication"},
+			Alarms:      []string{"profile:medication"},
+		},
+		{
+			Summary: "Wind Down Routine", Start: "2030-12-16 22:00", Duration: "30m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "No screens - prepare for sleep",
+			Categories:  []string{"Health", "Sleep"},
+			Alarms:      []string{"-15m", "-5m"},
+		},
+	}
 }
 
-func getBasicTemplate() string {
-	return `summary,start,duration,start_tz,location,description,categories,alarms
-Team Meeting,2025-12-16 10:00,1h,Europe/Madrid,Conference Room,Weekly sync,Work|Meeting,-15m
-Lunch Break,2025-12-16 13:00,1h,Europe/Madrid,,,Break,
-Doctor Appointment,2025-12-17 09:00,45m,Europe/Madrid,Medical Center,,Health,trigger=-1d;description=Confirm appointment||-2h
-`
+func medicationTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Morning Meds - Methylphenidate 20mg", Start: "2030-12-16 08:00", Duration: "5m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Take with food. Don't skip.",
+			Categories:  []string{"Health", "Medication"},
+			Alarms:      []string{"profile:medication"},
+		},
+		{
+			Summary: "Afternoon Meds - Methylphenidate 10mg", Start: "2030-12-16 14:00", Duration: "5m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Booster dose",
+			Categories:  []string{"Health", "Medication"},
+			Alarms:      []string{"profile:medication"},
+		},
+		{
+			Summary: "Evening Meds - Melatonin 3mg", Start: "2030-12-16 21:00", Duration: "5m",
+			StartTZ: templateTZMadrid, RRule: templateRRDaily30,
+			Description: "Take 1 hour before bed",
+			Categories:  []string{"Health", "Medication", "Sleep"},
+			Alarms:      []string{"profile:medication"},
+		},
+	}
 }
 
-func getADHDRoutineTemplate() string {
-	return `summary,start,duration,start_tz,location,rrule,categories,description,alarms
-Morning Medication,2025-12-16 08:00,5m,Europe/Madrid,,FREQ=DAILY;COUNT=30,Health|Medication,Take morning meds with food,trigger=-5m||trigger=-1m||trigger=2025-12-16 08:00
-Deep Focus Block,2025-12-16 09:00,2h,Europe/Madrid,,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,Work|Focus,NO meetings - deep work only,trigger=-10m;description=Prepare workspace and eliminate distractions||trigger=-1m||trigger=2025-12-16 10:30;description=Halfway - stay focused
-Transition Buffer,2025-12-16 11:00,15m,Europe/Madrid,,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,Break|Transition,Stretch and reset before next task,trigger=-1m
-Lunch + Walk,2025-12-16 13:00,1h,Europe/Madrid,,FREQ=DAILY;COUNT=30,Break|Health,Eat away from desk - go outside,trigger=-5m||trigger=2025-12-16 13:30;description=Time to walk
-Evening Medication,2025-12-16 20:00,5m,Europe/Madrid,,FREQ=DAILY;COUNT=30,Health|Medication,Take evening meds,trigger=-5m||trigger=-1m||trigger=2025-12-16 20:00
-Wind Down Routine,2025-12-16 22:00,30m,Europe/Madrid,,FREQ=DAILY;COUNT=30,Health|Sleep,No screens - prepare for sleep,trigger=-15m||trigger=-5m
-`
+func workMeetingsTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Team Standup", Start: "2030-12-16 09:30", Duration: "30m",
+			StartTZ: templateTZMadrid, Location: "Video call - Zoom",
+			RRule:       templateRRWeekdays,
+			Description: "Daily sync with team",
+			Categories:  []string{"Work", "Meeting"},
+			Alarms:      []string{"-5m"},
+		},
+		{
+			Summary: "Weekly 1:1 with Manager", Start: "2030-12-16 14:00", Duration: "45m",
+			StartTZ: templateTZMadrid, Location: "Office - Meeting Room 3",
+			RRule:       "FREQ=WEEKLY;BYDAY=MO;COUNT=12",
+			Description: "Discuss progress and blockers",
+			ExDate:      []string{"2030-12-23 14:00", "2030-12-30 14:00"},
+			Categories:  []string{"Work", "1on1"},
+			Alarms: []string{
+				"trigger=-1d;description=Prepare agenda and questions",
+				"-15m",
+			},
+		},
+		{
+			Summary: "Sprint Planning", Start: "2030-12-17 10:00", Duration: "2h",
+			StartTZ: templateTZMadrid, Location: "Conference Room A",
+			RRule:       "FREQ=WEEKLY;BYDAY=TU;COUNT=6",
+			Description: "Plan next 2-week sprint",
+			Categories:  []string{"Work", "Meeting", "Planning"},
+			Alarms: []string{
+				"trigger=-1h;description=Review backlog",
+				"-15m",
+			},
+		},
+		{
+			Summary: "Client Demo", Start: "2030-12-19 16:00", Duration: "90m",
+			StartTZ: templateTZMadrid, Location: "Video call - Google Meet",
+			RRule:       "FREQ=WEEKLY;BYDAY=TH;COUNT=8",
+			Description: "Demo progress to stakeholders",
+			Categories:  []string{"Work", "Client", "Demo"},
+			Alarms: []string{
+				"trigger=-1d;description=Prepare demo script",
+				"trigger=-2h;description=Test demo environment",
+				"-30m",
+			},
+		},
+	}
 }
 
-func getMedicationTemplate() string {
-	return `# Medication Schedule Template
-# Triple alarms: 5min before, 1min before, exact time
-
-- summary: Morning Meds - Methylphenidate 20mg
-  start: "2025-12-16 08:00"
-  duration: 5m
-  start_tz: Europe/Madrid
-  rrule: FREQ=DAILY;COUNT=30
-  categories: [Health, Medication]
-  description: Take with food. Don't skip.
-  alarms:
-    - trigger=-5m
-    - trigger=-1m
-    - trigger=2025-12-16 08:00
-
-- summary: Afternoon Meds - Methylphenidate 10mg
-  start: "2025-12-16 14:00"
-  duration: 5m
-  start_tz: Europe/Madrid
-  rrule: FREQ=DAILY;COUNT=30
-  categories: [Health, Medication]
-  description: Booster dose
-  alarms:
-    - trigger=-5m
-    - trigger=-1m
-    - trigger=2025-12-16 14:00
-
-- summary: Evening Meds - Melatonin 3mg
-  start: "2025-12-16 21:00"
-  duration: 5m
-  start_tz: Europe/Madrid
-  rrule: FREQ=DAILY;COUNT=30
-  categories: [Health, Medication, Sleep]
-  description: Take 1 hour before bed
-  alarms:
-    - trigger=-5m
-    - trigger=-1m
-    - trigger=2025-12-16 21:00
-`
+func medicalTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Dentist - 6 Month Checkup", Start: "2030-12-20 10:00", Duration: "30m",
+			StartTZ: templateTZMadrid, Location: "Dental Clinic - Main Street",
+			Description: "Routine cleaning and checkup",
+			Categories:  []string{"Health", "Dental"},
+			Alarms: []string{
+				"trigger=-1d;description=Call to confirm appointment",
+				"trigger=-2h;description=Time to leave (30min drive)",
+				"-5m",
+			},
+		},
+		{
+			Summary: "Therapy Session", Start: "2030-12-18 17:00", Duration: "1h",
+			StartTZ: templateTZMadrid, Location: "Downtown Office - 3rd Floor",
+			Description: "Weekly therapy appointment",
+			Categories:  []string{"Health", "Mental Health"},
+			Alarms: []string{
+				"trigger=-1d;description=Think about topics to discuss",
+				"trigger=-30m;description=Prepare - bring notebook",
+				"-5m",
+			},
+		},
+		{
+			Summary: "General Practitioner Checkup", Start: "2031-01-10 09:00", Duration: "45m",
+			StartTZ: templateTZMadrid, Location: "Health Center - Room 12",
+			Description: "Annual physical examination",
+			Categories:  []string{"Health", "Checkup"},
+			Alarms: []string{
+				"trigger=-1w;description=Schedule blood work if needed",
+				"trigger=-1d;description=Confirm appointment",
+				"trigger=-2h;description=Leave now (traffic)",
+				"-15m",
+			},
+		},
+		{
+			Summary: "Lab Tests (Fasting Required)", Start: "2030-12-22 08:00", Duration: "15m",
+			StartTZ: templateTZMadrid, Location: "Hospital Lab - Building C",
+			Description: "Blood work - MUST FAST",
+			Categories:  []string{"Health", "Tests"},
+			Alarms: []string{
+				"trigger=-1d;description=No food after 10pm tonight",
+				"trigger=-12h;description=Fasting period begins - no food",
+				"trigger=-1h;description=Drink water only",
+				"-15m",
+			},
+		},
+	}
 }
 
-func getWorkMeetingsTemplate() string {
-	return `summary,start,duration,start_tz,location,rrule,exdate,categories,description,alarms
-Team Standup,2025-12-16 09:30,30m,Europe/Madrid,Video call - Zoom,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,,Work|Meeting,Daily sync with team,-5m
-Weekly 1:1 with Manager,2025-12-16 14:00,45m,Europe/Madrid,Office - Meeting Room 3,FREQ=WEEKLY;BYDAY=MO;COUNT=12,2025-12-23 14:00|2025-12-30 14:00,Work|1on1,Discuss progress and blockers,trigger=-1d;description=Prepare agenda and questions||trigger=-15m
-Sprint Planning,2025-12-17 10:00,2h,Europe/Madrid,Conference Room A,FREQ=WEEKLY;BYDAY=TU;COUNT=6,,Work|Meeting|Planning,Plan next 2-week sprint,trigger=-1h;description=Review backlog||trigger=-15m
-Client Demo,2025-12-19 16:00,90m,Europe/Madrid,Video call - Google Meet,FREQ=WEEKLY;BYDAY=TH;COUNT=8,,Work|Client|Demo,Demo progress to stakeholders,trigger=-1d;description=Prepare demo script||trigger=-2h;description=Test demo environment||trigger=-30m
-`
+func travelTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Flight MAD → DUB", Start: "2030-12-25 08:30", End: "2030-12-25 10:00",
+			StartTZ: templateTZMadrid, EndTZ: "Europe/Dublin",
+			Location:    "Madrid Barajas Airport - Terminal 1",
+			Description: "Ryanair FR1234 - Gate closes 08:00. Confirmation: ABC123",
+			Categories:  []string{"Travel", "Flight"},
+			Alarms: []string{
+				"trigger=-1d;description=Check-in online opens",
+				"trigger=-3h;description=Wake up and get ready",
+				"trigger=2030-12-25 06:30;description=Leave for airport now (traffic)",
+				"trigger=2030-12-25 07:45;description=Security checkpoint - gate closes at 08:00",
+			},
+		},
+		{
+			Summary: "Hotel Check-in", Start: "2030-12-25 12:00", Duration: "30m",
+			StartTZ:     "Europe/Dublin",
+			Location:    "Dublin City Hotel - 123 O'Connell Street",
+			Description: "Confirmation: XYZ789. Room 305. Check-in after 14:00.",
+			Categories:  []string{"Travel", "Accommodation"},
+			Alarms: []string{
+				"trigger=-1h;description=Head to hotel from airport",
+			},
+		},
+		{
+			Summary: "Return Flight DUB → MAD", Start: "2030-12-28 18:30", End: "2030-12-28 22:00",
+			StartTZ: "Europe/Dublin", EndTZ: templateTZMadrid,
+			Location:    "Dublin Airport - Terminal 2",
+			Description: "Ryanair FR5678. Gate closes 18:00.",
+			Categories:  []string{"Travel", "Flight"},
+			Alarms: []string{
+				"trigger=-1d;description=Check-in online",
+				"trigger=-4h;description=Leave hotel for airport (bus takes 45min)",
+				"trigger=2030-12-28 17:45;description=Final boarding call",
+			},
+		},
+	}
 }
 
-func getMedicalTemplate() string {
-	return `summary,start,duration,start_tz,location,categories,description,alarms
-Dentist - 6 Month Checkup,2025-12-20 10:00,30m,Europe/Madrid,Dental Clinic - Main Street,Health|Dental,Routine cleaning and checkup,trigger=-1d;description=Call to confirm appointment||trigger=-2h;description=Time to leave (30min drive)||trigger=-5m
-Therapy Session,2025-12-18 17:00,1h,Europe/Madrid,Downtown Office - 3rd Floor,Health|Mental Health,Weekly therapy appointment,trigger=-1d;description=Think about topics to discuss||trigger=-30m;description=Prepare - bring notebook||trigger=-5m
-General Practitioner Checkup,2026-01-10 09:00,45m,Europe/Madrid,Health Center - Room 12,Health|Checkup,Annual physical examination,trigger=-1w;description=Schedule blood work if needed||trigger=-1d;description=Confirm appointment||trigger=-2h;description=Leave now (traffic)||trigger=-15m
-Lab Tests (Fasting Required),2025-12-22 08:00,15m,Europe/Madrid,Hospital Lab - Building C,Health|Tests,Blood work - MUST FAST,trigger=-1d;description=No food after 10pm tonight||trigger=-12h;description=Fasting period begins - no food||trigger=-1h;description=Drink water only||trigger=-15m
-`
+func familyTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "School Drop-off", Start: "2030-12-16 08:15", Duration: "15m",
+			StartTZ: templateTZMadrid, Location: "Elementary School",
+			RRule:       templateRRWeekdays,
+			Description: "Drop kids at school",
+			Categories:  []string{"Family", "Kids"},
+			Alarms: []string{
+				"trigger=-30m;description=Kids breakfast and get ready",
+				"trigger=-10m;description=Leave now",
+			},
+		},
+		{
+			Summary: "Soccer Practice", Start: "2030-12-17 17:00", Duration: "1h",
+			StartTZ: templateTZMadrid, Location: "Sports Complex Field 3",
+			RRule:       "FREQ=WEEKLY;BYDAY=TU,TH;COUNT=12",
+			Description: "Lucas soccer practice",
+			Categories:  []string{"Family", "Kids", "Sports"},
+			Alarms: []string{
+				"trigger=-1h;description=Prepare soccer bag and snacks",
+				"-15m",
+			},
+		},
+		{
+			Summary: "Piano Lesson", Start: "2030-12-18 16:30", Duration: "45m",
+			StartTZ: templateTZMadrid, Location: "Music Academy",
+			RRule:       "FREQ=WEEKLY;BYDAY=WE;COUNT=10",
+			Description: "Emma piano lesson",
+			Categories:  []string{"Family", "Kids", "Music"},
+			Alarms: []string{
+				"trigger=-2h;description=Practice today",
+				"-30m",
+			},
+		},
+		{
+			Summary: "Pediatrician Checkup", Start: "2030-12-20 10:00", Duration: "30m",
+			StartTZ: templateTZMadrid, Location: "Pediatric Clinic",
+			Description: "Annual checkup for both kids",
+			Categories:  []string{"Family", "Kids", "Health"},
+			Alarms: []string{
+				"trigger=-1d;description=Confirm appointment",
+				"-2h",
+				"-30m",
+			},
+		},
+		{
+			Summary: "Date Night", Start: "2030-12-21 20:00", Duration: "2h",
+			StartTZ: templateTZMadrid, Location: "Restaurant Downtown",
+			Description: "Dinner reservation - babysitter confirmed",
+			Categories:  []string{"Family", "Personal"},
+			Alarms: []string{
+				"trigger=-1d;description=Confirm babysitter",
+				"trigger=-4h;description=Start getting ready",
+				"-1h",
+			},
+		},
+	}
 }
 
-func getTravelTemplate() string {
-	return `[
-  {
-    "summary": "Flight MAD → DUB",
-    "start": "2025-12-25 08:30",
-    "end": "2025-12-25 10:00",
-    "start_tz": "Europe/Madrid",
-    "end_tz": "Europe/Dublin",
-    "location": "Madrid Barajas Airport - Terminal 1",
-    "description": "Ryanair FR1234 - Gate closes 08:00. Confirmation: ABC123",
-    "categories": ["Travel", "Flight"],
-    "alarms": [
-      "trigger=-1d,description=Check-in online opens",
-      "trigger=-3h,description=Wake up and get ready",
-      "trigger=2025-12-25 06:30,description=Leave for airport now (traffic)",
-      "trigger=2025-12-25 07:45,description=Security checkpoint - gate closes at 08:00"
-    ]
-  },
-  {
-    "summary": "Hotel Check-in",
-    "start": "2025-12-25 12:00",
-    "duration": "30m",
-    "start_tz": "Europe/Dublin",
-    "location": "Dublin City Hotel - 123 O'Connell Street",
-    "description": "Confirmation: XYZ789. Room 305. Check-in after 14:00.",
-    "categories": ["Travel", "Accommodation"],
-    "alarms": [
-      "trigger=-1h,description=Head to hotel from airport"
-    ]
-  },
-  {
-    "summary": "Return Flight DUB → MAD",
-    "start": "2025-12-28 18:30",
-    "end": "2025-12-28 22:00",
-    "start_tz": "Europe/Dublin",
-    "end_tz": "Europe/Madrid",
-    "location": "Dublin Airport - Terminal 2",
-    "description": "Ryanair FR5678. Gate closes 18:00.",
-    "categories": ["Travel", "Flight"],
-    "alarms": [
-      "trigger=-1d,description=Check-in online",
-      "trigger=-4h,description=Leave hotel for airport (bus takes 45min)",
-      "trigger=2025-12-28 17:45,description=Final boarding call"
-    ]
-  }
-]
-`
+func schoolEventTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "School starts Q3", Start: "2030-09-02", AllDay: true,
+			Location:   "IES Cervantes",
+			Categories: []string{"School", "Trimester"},
+			Alarms:     []string{"-1d"},
+		},
+		{
+			Summary: "Half-term holiday", Start: "2030-10-28", End: "2030-11-01", AllDay: true,
+			Description: "Emma and Leo - no school",
+			Categories:  []string{"School", "Vacation"},
+		},
+		{
+			Summary: "Parent-teacher meeting", Start: "2030-11-15 17:00",
+			Location:    "IES Cervantes",
+			Description: "Emma - bring report card",
+			Categories:  []string{"School", "Activity"},
+			Alarms:      []string{"profile:adhd-default"},
+		},
+		{
+			Summary: "Emma pickup 17:00", Start: "2030-09-03 17:00",
+			Location:    "IES Cervantes",
+			Description: "Gate 2",
+			Categories:  []string{"School", "Transport"},
+			Alarms:      []string{"profile:single"},
+		},
+		{
+			Summary: "End of year concert", Start: "2031-06-20 18:00",
+			Location:    "School auditorium",
+			Description: "Bring camera",
+			Categories:  []string{"School", "Activity"},
+			Alarms:      []string{"-2h"},
+		},
+	}
 }
 
-func getFamilyTemplate() string {
-	return `summary,start,duration,start_tz,location,rrule,categories,description,alarms
-School Drop-off,2025-12-16 08:15,15m,Europe/Madrid,Elementary School,FREQ=WEEKLY;BYDAY=MO;TU;WE;TH;FR;COUNT=20,Family|Kids,Drop kids at school,trigger=-30m;description=Kids breakfast and get ready||trigger=-10m;description=Leave now
-Soccer Practice,2025-12-17 17:00,1h,Europe/Madrid,Sports Complex Field 3,FREQ=WEEKLY;BYDAY=TU;TH;COUNT=12,Family|Kids|Sports,Lucas soccer practice,trigger=-1h;description=Prepare soccer bag and snacks||trigger=-15m
-Piano Lesson,2025-12-18 16:30,45m,Europe/Madrid,Music Academy,FREQ=WEEKLY;BYDAY=WE;COUNT=10,Family|Kids|Music,Emma piano lesson,trigger=-2h;description=Practice today||trigger=-30m
-Pediatrician Checkup,2025-12-20 10:00,30m,Europe/Madrid,Pediatric Clinic,Family|Kids|Health,Annual checkup for both kids,trigger=-1d;description=Confirm appointment||trigger=-2h||trigger=-30m
-Date Night,2025-12-21 20:00,2h,Europe/Madrid,Restaurant Downtown,Family|Personal,Dinner reservation - babysitter confirmed,trigger=-1d;description=Confirm babysitter||trigger=-4h;description=Start getting ready||trigger=-1h
-`
+func recruiterMeetingTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "Call with Sarah @ Acme Corp", Start: "2030-12-16 10:00", Duration: "30m",
+			StartTZ:     templateTZMadrid,
+			Description: "Acme Corp - Senior Developer. Recruiter: Sarah Jones. LinkedIn: linkedin.com/in/sarah",
+			Categories:  []string{"Work", "Interview"},
+			Alarms:      []string{"profile:adhd-default"},
+		},
+		{
+			Summary: "Technical interview @ StartupX", Start: "2030-12-18 15:00", Duration: "1h",
+			StartTZ:     "America/New_York",
+			Description: "StartupX - Backend Engineer. Recruiter: Mike Chen. Phone: +1-555-0123",
+			Categories:  []string{"Work", "Interview"},
+			Alarms:      []string{"profile:adhd-default"},
+		},
+	}
+}
+
+func travelDayTemplateEvents() []batchTemplateEvent {
+	return []batchTemplateEvent{
+		{
+			Summary: "MAD -> LHR BA456", Start: "2030-12-20 08:30", End: "2030-12-20 11:00",
+			StartTZ: templateTZMadrid, EndTZ: templateTZLondon,
+			Location:    "Madrid Barajas T4",
+			Description: "Booking: ABC123",
+			Categories:  []string{"Travel", "Flight"},
+			Alarms:      []string{"-2h"},
+		},
+		{
+			Summary: "Arrive London Heathrow", Start: "2030-12-20 11:00",
+			StartTZ:     templateTZLondon,
+			Location:    "Heathrow T5",
+			Description: "Take Heathrow Express to Paddington",
+			Categories:  []string{"Travel", "Transfer"},
+		},
+		{
+			Summary: "Hotel check-in Hilton London", Start: "2030-12-20 15:00",
+			StartTZ:     templateTZLondon,
+			Location:    "Hilton London Paddington",
+			Description: "Booking ref: HIL789",
+			Categories:  []string{"Travel", "Accommodation"},
+			Alarms:      []string{"-1h"},
+		},
+		{
+			Summary: "Walking tour South Bank", Start: "2030-12-20 17:00", End: "2030-12-20 19:00",
+			StartTZ:     templateTZLondon,
+			Location:    "Waterloo Bridge",
+			Description: "Comfortable shoes",
+			Categories:  []string{"Travel", "Activity"},
+			Alarms:      []string{"-30m"},
+		},
+	}
 }
