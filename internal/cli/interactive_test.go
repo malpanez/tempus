@@ -328,6 +328,53 @@ func TestCreateEventFromWizard(t *testing.T) {
 	}
 }
 
+func TestCreateEventFromWizardHonorsOutputFlag(t *testing.T) {
+	tmpDir := t.TempDir()
+	app := TestApp()
+	app.Config.OutputDir = tmpDir
+
+	explicit := filepath.Join(tmpDir, "custom-name.ics")
+	vars := &interactiveVars{
+		summary:   "Stand Up",
+		startDate: "2030-07-01",
+		startTime: "09:00",
+		duration:  "30m",
+		timezone:  "UTC",
+		alarmProf: "none",
+		output:    explicit,
+		confirmed: true,
+	}
+
+	if err := createEventFromWizard(app, vars); err != nil {
+		t.Fatalf("createEventFromWizard() error: %v", err)
+	}
+	if _, err := os.Stat(explicit); err != nil {
+		t.Fatalf("wizard did not write to the explicit -o path: %v", err)
+	}
+	slugPath := filepath.Join(tmpDir, Slugify(vars.summary)+".ics")
+	if _, err := os.Stat(slugPath); err == nil {
+		t.Errorf("wizard wrote to the derived slug path %s despite explicit -o", slugPath)
+	}
+}
+
+func TestRunInteractiveRejectsIncompatibleFlags(t *testing.T) {
+	app := TestApp()
+	cmd := NewCreateCmd(app)
+	if err := cmd.Flags().Set("interactive", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Flags().Set("location", "Somewhere"); err != nil {
+		t.Fatal(err)
+	}
+	err := runInteractive(app, cmd)
+	if err == nil {
+		t.Fatal("runInteractive() must reject --location, got nil")
+	}
+	if !strings.Contains(err.Error(), "--location") {
+		t.Errorf("error should name the flag, got: %v", err)
+	}
+}
+
 func TestCreateEventFromWizardAllDay(t *testing.T) {
 	tmpDir := t.TempDir()
 	app := TestApp()
