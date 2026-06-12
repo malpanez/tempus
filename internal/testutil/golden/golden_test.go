@@ -71,13 +71,10 @@ func TestGoldenCreateStartTZ(t *testing.T) {
 	CompareGolden(t, *update, "create_start_tz", ics)
 }
 
-// TestGoldenCreateProfileAlarm captures two known bugs as current behavior:
-// B1 — profile: alarm specs are silently dropped, so the output has NO
-// VALARM blocks despite the user asking for the adhd-default profile.
-// B2 — the global -t flag is ignored by create, so DTSTART/DTEND carry the
-// wall-clock time stamped as UTC (Z) instead of TZID=Europe/Madrid.
-// When phase 1/2 fix these, this golden MUST change (VALARMs appear, TZID
-// appears) — regenerate with -update and review.
+// TestGoldenCreateProfileAlarm pins the two acceptance criteria of the
+// remediation milestone: the adhd-default profile emits its 4 VALARM blocks
+// (fixed in phase 1) and the global -t flag yields TZID=Europe/Madrid local
+// times with an embedded VTIMEZONE (fixed in phase 2).
 func TestGoldenCreateProfileAlarm(t *testing.T) {
 	ics := runAndReadICS(t, nil,
 		"-t", "Europe/Madrid",
@@ -87,6 +84,27 @@ func TestGoldenCreateProfileAlarm(t *testing.T) {
 		"--alarm", "profile:adhd-default",
 	)
 	CompareGolden(t, *update, "create_profile_alarm", ics)
+}
+
+// TestGoldenDefaultTZEnv: TEMPUS_TIMEZONE must be honored by create.
+func TestGoldenDefaultTZEnv(t *testing.T) {
+	ics := runAndReadICS(t, []string{"TEMPUS_TIMEZONE=Europe/Madrid"},
+		"create", "Env TZ Event",
+		"--start", "2030-05-10 10:30",
+		"--duration", "45m",
+	)
+	CompareGolden(t, *update, "create_default_tz_env", ics)
+}
+
+// TestGoldenAliasTZ: city aliases resolve to IANA zones before emission.
+func TestGoldenAliasTZ(t *testing.T) {
+	ics := runAndReadICS(t, nil,
+		"create", "Alias TZ Event",
+		"--start", "2030-05-10 10:30",
+		"--duration", "45m",
+		"--start-tz", "madrid",
+	)
+	CompareGolden(t, *update, "create_alias_tz", ics)
 }
 
 func TestGoldenBatchExdates(t *testing.T) {

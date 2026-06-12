@@ -77,6 +77,30 @@ func TestNegativeMissingExplicitConfig(t *testing.T) {
 	}
 }
 
+func TestNegativeInvalidStartTZ(t *testing.T) {
+	res := runExpectingFailure(t,
+		"create", "Event",
+		"--start", "2030-05-10 10:30",
+		"--duration", "30m",
+		"--start-tz", "narnia",
+	)
+	if !strings.Contains(res.Stderr+res.Stdout, "narnia") {
+		t.Errorf("error should name the invalid timezone, got stderr: %s stdout: %s", res.Stderr, res.Stdout)
+	}
+}
+
+func TestNegativeInvalidGlobalTZ(t *testing.T) {
+	res := runExpectingFailure(t,
+		"-t", "mordor",
+		"create", "Event",
+		"--start", "2030-05-10 10:30",
+		"--duration", "30m",
+	)
+	if !strings.Contains(res.Stderr+res.Stdout, "mordor") {
+		t.Errorf("error should name the invalid timezone, got stderr: %s stdout: %s", res.Stderr, res.Stdout)
+	}
+}
+
 func TestNegativeBatchInvalidExDateRow(t *testing.T) {
 	workDir := t.TempDir()
 	csvPath := filepath.Join(workDir, "bad.csv")

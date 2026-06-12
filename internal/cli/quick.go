@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"tempus/internal/calendar"
-	"tempus/internal/config"
 	"tempus/internal/constants"
 
 	"github.com/charmbracelet/huh"
@@ -48,7 +47,11 @@ func runQuick(app *App, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	finalTZ := resolveQuickTimezone(cmd)
+	finalTZ, err := resolveQuickTimezone(app, cmd)
+	if err != nil {
+		return err
+	}
+	warnMissingVTZ(app.Stderr, finalTZ)
 	applyTimezoneToDetails(&details, finalTZ)
 
 	confirmed, err := confirmQuickEvent(app, details, finalTZ)
@@ -68,7 +71,7 @@ func parseQuickInput(text string) (quickParsedEvent, error) {
 	w := when.New(nil)
 	w.Add(en.All...)
 
-	res, err := w.Parse(text, time.Now())
+	res, err := w.Parse(text, timeNow())
 	if err != nil || res == nil {
 		return quickParsedEvent{}, fmt.Errorf("could not understand the date/time in your request. Please be more specific, e.g., 'tomorrow at 3pm'")
 	}
@@ -76,29 +79,44 @@ func parseQuickInput(text string) (quickParsedEvent, error) {
 	return extractEventDetails(text, res), nil
 }
 
-func resolveQuickTimezone(cmd *cobra.Command) string {
-	cfg, _ := config.Load()
-	defaultTZ := ""
-	if cfg != nil {
-		if v, err := cfg.Get("timezone"); err == nil {
-			defaultTZ = v
-		}
-	}
-
+// resolveQuickTimezone resolves the -t flag (or the configured default)
+// through the ResolveTimezone chokepoint. A resolved "UTC" keeps the empty
+// form so naive times stay machine-local wall clock stamped per calendar
+// rules, matching create's semantics.
+func resolveQuickTimezone(app *App, cmd *cobra.Command) (string, error) {
 	flagTZ, _ := cmd.Flags().GetString("timezone")
-	return FirstNonEmpty(flagTZ, defaultTZ)
+	defaultTZ := ""
+	if app.Config != nil {
+		defaultTZ = app.Config.Timezone
+	}
+	tz, err := ResolveTimezone(FirstNonEmpty(flagTZ, defaultTZ))
+	if err != nil {
+		return "", err
+	}
+	if tz == "UTC" {
+		return "", nil
+	}
+	return tz, nil
 }
 
+// applyTimezoneToDetails reinterprets the parsed wall-clock time in the
+// target zone ("3pm" means 3pm in that zone), instead of converting the
+// instant with In(), which would shift the clock the user asked for.
 func applyTimezoneToDetails(details *quickParsedEvent, tz string) {
 	if tz == "" {
 		return
 	}
 
 	loc, err := time.LoadLocation(tz)
-	if err == nil {
-		details.StartTime = details.StartTime.In(loc)
-		details.EndTime = details.EndTime.In(loc)
+	if err != nil {
+		return
 	}
+	details.StartTime = rebuildInLocation(details.StartTime, loc)
+	details.EndTime = rebuildInLocation(details.EndTime, loc)
+}
+
+func rebuildInLocation(t time.Time, loc *time.Location) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc)
 }
 
 func confirmQuickEvent(app *App, details quickParsedEvent, tz string) (bool, error) {

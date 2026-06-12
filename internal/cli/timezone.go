@@ -134,7 +134,7 @@ func runTZInfo(app *App, _ *cobra.Command, args []string) error {
 		return nil
 	}
 
-	now := time.Now().In(loc)
+	now := timeNow().In(loc)
 	printZoneInfo(w, zone, now.Format(constants.DateTimeFormatISOSeconds), now.Format(constants.DateTimeFormatRFC1123))
 	return nil
 }

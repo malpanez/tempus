@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"tempus/internal/config"
 	"tempus/internal/parsing"
 
 	"github.com/charmbracelet/huh"
@@ -66,13 +65,14 @@ func buildInteractiveForm(vars *interactiveVars) *huh.Form {
 
 		huh.NewGroup(
 			huh.NewInput().
-				Title("Timezone (IANA, e.g. America/New_York)").
+				Title("Timezone (IANA or city, e.g. America/New_York, madrid)").
 				Value(&vars.timezone).
 				Validate(func(s string) error {
 					if strings.TrimSpace(s) == "" {
 						return fmt.Errorf("timezone is required")
 					}
-					return config.ValidateTimezone(s)
+					_, err := ResolveTimezone(s)
+					return err
 				}),
 		).Title("Step 3/7 - Timezone"),
 
@@ -179,6 +179,16 @@ func createEventFromWizard(app *App, vars *interactiveVars) error {
 	if strings.TrimSpace(vars.startTime) == "" {
 		vars.allDay = true
 	}
+
+	tz, err := ResolveTimezone(vars.timezone)
+	if err != nil {
+		return err
+	}
+	if tz == "UTC" {
+		tz = ""
+	}
+	vars.timezone = tz
+	warnMissingVTZ(app.Stderr, tz)
 
 	processedCategories := processCategories(vars.categories, vars.customCat)
 	alarmSpecs := resolveAlarmSpecs(vars.alarmProf, vars.customAlarm)

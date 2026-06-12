@@ -170,7 +170,9 @@ func runTemplateCreate(app *App, cmd *cobra.Command, args []string) error {
 		values[f.Key] = v
 	}
 
-	normalizeValuesForTemplate(values, tmpl, dd)
+	if err := normalizeValuesForTemplate(values, tmpl, dd); err != nil {
+		return err
+	}
 
 	ev, err := tm.GenerateEvent(name, values, tr)
 	if err != nil {
@@ -221,7 +223,9 @@ func runTemplateCreateFromFile(app *App, tm *tpl.TemplateManager, tr *i18n.Trans
 	params.outputDir = strings.TrimSpace(params.outputDir)
 	for idx, record := range records {
 		values := mergeTemplateValues(tmpl, record)
-		normalizeValuesForTemplate(values, tmpl, dd)
+		if err := normalizeValuesForTemplate(values, tmpl, dd); err != nil {
+			return fmt.Errorf(testutil.ErrMsgRowFormat, idx+1, err)
+		}
 
 		ev, err := tm.GenerateEvent(params.templateName, values, tr)
 		if err != nil {
@@ -489,17 +493,26 @@ func templateFieldDefault(tmpl *tpl.Template, key string) string {
 	return ""
 }
 
-func normalizeValuesForTemplate(values map[string]string, tmpl *tpl.Template, dd tpl.DataDrivenTemplate) {
+func normalizeValuesForTemplate(values map[string]string, tmpl *tpl.Template, dd tpl.DataDrivenTemplate) error {
 	if strings.TrimSpace(dd.Name) == "" {
+		if err := resolveTZValue(values, "timezone"); err != nil {
+			return err
+		}
 		durationDefault := templateFieldDefault(tmpl, "duration")
 		parsing.NormalizeClockOnlyDateTimes(values, "start_time", "end_time", "timezone")
 		parsing.NormalizeEndTimeFromDuration(values, "start_time", "end_time", "duration", "timezone", FirstNonEmpty(values["duration"], durationDefault, "30m"))
-		return
+		return nil
 	}
 
 	startField := strings.TrimSpace(dd.Output.StartField)
 	endField := strings.TrimSpace(dd.Output.EndField)
 	durationField := strings.TrimSpace(dd.Output.DurationField)
+	if err := resolveTZValue(values, strings.TrimSpace(dd.Output.StartTZField)); err != nil {
+		return err
+	}
+	if err := resolveTZValue(values, strings.TrimSpace(dd.Output.EndTZField)); err != nil {
+		return err
+	}
 	tzField := strings.TrimSpace(dd.Output.StartTZField)
 	if tzField == "" {
 		tzField = strings.TrimSpace(dd.Output.EndTZField)
@@ -511,6 +524,21 @@ func normalizeValuesForTemplate(values map[string]string, tmpl *tpl.Template, dd
 		durationDefault = FirstNonEmpty(values[durationField], templateFieldDefault(tmpl, durationField))
 	}
 	parsing.NormalizeEndTimeFromDuration(values, startField, endField, durationField, tzField, durationDefault)
+	return nil
+}
+
+// resolveTZValue validates and normalizes a timezone entry in a template
+// value map through the ResolveTimezone chokepoint.
+func resolveTZValue(values map[string]string, key string) error {
+	if key == "" {
+		return nil
+	}
+	tz, err := ResolveTimezone(values[key])
+	if err != nil {
+		return err
+	}
+	values[key] = tz
+	return nil
 }
 
 func buildTemplateCalendar(ev *calendar.Event) *calendar.Calendar {

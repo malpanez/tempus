@@ -90,6 +90,20 @@ func runBatch(app *App, cmd *cobra.Command, _ []string) error {
 
 	opts.prepLabel = resolvePrepLabel(opts.prepLabel, app.Config)
 
+	configTZ := ""
+	if app.Config != nil {
+		configTZ = app.Config.Timezone
+	}
+	defaultTZ, err := ResolveTimezone(FirstNonEmpty(opts.defaultTZ, configTZ))
+	if err != nil {
+		return err
+	}
+	if defaultTZ == "UTC" {
+		defaultTZ = ""
+	}
+	opts.defaultTZ = defaultTZ
+	warnMissingVTZ(app.Stderr, defaultTZ)
+
 	records, _, err := loadBatchInput(opts)
 	if err != nil {
 		return err
@@ -450,7 +464,10 @@ func buildEventFromBatch(rec batchRecord, fallbackTZ string, spellCache *nd.Spel
 		return nil, err
 	}
 
-	startTZ, endTZ := resolveBatchTimezones(rec, fallbackTZ)
+	startTZ, endTZ, err := resolveBatchTimezones(rec, fallbackTZ)
+	if err != nil {
+		return nil, err
+	}
 	startTime, endTime, err := parseBatchTimes(rec, startStr, startTZ, endTZ, summary)
 	if err != nil {
 		return nil, err
@@ -479,13 +496,25 @@ func validateBatchRecord(rec batchRecord, spellCache *nd.SpellCheckCache) (summa
 	return summary, startStr, nil
 }
 
-func resolveBatchTimezones(rec batchRecord, fallbackTZ string) (startTZ, endTZ string) {
-	startTZ = strings.TrimSpace(FirstNonEmpty(rec.StartTZ, fallbackTZ))
-	endTZ = strings.TrimSpace(rec.EndTZ)
+func resolveBatchTimezones(rec batchRecord, fallbackTZ string) (startTZ, endTZ string, err error) {
+	startTZ, err = ResolveTimezone(FirstNonEmpty(rec.StartTZ, fallbackTZ))
+	if err != nil {
+		return "", "", err
+	}
+	endTZ, err = ResolveTimezone(rec.EndTZ)
+	if err != nil {
+		return "", "", err
+	}
+	if startTZ == "UTC" {
+		startTZ = ""
+	}
+	if endTZ == "UTC" {
+		endTZ = ""
+	}
 	if endTZ == "" {
 		endTZ = startTZ
 	}
-	return startTZ, endTZ
+	return startTZ, endTZ, nil
 }
 
 func parseBatchTimes(rec batchRecord, startStr, startTZ, endTZ, summary string) (startTime, endTime time.Time, err error) {
