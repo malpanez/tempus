@@ -67,9 +67,9 @@ func TestWriteCalendarOutput(t *testing.T) {
 
 			err := writeCalendarOutput(app, cal, tt.output)
 
-			w.Close()
+			w.Close() //nolint:errcheck // test pipe cleanup
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			io.Copy(&buf, r) //nolint:errcheck // test pipe drain
 			os.Stdout = oldStdout
 			output := buf.String()
 

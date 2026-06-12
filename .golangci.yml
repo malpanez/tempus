@@ -8,12 +8,17 @@ run:
   build-tags: []
 
 linters:
-  default: none
-  enable:
-    - govet
-    - staticcheck
+  default: standard
 
   settings:
+    errcheck:
+      # Best-effort console output to stdout/stderr writers. Errors on these
+      # are intentionally discarded CLI-wide (71 call sites as of phase 0).
+      # See .planning/tempus-remediation/errcheck-map.md before widening this.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
     govet:
       enable:
         - atomic

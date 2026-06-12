@@ -981,14 +981,6 @@ func TestNewInitCmd(t *testing.T) {
 func TestPrintZoneInfoFull(t *testing.T) {
 	var buf bytes.Buffer
 
-	type tzInfo struct {
-		IANA        string
-		DisplayName string
-		Country     string
-		Offset      string
-		DST         bool
-	}
-
 	app := TestApp()
 	app.Stdout = &buf
 

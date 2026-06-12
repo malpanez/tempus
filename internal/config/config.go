@@ -281,8 +281,8 @@ func ValidateOutputDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("directory %q does not exist or is not writable", dir)
 	}
-	f.Close()
-	os.Remove(f.Name())
+	f.Close()           //nolint:errcheck // writability probe cleanup, result irrelevant
+	os.Remove(f.Name()) //nolint:errcheck // writability probe cleanup, result irrelevant
 	return nil
 }
 
