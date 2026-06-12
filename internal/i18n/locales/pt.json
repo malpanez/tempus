@@ -113,5 +113,24 @@
   "weekday_th": "Quinta-feira",
   "weekday_fr": "Sexta-feira",
   "weekday_sa": "Sábado",
-  "weekday_su": "Domingo"
+  "weekday_su": "Domingo",
+
+  "alarm_profile_name_adhd_default": "ADHD padrão",
+  "alarm_profile_name_adhd_countdown": "ADHD contagem decrescente",
+  "alarm_profile_name_medication": "Medicação",
+  "alarm_profile_name_single": "Único",
+
+  "alarm_prompt_suggested": "Lembretes sugeridos:",
+  "alarm_prompt_keep_or_change": "Pressione Enter para manter ou digite 'n' para alterar",
+  "alarm_prompt_yes_short": "s",
+  "alarm_prompt_yes_long": "sim",
+  "alarm_prompt_add_up_to": "Adicione até 4 lembretes. Use formatos como -15m, +10m, 2025-03-01 09:15 ou trigger=-15m,description=Texto.",
+  "alarm_prompt_help_hint": "Digite '?' para ver exemplos ou deixe vazio para terminar.",
+  "alarm_prompt_reminder_n": "Lembrete #%d (-15m, +10m, trigger=..., ? para ajuda)",
+  "alarm_prompt_examples_header": "Exemplos:",
+  "alarm_prompt_example_before": "  -15m                 -> 15 minutos antes",
+  "alarm_prompt_example_after": "  +5m                  -> 5 minutos depois",
+  "alarm_prompt_example_trigger": "  trigger=-30m,description=Procurar táxi",
+  "alarm_prompt_example_absolute": "  trigger=2025-03-01 09:15,description=Check-in",
+  "alarm_prompt_optional_desc": "Descrição opcional (Enter para usar a padrão)"
 }

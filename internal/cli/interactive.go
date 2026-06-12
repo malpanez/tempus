@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"tempus/internal/config"
+	"tempus/internal/i18n"
 	"tempus/internal/parsing"
 
 	"github.com/charmbracelet/huh"
@@ -28,7 +31,69 @@ type interactiveVars struct {
 	confirmed   bool
 }
 
-func buildInteractiveForm(vars *interactiveVars) *huh.Form {
+// defaultAlarmProfileOrder pins the display order of the built-in profiles;
+// any user-defined profiles are appended alphabetically.
+var defaultAlarmProfileOrder = []string{"adhd-default", "adhd-countdown", "medication", "single"}
+
+// alarmProfilesOrDefault returns the configured alarm profiles, falling back
+// to the config package defaults when none are configured.
+func alarmProfilesOrDefault(cfg *config.Config) map[string][]string {
+	if cfg != nil && len(cfg.AlarmProfiles) > 0 {
+		return cfg.AlarmProfiles
+	}
+	if defaults, err := config.Load(); err == nil && defaults != nil {
+		return defaults.AlarmProfiles
+	}
+	return nil
+}
+
+// alarmProfileDisplayName resolves the localized display name for a profile,
+// falling back to the raw profile name when no locale key exists.
+func alarmProfileDisplayName(tr *i18n.Translator, name string) string {
+	if tr != nil {
+		key := "alarm_profile_name_" + strings.ReplaceAll(name, "-", "_")
+		if v := tr.T(key); v != key {
+			return v
+		}
+	}
+	return name
+}
+
+// alarmProfileOptions builds the wizard Select options from the profile
+// definitions so the offsets shown can never drift from the config values.
+func alarmProfileOptions(cfg *config.Config, tr *i18n.Translator) []huh.Option[string] {
+	profiles := alarmProfilesOrDefault(cfg)
+
+	names := make([]string, 0, len(profiles))
+	seen := make(map[string]bool, len(profiles))
+	for _, name := range defaultAlarmProfileOrder {
+		if offsets, ok := profiles[name]; ok && len(offsets) > 0 {
+			names = append(names, name)
+			seen[name] = true
+		}
+	}
+	extra := make([]string, 0, len(profiles))
+	for name, offsets := range profiles {
+		if seen[name] || len(offsets) == 0 {
+			continue
+		}
+		extra = append(extra, name)
+	}
+	sort.Strings(extra)
+	names = append(names, extra...)
+
+	opts := make([]huh.Option[string], 0, len(names)+2)
+	for _, name := range names {
+		label := fmt.Sprintf("%s (%s)", alarmProfileDisplayName(tr, name), strings.Join(profiles[name], ", "))
+		opts = append(opts, huh.NewOption(label, name))
+	}
+	return append(opts,
+		huh.NewOption("None", "none"),
+		huh.NewOption("Custom...", "custom"),
+	)
+}
+
+func buildInteractiveForm(app *App, vars *interactiveVars) *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -79,14 +144,7 @@ func buildInteractiveForm(vars *interactiveVars) *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Alarm profile").
-				Options(
-					huh.NewOption("ADHD Default (-2h, -30m, -5m)", "adhd-default"),
-					huh.NewOption("ADHD Countdown (-1h, -45m, -30m, -15m, -5m)", "adhd-countdown"),
-					huh.NewOption("Medication (-30m, -5m)", "medication"),
-					huh.NewOption("Single (-15m)", "single"),
-					huh.NewOption("None", "none"),
-					huh.NewOption("Custom...", "custom"),
-				).
+				Options(alarmProfileOptions(app.Config, app.Translator)...).
 				Value(&vars.alarmProf),
 		).Title("Step 4/7 - Alarms"),
 
@@ -241,7 +299,7 @@ func runInteractive(app *App, cmd *cobra.Command) error {
 		vars.alarmProf = "adhd-default"
 	}
 
-	form := buildInteractiveForm(vars)
+	form := buildInteractiveForm(app, vars)
 	if err := form.Run(); err != nil {
 		if errors.Is(err, huh.ErrUserAborted) {
 			return fmt.Errorf("event creation aborted")

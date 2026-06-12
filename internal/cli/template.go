@@ -160,7 +160,7 @@ func runTemplateCreate(app *App, cmd *cobra.Command, args []string) error {
 	values := map[string]string{}
 	for _, f := range tmpl.Fields {
 		if isAlarmField(f) {
-			values[f.Key] = promptAlarmField(labelForField(f), f.Default)
+			values[f.Key] = promptAlarmField(w, tr, labelForField(f), f.Default)
 			continue
 		}
 		v := prompts.Input(labelForField(f), f.Default)
@@ -756,50 +756,50 @@ func isAlarmField(f tpl.Field) bool {
 	return false
 }
 
-func promptAlarmField(label, defaultValue string) string {
-	fmt.Printf("\n%s\n", label)
+func promptAlarmField(w io.Writer, tr *i18n.Translator, label, defaultValue string) string {
+	fmt.Fprintf(w, "\n%s\n", label)
 	existing := calendar.SplitAlarmInput(defaultValue)
 	if len(existing) > 0 {
-		fmt.Println("Recordatorios sugeridos:")
+		fmt.Fprintln(w, tr.T("alarm_prompt_suggested"))
 		for i, spec := range existing {
-			fmt.Printf("  %d) %s\n", i+1, spec)
+			fmt.Fprintf(w, "  %d) %s\n", i+1, spec)
 		}
-		keep := strings.ToLower(strings.TrimSpace(prompts.Input("Pulsa Enter para mantenerlos o escribe 'n' para cambiarlos", "")))
-		if keep == "" || keep == "s" || keep == "si" {
+		keep := strings.ToLower(strings.TrimSpace(prompts.Input(tr.T("alarm_prompt_keep_or_change"), "")))
+		if keep == "" || keep == tr.T("alarm_prompt_yes_short") || keep == tr.T("alarm_prompt_yes_long") {
 			return strings.Join(existing, "\n")
 		}
-		fmt.Println("")
+		fmt.Fprintln(w, "")
 	}
 
-	fmt.Println("Añade hasta 4 recordatorios. Usa formatos como -15m, +10m, 2025-03-01 09:15 o trigger=-15m,description=Texto.")
-	fmt.Println("Escribe '?' para ver ejemplos o deja vacío para terminar.")
+	fmt.Fprintln(w, tr.T("alarm_prompt_add_up_to"))
+	fmt.Fprintln(w, tr.T("alarm_prompt_help_hint"))
 
 	specs := make([]string, 0, 4)
 	for len(specs) < 4 {
-		p := fmt.Sprintf("Recordatorio #%d (-15m, +10m, trigger=..., ? para ayuda)", len(specs)+1)
+		p := tr.T("alarm_prompt_reminder_n", len(specs)+1)
 		input := strings.TrimSpace(prompts.Input(p, ""))
 		if input == "" {
 			break
 		}
 		if input == "?" {
-			fmt.Println("Ejemplos:")
-			fmt.Println("  -15m                 -> 15 minutos antes")
-			fmt.Println("  +5m                  -> 5 minutos después")
-			fmt.Println("  trigger=-30m,description=Buscar taxi")
-			fmt.Println("  trigger=2025-03-01 09:15,description=Check-in")
+			fmt.Fprintln(w, tr.T("alarm_prompt_examples_header"))
+			fmt.Fprintln(w, tr.T("alarm_prompt_example_before"))
+			fmt.Fprintln(w, tr.T("alarm_prompt_example_after"))
+			fmt.Fprintln(w, tr.T("alarm_prompt_example_trigger"))
+			fmt.Fprintln(w, tr.T("alarm_prompt_example_absolute"))
 			continue
 		}
 
 		spec := input
 		if !strings.Contains(spec, "=") {
-			desc := strings.TrimSpace(prompts.Input("Descripción opcional (Enter para usar la genérica)", ""))
+			desc := strings.TrimSpace(prompts.Input(tr.T("alarm_prompt_optional_desc"), ""))
 			if desc != "" {
 				spec = fmt.Sprintf("trigger=%s,description=%s", input, desc)
 			}
 		}
 
 		if _, err := calendar.ParseAlarmSpecs([]string{spec}, ""); err != nil {
-			fmt.Printf("? %v\n", err)
+			fmt.Fprintf(w, "? %v\n", err)
 			continue
 		}
 		specs = append(specs, spec)
