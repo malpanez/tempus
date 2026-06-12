@@ -309,8 +309,8 @@ func TestRunLintNoFiles(t *testing.T) {
 	if err == nil {
 		t.Fatal("runLint() expected error when no --file provided")
 	}
-	if !strings.Contains(err.Error(), "--file is required") {
-		t.Errorf("expected '--file is required' error, got: %v", err)
+	if !strings.Contains(err.Error(), "no files to lint") {
+		t.Errorf("expected 'no files to lint' error, got: %v", err)
 	}
 }
 
@@ -322,6 +322,7 @@ VERSION:2.0
 BEGIN:VEVENT
 UID:test-uid-001@tempus
 SUMMARY:Test Event
+DTSTAMP:20250401T090000Z
 DTSTART:20250501T100000Z
 DTEND:20250501T110000Z
 END:VEVENT
@@ -2152,6 +2153,7 @@ VERSION:2.0
 BEGIN:VEVENT
 UID:lint-test-uid@tempus
 SUMMARY:Lint RunE Test
+DTSTAMP:20250401T090000Z
 DTSTART:20250601T100000Z
 DTEND:20250601T110000Z
 END:VEVENT
@@ -3574,7 +3576,7 @@ func TestRunLintMultipleFiles(t *testing.T) {
 
 	makeICS := func(name, uid string) string {
 		icsPath := filepath.Join(tmpDir, name)
-		content := "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:" + uid + "\nSUMMARY:Test\nDTSTART:20250601T100000Z\nDTEND:20250601T110000Z\nEND:VEVENT\nEND:VCALENDAR\n"
+		content := "BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:" + uid + "\nSUMMARY:Test\nDTSTAMP:20250401T090000Z\nDTSTART:20250601T100000Z\nDTEND:20250601T110000Z\nEND:VEVENT\nEND:VCALENDAR\n"
 		if err := os.WriteFile(icsPath, []byte(content), 0644); err != nil {
 			panic(err)
 		}

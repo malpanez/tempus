@@ -140,6 +140,25 @@ func TestGoldenRRuleUntil(t *testing.T) {
 	CompareGolden(t, *update, "rrule_until", ics)
 }
 
+// TestGoldensPassOwnLint: every golden the tool generates must pass the
+// tool's own RFC 5545 gate. This closes the loop between emission and lint.
+func TestGoldensPassOwnLint(t *testing.T) {
+	matches, err := filepath.Glob(filepath.Join("testdata", "golden", "*.ics"))
+	if err != nil || len(matches) == 0 {
+		t.Fatalf("no goldens found: %v", err)
+	}
+	for _, m := range matches {
+		abs, err := filepath.Abs(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := RunCLI(t, binPath, t.TempDir(), nil, "", "lint", abs)
+		if res.ExitCode != 0 {
+			t.Errorf("golden %s fails own lint: %s%s", m, res.Stdout, res.Stderr)
+		}
+	}
+}
+
 func TestGoldenAllDay(t *testing.T) {
 	ics := runAndReadICS(t, nil,
 		"create", "Conference",

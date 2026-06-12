@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,7 +12,7 @@ import (
 
 func NewLintCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "lint",
+		Use:   "lint [file ...]",
 		Short: "Validate ICS files for common issues",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLint(app, cmd, args)
@@ -21,26 +22,33 @@ func NewLintCmd(app *App) *cobra.Command {
 	return cmd
 }
 
-func runLint(app *App, cmd *cobra.Command, _ []string) error {
+func runLint(app *App, cmd *cobra.Command, args []string) error {
 	w := stdoutWriter(app)
 	paths, _ := cmd.Flags().GetStringArray("file")
-	if len(paths) == 0 {
-		return fmt.Errorf("--file is required (repeat flag for multiple files)")
-	}
+	paths = append(paths, args...)
 
 	var errs []string
+	linted := 0
 	for _, path := range paths {
 		path = strings.TrimSpace(path)
 		if path == "" {
 			continue
 		}
-		if err := lintICSFile(path); err != nil {
+		linted++
+		warnings, err := lintICSFile(path)
+		for _, warning := range warnings {
+			fmt.Fprintf(w, "⚠️  %s: %s\n", path, warning)
+		}
+		if err != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", path, err))
 			continue
 		}
 		PrintOK(w, "Lint passed: %s\n", path)
 	}
 
+	if linted == 0 {
+		return fmt.Errorf("no files to lint: pass paths as arguments or with --file")
+	}
 	if len(errs) > 0 {
 		return fmt.Errorf("%s", strings.Join(errs, "\n"))
 	}
@@ -51,29 +59,38 @@ type lintState struct {
 	calendarSeen bool
 	eventSeen    bool
 	inEvent      bool
+	inVTimezone  bool
 	eventIndex   int
 	eventFields  map[string]string
+	eventParams  map[string]string
 	eventIssues  []string
+	warnings     []string
+	vtimezones   map[string]bool
+	tzidRefs     map[string]string
 }
 
 func newLintState() lintState {
 	return lintState{
 		eventFields: make(map[string]string, 8),
+		eventParams: make(map[string]string, 8),
+		vtimezones:  make(map[string]bool, 2),
+		tzidRefs:    make(map[string]string, 2),
 	}
 }
 
-func lintICSFile(path string) error {
+func lintICSFile(path string) ([]string, error) {
 	lines, err := loadAndValidateICSFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	state := newLintState()
 	for _, line := range lines {
 		processLintLine(&state, line)
 	}
+	missingVTZWarnings(&state)
 
-	return validateLintResults(state)
+	return state.warnings, validateLintResults(state)
 }
 
 func loadAndValidateICSFile(path string) ([]string, error) {
@@ -109,6 +126,10 @@ func processLintLine(state *lintState, raw string) {
 	case strings.EqualFold(line, "BEGIN:VCALENDAR"):
 		state.calendarSeen = true
 	case strings.EqualFold(line, "END:VCALENDAR"):
+	case strings.EqualFold(line, "BEGIN:VTIMEZONE"):
+		state.inVTimezone = true
+	case strings.EqualFold(line, "END:VTIMEZONE"):
+		state.inVTimezone = false
 	case strings.EqualFold(line, "BEGIN:VEVENT"):
 		handleBeginEvent(state)
 	case strings.EqualFold(line, "END:VEVENT"):
@@ -119,10 +140,15 @@ func processLintLine(state *lintState, raw string) {
 }
 
 func handleBeginEvent(state *lintState) {
+	if state.inEvent {
+		state.eventIssues = append(state.eventIssues,
+			fmt.Sprintf("VEVENT #%d not closed before next BEGIN:VEVENT", state.eventIndex))
+	}
 	state.inEvent = true
 	state.eventSeen = true
 	state.eventIndex++
 	state.eventFields = make(map[string]string, 8)
+	state.eventParams = make(map[string]string, 8)
 }
 
 func handleEndEvent(state *lintState) {
@@ -134,6 +160,9 @@ func handleEndEvent(state *lintState) {
 
 	label := buildEventLabel(state.eventIndex, state.eventFields)
 	validateEventFields(state, label)
+	validateUntilValueType(state, label)
+	validateCategoriesEscaping(state, label)
+	collectTZIDRefs(state, label)
 }
 
 func buildEventLabel(index int, fields map[string]string) string {
@@ -144,35 +173,106 @@ func buildEventLabel(index int, fields map[string]string) string {
 	return label
 }
 
+// validateEventFields enforces RFC 5545 §3.6.1: UID and DTSTAMP are
+// REQUIRED; DTSTART is required when the calendar has no METHOD (the only
+// mode tempus emits). SUMMARY and DTEND/DURATION are optional and no longer
+// flagged.
 func validateEventFields(state *lintState, label string) {
-	requiredFields := []string{"UID", "SUMMARY", "DTSTART"}
+	requiredFields := []string{"UID", "DTSTAMP", "DTSTART"}
 	for _, key := range requiredFields {
 		if strings.TrimSpace(state.eventFields[key]) == "" {
 			state.eventIssues = append(state.eventIssues, fmt.Sprintf("%s missing %s", label, key))
 		}
 	}
+}
 
-	_, hasEnd := state.eventFields["DTEND"]
-	_, hasDuration := state.eventFields["DURATION"]
-	if !hasEnd && !hasDuration {
-		state.eventIssues = append(state.eventIssues, fmt.Sprintf("%s missing DTEND or DURATION", label))
+var rruleUntilRe = regexp.MustCompile(`(?i)(?:^|;)UNTIL=([0-9TZ]+)`)
+
+// validateUntilValueType enforces RFC 5545 §3.3.10: UNTIL must have the
+// same value type as DTSTART, and for timezone-aware date-times it must be
+// in UTC (Z suffix).
+func validateUntilValueType(state *lintState, label string) {
+	rrule := state.eventFields["RRULE"]
+	if rrule == "" {
+		return
+	}
+	m := rruleUntilRe.FindStringSubmatch(rrule)
+	if m == nil {
+		return
+	}
+	until := m[1]
+	dtstart := state.eventFields["DTSTART"]
+	if dtstart == "" {
+		return
+	}
+
+	startIsDate := !strings.Contains(dtstart, "T")
+	untilIsDate := !strings.Contains(strings.ToUpper(until), "T")
+
+	switch {
+	case startIsDate && !untilIsDate:
+		state.eventIssues = append(state.eventIssues,
+			fmt.Sprintf("%s RRULE UNTIL is a date-time but DTSTART is a date (RFC 5545 §3.3.10 requires matching value types)", label))
+	case !startIsDate && untilIsDate:
+		state.eventIssues = append(state.eventIssues,
+			fmt.Sprintf("%s RRULE UNTIL is a date but DTSTART is a date-time (RFC 5545 §3.3.10 requires matching value types)", label))
+	case !startIsDate && strings.Contains(state.eventParams["DTSTART"], "TZID=") && !strings.HasSuffix(strings.ToUpper(until), "Z"):
+		state.eventIssues = append(state.eventIssues,
+			fmt.Sprintf("%s RRULE UNTIL must be UTC (Z suffix) when DTSTART carries a TZID (RFC 5545 §3.3.10)", label))
+	}
+}
+
+var unescapedSemicolonRe = regexp.MustCompile(`(^|[^\\]);`)
+
+func validateCategoriesEscaping(state *lintState, label string) {
+	cats := state.eventFields["CATEGORIES"]
+	if cats == "" {
+		return
+	}
+	if unescapedSemicolonRe.MatchString(cats) {
+		state.eventIssues = append(state.eventIssues,
+			fmt.Sprintf("%s CATEGORIES contains an unescaped ';' (must be \\; per RFC 5545 §3.8.1.2)", label))
+	}
+}
+
+var tzidParamRe = regexp.MustCompile(`TZID=([^;:]+)`)
+
+func collectTZIDRefs(state *lintState, label string) {
+	for _, prop := range []string{"DTSTART", "DTEND", "EXDATE"} {
+		params := state.eventParams[prop]
+		if m := tzidParamRe.FindStringSubmatch(params); m != nil {
+			tzid := strings.TrimSpace(m[1])
+			if _, seen := state.tzidRefs[tzid]; !seen {
+				state.tzidRefs[tzid] = label
+			}
+		}
 	}
 }
 
 func handleEventProperty(state *lintState, line string) {
+	name, params, value, ok := parseICSPropertyFull(line)
+	if !ok {
+		return
+	}
+	if state.inVTimezone {
+		if name == "TZID" {
+			state.vtimezones[strings.TrimSpace(value)] = true
+		}
+		return
+	}
 	if !state.inEvent {
 		return
 	}
-
-	name, value, ok := parseICSProperty(line)
-	if ok {
-		state.eventFields[name] = value
-	}
+	state.eventFields[name] = value
+	state.eventParams[name] = params
 }
 
 func validateLintResults(state lintState) error {
 	if !state.calendarSeen {
 		return fmt.Errorf("missing BEGIN:VCALENDAR")
+	}
+	if state.inEvent {
+		return fmt.Errorf("VEVENT #%d is never closed (missing END:VEVENT)", state.eventIndex)
 	}
 	if !state.eventSeen {
 		return fmt.Errorf("no VEVENT blocks found")
@@ -183,6 +283,22 @@ func validateLintResults(state lintState) error {
 	return nil
 }
 
+// missingVTZWarnings reports TZID references that have no matching
+// VTIMEZONE component. Modern clients resolve IANA names anyway, so this
+// is a warning rather than an error (strict clients like Outlook classic
+// may reject the file).
+func missingVTZWarnings(state *lintState) {
+	for tzid, label := range state.tzidRefs {
+		if tzid != "" && !state.vtimezones[tzid] {
+			state.warnings = append(state.warnings,
+				fmt.Sprintf("%s references TZID=%s with no matching VTIMEZONE component", label, tzid))
+		}
+	}
+}
+
+// unfoldICSLines reverses RFC 5545 §3.1 folding: a CRLF immediately
+// followed by a single space or tab is removed, deleting ONLY that first
+// whitespace character — any further whitespace is content.
 func unfoldICSLines(data string) []string {
 	data = strings.ReplaceAll(data, "\r\n", "\n")
 	rawLines := strings.Split(data, "\n")
@@ -194,7 +310,7 @@ func unfoldICSLines(data string) []string {
 			continue
 		}
 		if strings.HasPrefix(raw, " ") || strings.HasPrefix(raw, "\t") {
-			current.WriteString(strings.TrimLeft(raw, " \t"))
+			current.WriteString(strings.TrimRight(raw[1:], "\r"))
 			continue
 		}
 		if current.Len() > 0 {
@@ -210,18 +326,25 @@ func unfoldICSLines(data string) []string {
 }
 
 func parseICSProperty(line string) (name, value string, ok bool) {
+	name, _, value, ok = parseICSPropertyFull(line)
+	return name, value, ok
+}
+
+// parseICSPropertyFull splits "NAME;PARAM=X:VALUE" into its three parts.
+func parseICSPropertyFull(line string) (name, params, value string, ok bool) {
 	parts := strings.SplitN(line, ":", 2)
 	if len(parts) != 2 {
-		return "", "", false
+		return "", "", "", false
 	}
 	key := strings.TrimSpace(parts[0])
 	if key == "" {
-		return "", "", false
+		return "", "", "", false
 	}
 	if idx := strings.IndexRune(key, ';'); idx != -1 {
+		params = key[idx+1:]
 		key = key[:idx]
 	}
-	key = strings.ToUpper(strings.TrimSpace(key))
-	val := strings.TrimSpace(parts[1])
-	return key, val, true
+	name = strings.ToUpper(strings.TrimSpace(key))
+	value = strings.TrimSpace(parts[1])
+	return name, params, value, true
 }

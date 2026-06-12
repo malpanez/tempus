@@ -282,6 +282,18 @@ func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay 
 	return nil
 }
 
+var rruleDateOnlyUntilRe = regexp.MustCompile(`(?i)(^|;)(UNTIL=)(\d{8})($|;)`)
+
+// NormalizeRRuleUntil rewrites a date-only UNTIL to end-of-day UTC when the
+// event is timed, so the emitted RRULE satisfies RFC 5545 §3.3.10 (UNTIL
+// must match DTSTART's value type). All-day events keep the DATE form.
+func NormalizeRRuleUntil(rrule string, allDay bool) string {
+	if allDay || rrule == "" {
+		return rrule
+	}
+	return rruleDateOnlyUntilRe.ReplaceAllString(rrule, "${1}${2}${3}T235959Z${4}")
+}
+
 // ResolveTimezone is the single validation chokepoint for user timezone
 // input. It trims, accepts valid IANA zones as-is, resolves known city
 // aliases (madrid → Europe/Madrid), and rejects anything else — no raw

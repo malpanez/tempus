@@ -190,10 +190,23 @@ func promptRRuleEndCondition() string {
 		untilStr = strings.TrimSpace(untilStr)
 		if untilStr != "" {
 			if _, err := time.Parse("2006-01-02", untilStr); err == nil {
-				untilStr = strings.ReplaceAll(untilStr, "-", "")
-				return fmt.Sprintf("UNTIL=%s", untilStr)
+				fmt.Print("Is the event all-day? (y/N): ")
+				var allDayStr string
+				_, _ = fmt.Scanln(&allDayStr)
+				return formatRRuleUntil(untilStr, ParseBoolish(allDayStr))
 			}
 		}
 	}
 	return ""
+}
+
+// formatRRuleUntil emits UNTIL matching the DTSTART value type per RFC 5545
+// §3.3.10: DATE form for all-day events, UTC DATE-TIME (end of day) for
+// timed events.
+func formatRRuleUntil(dateStr string, allDay bool) string {
+	compact := strings.ReplaceAll(dateStr, "-", "")
+	if allDay {
+		return fmt.Sprintf("UNTIL=%s", compact)
+	}
+	return fmt.Sprintf("UNTIL=%sT235959Z", compact)
 }
