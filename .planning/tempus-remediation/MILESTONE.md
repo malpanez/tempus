@@ -123,16 +123,20 @@ IANA validation; invalid zone = fatal error.
 
 ### Tasks
 
-- [ ] 2.1 `app.Config.Timezone` (flag `-t`, env `TEMPUS_TIMEZONE`, config file) read by
-      `create`, `quick`, and `batch` — not just the wizard.
-- [ ] 2.2 Single validation chokepoint for all TZ input: `cityToIANA` alias resolution →
-      `time.LoadLocation` → error if unresolvable. No raw string reaches `DTSTART;TZID=`.
-- [ ] 2.3 Valid IANA zone without hardcoded VTIMEZONE definition → WARNING (interim until
-      phase 5). Invalid zone → hard error.
-- [ ] 2.4 Inject a clock (`func() time.Time`) replacing direct `time.Now()` in production
-      paths; fixed clock in tests.
-- [ ] 2.5 New goldens: `-t` via flag, via env, batch with TZ column, alias input.
-      Negative: `--start-tz narnia` → exit != 0.
+- [x] 2.1 `app.Config.Timezone` (flag `-t`, env `TEMPUS_TIMEZONE`, config file) read by
+      `create`, `quick`, and `batch` — not just the wizard. A resolved "UTC" keeps the
+      Z form (correct RFC 5545 representation of UTC wall time).
+- [x] 2.2 Single validation chokepoint `ResolveTimezone` (helpers.go): IANA accepted
+      as-is → `cityToIANA` alias → error. Applied in create, quick, batch (per-row +
+      --default-tz), wizard, and template flows. Bonus: quick's TZ now reinterprets
+      wall clock (`time.Date` in zone) instead of shifting the instant with `In()`.
+- [x] 2.3 `warnMissingVTZ` on stderr for valid zones without embedded VTIMEZONE
+      (calendar.HasVTZDefinition exported). Invalid zone → hard error.
+- [x] 2.4 Package clocks (`var timeNow = time.Now`) in calendar, nd, cli — no direct
+      `time.Now()` left in production code.
+- [x] 2.5 New goldens: create_default_tz_env (TEMPUS_TIMEZONE), create_alias_tz
+      (madrid → Europe/Madrid); create_profile_alarm regenerated with TZID+VTIMEZONE.
+      Negatives: --start-tz narnia and -t mordor → exit != 0.
 
 ### Verification
 

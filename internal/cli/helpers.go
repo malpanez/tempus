@@ -18,6 +18,9 @@ import (
 	"tempus/internal/utils"
 )
 
+// timeNow is the package clock; tests may override it for determinism.
+var timeNow = time.Now
+
 func EnsureDirForFile(path string) error {
 	dir := strings.TrimSpace(filepath.Dir(path))
 	if dir == "" || dir == "." {
@@ -277,6 +280,34 @@ func addExDates(event *calendar.Event, exdates []string, startTZ string, allDay 
 		event.ExDates = append(event.ExDates, parsed...)
 	}
 	return nil
+}
+
+// ResolveTimezone is the single validation chokepoint for user timezone
+// input. It trims, accepts valid IANA zones as-is, resolves known city
+// aliases (madrid → Europe/Madrid), and rejects anything else — no raw
+// string ever reaches DTSTART;TZID=. Empty input resolves to "".
+func ResolveTimezone(input string) (string, error) {
+	tz := strings.TrimSpace(input)
+	if tz == "" {
+		return "", nil
+	}
+	if _, err := time.LoadLocation(tz); err == nil {
+		return tz, nil
+	}
+	if iana, err := cityToIANA(tz); err == nil {
+		return iana, nil
+	}
+	return "", fmt.Errorf("invalid timezone %q: not an IANA zone or known city alias; try 'tempus timezone list --search %s'", input, input)
+}
+
+// warnMissingVTZ tells the user when a zone has no embedded VTIMEZONE
+// definition: the ICS is still usable in modern clients, but strict ones
+// (Outlook classic) may not resolve the TZID. UTC needs no VTIMEZONE.
+func warnMissingVTZ(w io.Writer, tz string) {
+	if tz == "" || tz == "UTC" || calendar.HasVTZDefinition(tz) {
+		return
+	}
+	fmt.Fprintf(w, "Warning: no VTIMEZONE definition embedded for %q — most clients resolve IANA names, but strict ones (e.g. Outlook classic) may not\n", tz)
 }
 
 // expandAlarmProfiles resolves profile:<name> specs against the loaded

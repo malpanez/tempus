@@ -59,6 +59,11 @@ func runCreate(app *App, cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err := resolveCreateTimezones(opts, app.Config); err != nil {
+		return err
+	}
+	warnMissingVTZ(app.Stderr, opts.startTZ)
+
 	startTime, endTime, err := parseCreateTimes(opts)
 	if err != nil {
 		return err
@@ -69,6 +74,39 @@ func runCreate(app *App, cmd *cobra.Command, args []string) error {
 		return err
 	}
 	return writeCalendarOutput(app, cal, opts.output)
+}
+
+// resolveCreateTimezones validates the start/end timezone flags and, when
+// absent, falls back to the configured default timezone (-t flag,
+// TEMPUS_TIMEZONE, or config file). A resolved "UTC" keeps the empty form:
+// naive input is stamped with the Z suffix, which is the correct RFC 5545
+// representation of UTC wall time.
+func resolveCreateTimezones(opts *createOptions, cfg *config.Config) error {
+	startTZ, err := ResolveTimezone(opts.startTZ)
+	if err != nil {
+		return err
+	}
+	endTZ, err := ResolveTimezone(opts.endTZ)
+	if err != nil {
+		return err
+	}
+
+	if startTZ == "" && !opts.allDay && cfg != nil {
+		defaultTZ, err := ResolveTimezone(cfg.Timezone)
+		if err != nil {
+			return fmt.Errorf("configured default timezone: %w", err)
+		}
+		startTZ = defaultTZ
+	}
+	if startTZ == "UTC" {
+		startTZ = ""
+	}
+	if endTZ == "UTC" {
+		endTZ = ""
+	}
+	opts.startTZ = startTZ
+	opts.endTZ = endTZ
+	return nil
 }
 
 type createOptions struct {

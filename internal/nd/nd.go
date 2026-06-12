@@ -13,6 +13,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// timeNow is the package clock; tests may override it for determinism.
+var timeNow = time.Now
+
 func applyWordCase(original, corrected string) string {
 	if len(original) > 0 && original[0] >= 'A' && original[0] <= 'Z' {
 		if corrected == "" {
@@ -354,8 +357,8 @@ func newGeneratedEvent(summary string, start, end time.Time, ev calendar.Event, 
 		AllDay:     false,
 		Categories: categories,
 		Status:     "CONFIRMED",
-		Created:    time.Now().UTC(),
-		LastMod:    time.Now().UTC(),
+		Created:    timeNow().UTC(),
+		LastMod:    timeNow().UTC(),
 	}
 }
 

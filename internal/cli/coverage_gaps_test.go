@@ -828,7 +828,9 @@ func TestNormalizeValuesForTemplateNoDDTemplate(t *testing.T) {
 		"end_time":   "",
 		"timezone":   "UTC",
 	}
-	normalizeValuesForTemplate(values, tmpl, dd)
+	if err := normalizeValuesForTemplate(values, tmpl, dd); err != nil {
+		t.Fatalf("normalizeValuesForTemplate() error: %v", err)
+	}
 }
 
 func TestNormalizeValuesForTemplateWithDD(t *testing.T) {
@@ -854,7 +856,9 @@ func TestNormalizeValuesForTemplateWithDD(t *testing.T) {
 		"duration":   "45m",
 		"timezone":   "UTC",
 	}
-	normalizeValuesForTemplate(values, tmpl, dd)
+	if err := normalizeValuesForTemplate(values, tmpl, dd); err != nil {
+		t.Fatalf("normalizeValuesForTemplate() error: %v", err)
+	}
 }
 
 func TestPrintTemplateTypeInfoBuiltIn(t *testing.T) {
@@ -1110,9 +1114,14 @@ func TestResolveQuickTimezone(t *testing.T) {
 	app := TestApp()
 	cmd := NewQuickCmd(app)
 
-	t.Run("empty when no flag set", func(t *testing.T) {
-		got := resolveQuickTimezone(cmd)
-		_ = got
+	t.Run("UTC config default resolves to empty", func(t *testing.T) {
+		got, err := resolveQuickTimezone(app, cmd)
+		if err != nil {
+			t.Fatalf("resolveQuickTimezone() error: %v", err)
+		}
+		if got != "" {
+			t.Errorf("resolveQuickTimezone() = %q, want empty for UTC default", got)
+		}
 	})
 
 	t.Run("uses flag when set", func(t *testing.T) {
@@ -1120,9 +1129,36 @@ func TestResolveQuickTimezone(t *testing.T) {
 		if err := cmd2.Flags().Set("timezone", "Europe/Madrid"); err != nil {
 			t.Fatalf("failed to set timezone flag: %v", err)
 		}
-		got := resolveQuickTimezone(cmd2)
+		got, err := resolveQuickTimezone(app, cmd2)
+		if err != nil {
+			t.Fatalf("resolveQuickTimezone() error: %v", err)
+		}
 		if got != "Europe/Madrid" {
 			t.Errorf("resolveQuickTimezone() = %q, want %q", got, "Europe/Madrid")
+		}
+	})
+
+	t.Run("resolves city alias", func(t *testing.T) {
+		cmd3 := NewQuickCmd(app)
+		if err := cmd3.Flags().Set("timezone", "madrid"); err != nil {
+			t.Fatalf("failed to set timezone flag: %v", err)
+		}
+		got, err := resolveQuickTimezone(app, cmd3)
+		if err != nil {
+			t.Fatalf("resolveQuickTimezone() error: %v", err)
+		}
+		if got != "Europe/Madrid" {
+			t.Errorf("resolveQuickTimezone() = %q, want Europe/Madrid", got)
+		}
+	})
+
+	t.Run("invalid timezone is an error", func(t *testing.T) {
+		cmd4 := NewQuickCmd(app)
+		if err := cmd4.Flags().Set("timezone", "narnia"); err != nil {
+			t.Fatalf("failed to set timezone flag: %v", err)
+		}
+		if _, err := resolveQuickTimezone(app, cmd4); err == nil {
+			t.Error("resolveQuickTimezone() should fail for invalid timezone")
 		}
 	})
 }

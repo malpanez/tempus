@@ -109,9 +109,12 @@ func NewCalendar() *Calendar {
 	}
 }
 
+// timeNow is the package clock; tests may override it for determinism.
+var timeNow = time.Now
+
 // NewEvent creates a new event with required fields
 func NewEvent(summary string, start, end time.Time) *Event {
-	now := time.Now().UTC()
+	now := timeNow().UTC()
 	return &Event{
 		UID:       generateUID(),
 		Summary:   summary,
@@ -233,7 +236,7 @@ func (e *Event) writeBasicProperties(b *strings.Builder) {
 	// DTSTAMP (UTC); use Created if available, else now
 	dtstamp := e.Created
 	if dtstamp.IsZero() {
-		dtstamp = time.Now().UTC()
+		dtstamp = timeNow().UTC()
 	}
 	writeProp(b, "DTSTAMP", dtstamp.UTC().Format(constants.ICSFormatUTC))
 
@@ -588,6 +591,12 @@ func uniqueTZIDs(events []Event) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// HasVTZDefinition reports whether a VTIMEZONE definition is embedded for
+// the given TZID. Zones without one are emitted as bare TZID references.
+func HasVTZDefinition(tzid string) bool {
+	return knownVTZ(tzid) != ""
 }
 
 func knownVTZ(tzid string) string {
