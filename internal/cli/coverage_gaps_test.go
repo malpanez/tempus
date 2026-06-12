@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -2672,6 +2673,9 @@ func TestRunTemplateInitDirCreationFails(t *testing.T) {
 	if initCmd == nil {
 		t.Skip("init subcommand not present")
 	}
+	if runtime.GOOS == "windows" {
+		t.Skip("rooted /nonexistent paths are creatable on windows runners")
+	}
 	if err := initCmd.Flags().Set("dir", "/nonexistent/cannot/create/this"); err != nil {
 		t.Fatalf("failed to set dir: %v", err)
 	}
@@ -2941,6 +2945,9 @@ func TestWriteBatchOutputDirError(t *testing.T) {
 	var buf bytes.Buffer
 	app.Stdout = &buf
 
+	if runtime.GOOS == "windows" {
+		t.Skip("rooted /nonexistent paths are creatable on windows runners")
+	}
 	cal := &calendar.Calendar{}
 	err := writeBatchOutput(app, cal, nil, "/nonexistent/path/cannot/create/out.ics", 0)
 	if err == nil {

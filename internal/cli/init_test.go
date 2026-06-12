@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -47,6 +48,10 @@ func TestInitCmdExistingConfigNoOverwrite(t *testing.T) {
 	original := []byte("timezone: UTC\nlanguage: en\n")
 	if err := os.WriteFile(configFile, original, 0o600); err != nil {
 		t.Fatalf("failed to write config: %v", err)
+	}
+
+	if runtime.GOOS == "windows" {
+		t.Skip("huh forms block reading the console on windows non-TTY instead of erroring")
 	}
 
 	app := TestApp()

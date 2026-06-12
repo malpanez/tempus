@@ -178,19 +178,19 @@ func TestEnsureICSExtension(t *testing.T) {
 }
 
 func TestEnsureUniquePath(t *testing.T) {
-	got := EnsureUniquePath("/tmp/nonexistent-unique-test-file.ics")
-	if got != "/tmp/nonexistent-unique-test-file.ics" {
+	missing := filepath.Join(t.TempDir(), "nonexistent-unique-test-file.ics")
+	if got := EnsureUniquePath(missing); got != missing {
 		t.Errorf("got %q, want original path for nonexistent file", got)
 	}
 
 	t.Run("existing file gets suffix", func(t *testing.T) {
 		tmp := t.TempDir()
-		path := tmp + "/test.ics"
+		path := filepath.Join(tmp, "test.ics")
 		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		got := EnsureUniquePath(path)
-		expected := tmp + "/test-2.ics"
+		expected := filepath.Join(tmp, "test-2.ics")
 		if got != expected {
 			t.Errorf("got %q, want %q", got, expected)
 		}
@@ -198,16 +198,16 @@ func TestEnsureUniquePath(t *testing.T) {
 
 	t.Run("multiple existing files", func(t *testing.T) {
 		tmp := t.TempDir()
-		path := tmp + "/test.ics"
+		path := filepath.Join(tmp, "test.ics")
 		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		path2 := tmp + "/test-2.ics"
+		path2 := filepath.Join(tmp, "test-2.ics")
 		if err := os.WriteFile(path2, []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		got := EnsureUniquePath(path)
-		expected := tmp + "/test-3.ics"
+		expected := filepath.Join(tmp, "test-3.ics")
 		if got != expected {
 			t.Errorf("got %q, want %q", got, expected)
 		}
@@ -215,12 +215,12 @@ func TestEnsureUniquePath(t *testing.T) {
 
 	t.Run("no extension", func(t *testing.T) {
 		tmp := t.TempDir()
-		path := tmp + "/test"
+		path := filepath.Join(tmp, "test")
 		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		got := EnsureUniquePath(path)
-		expected := tmp + "/test-2.ics"
+		expected := filepath.Join(tmp, "test-2.ics")
 		if got != expected {
 			t.Errorf("got %q, want %q", got, expected)
 		}
