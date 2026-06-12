@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"tempus/internal/i18n"
 	"tempus/internal/parsing"
+	"tempus/internal/prompts"
 	"tempus/internal/testutil"
 	"testing"
 	"time"
@@ -663,7 +665,6 @@ func TestEnsureUniquePathMultipleCollisions(t *testing.T) {
 }
 
 func TestAlarmPromptI18nKeys(t *testing.T) {
-	t.Skip("alarm_prompt_* keys not yet defined in locale files")
 	keys := []string{
 		"alarm_prompt_suggested",
 		"alarm_prompt_keep_or_change",
@@ -691,5 +692,80 @@ func TestAlarmPromptI18nKeys(t *testing.T) {
 				t.Errorf("locale %s: key %q not translated (got %q)", lang, key, val)
 			}
 		}
+	}
+}
+
+func TestPromptAlarmFieldSpeaksSelectedLanguage(t *testing.T) {
+	spanishMarkers := []string{
+		"Recordatorios sugeridos:",
+		"Añade hasta 4 recordatorios",
+		"Escribe '?' para ver ejemplos",
+		"Ejemplos:",
+	}
+	tests := []struct {
+		lang string
+		want []string
+	}{
+		{
+			lang: "en",
+			want: []string{
+				"Suggested reminders:",
+				"Add up to 4 reminders",
+				"Type '?' for examples or leave empty to finish.",
+				"Examples:",
+			},
+		},
+		{
+			lang: "es",
+			want: spanishMarkers,
+		},
+		{
+			lang: "ga",
+			want: []string{
+				"Meabhrúcháin mholta:",
+				"Cuir suas le 4 mheabhrúchán",
+				"Clóscríobh '?' le haghaidh samplaí nó fág folamh chun críochnú.",
+				"Samplaí:",
+			},
+		},
+		{
+			lang: "pt",
+			want: []string{
+				"Lembretes sugeridos:",
+				"Adicione até 4 lembretes",
+				"Digite '?' para ver exemplos ou deixe vazio para terminar.",
+				"Exemplos:",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.lang, func(t *testing.T) {
+			tr, err := i18n.NewTranslator(tt.lang)
+			if err != nil {
+				t.Fatalf("failed to create translator for %s: %v", tt.lang, err)
+			}
+
+			prevScanner := prompts.Scanner
+			// Decline suggested defaults ("n"), ask for help ("?"), then stop.
+			prompts.Scanner = bufio.NewScanner(strings.NewReader("n\n?\n\n"))
+			defer func() { prompts.Scanner = prevScanner }()
+
+			var buf bytes.Buffer
+			promptAlarmField(&buf, tr, "Reminders", "-30m|-5m")
+
+			out := buf.String()
+			for _, want := range tt.want {
+				if !strings.Contains(out, want) {
+					t.Errorf("locale %s: output missing %q\noutput:\n%s", tt.lang, want, out)
+				}
+			}
+			if tt.lang != "es" {
+				for _, marker := range spanishMarkers {
+					if strings.Contains(out, marker) {
+						t.Errorf("locale %s: output contains Spanish string %q\noutput:\n%s", tt.lang, marker, out)
+					}
+				}
+			}
+		})
 	}
 }

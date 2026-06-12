@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -910,7 +911,7 @@ func TestPromptAlarmFieldKeepDefaults(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Alarms", "-15m|-5m")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Alarms", "-15m|-5m")
 	if result == "" {
 		t.Error("promptAlarmField() should return non-empty when keeping defaults")
 	}
@@ -921,7 +922,7 @@ func TestPromptAlarmFieldNoDefault(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Alarms", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Alarms", "")
 	_ = result
 }
 
@@ -2965,7 +2966,7 @@ func TestPromptAlarmFieldChangeDefaults(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("n\n-15m\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "-30m|-5m")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "-30m|-5m")
 	if result == "" {
 		t.Error("promptAlarmField() should return non-empty result")
 	}
@@ -2977,7 +2978,7 @@ func TestPromptAlarmFieldHelpInput(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("?\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
@@ -2987,7 +2988,7 @@ func TestPromptAlarmFieldInvalidAlarmSpec(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("not-valid-alarm\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
@@ -2997,7 +2998,7 @@ func TestPromptAlarmFieldWithDescription(t *testing.T) {
 	prompts.Scanner = bufio.NewScanner(strings.NewReader("-15m\nMy reminder\n\n"))
 	defer func() { prompts.Scanner = prevScanner }()
 
-	result := promptAlarmField("Reminders", "")
+	result := promptAlarmField(io.Discard, TestApp().Translator, "Reminders", "")
 	_ = result
 }
 
