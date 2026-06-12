@@ -16,7 +16,7 @@ BUILD_DIR := build
 DIST_DIR := dist
 LOCALES_DIR := locales
 
-.PHONY: all build clean test lint install uninstall help deps release
+.PHONY: all build build-all clean test test-coverage lint fmt install uninstall help deps release dev version init-translations examples docs bench security deps-check
 
 # Default target
 all: build
@@ -92,17 +92,20 @@ clean:
 release: build-all
 	@echo "Creating release packages..."
 	@mkdir -p $(DIST_DIR)
-	
-	# Create archives for each platform
+
+	# Create archives for each platform (POSIX sh: case, $$ escaped for make)
 	cd $(BUILD_DIR) && \
 	for binary in $(APP_NAME)-*; do \
-		if [[ $binary == *".exe" ]]; then \
-			platform=${binary%.exe}; \
-			zip ../$(DIST_DIR)/$platform.zip $binary ../README.md ../LICENSE; \
-		else \
-			platform=$binary; \
-			tar -czf ../$(DIST_DIR)/$platform.tar.gz $binary ../README.md ../LICENSE; \
-		fi \
+		case "$$binary" in \
+			*.exe) \
+				platform="$${binary%.exe}"; \
+				zip -j ../$(DIST_DIR)/$$platform.zip "$$binary" ../README.md ../LICENSE; \
+				;; \
+			*) \
+				platform="$$binary"; \
+				tar -czf ../$(DIST_DIR)/$$platform.tar.gz "$$binary" -C .. README.md LICENSE; \
+				;; \
+		esac; \
 	done
 
 # Development: run with live reload
