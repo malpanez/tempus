@@ -1,8 +1,9 @@
 name: Sync Branches
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
 
 # Serialize: batched merges (e.g. several Renovate PRs landing back to back) would
 # otherwise race, and the older run's push would be rejected as non-fast-forward.
@@ -14,6 +15,14 @@ concurrency:
 jobs:
   sync:
     name: Sync main to develop
+    # Only for a real push to main whose CI run went fully green. workflow_run fires
+    # after every CI check has posted its conclusion for head_sha, so develop's
+    # required-status-check gate is already satisfied by the time this pushes.
+    # The event == 'push' clause excludes ci.yml's pull_request/schedule/dispatch runs.
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
@@ -24,15 +33,20 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          # Pin to the commit CI validated, not main's current tip - another push may
+          # have landed since this run was queued and its CI has not finished.
+          ref: ${{ github.event.workflow_run.head_sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fast-forward develop to main
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout develop
-          git merge --ff-only origin/main || {
-            echo "::error::Fast-forward of develop to main failed - develop has diverged. Manual intervention required."
+          git merge --ff-only "$HEAD_SHA" || {
+            echo "::error::Fast-forward of develop to $HEAD_SHA failed - develop has diverged. Manual intervention required."
             exit 1
           }
           git push origin develop
