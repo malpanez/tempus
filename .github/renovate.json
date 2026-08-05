@@ -12,6 +12,7 @@
   "reviewers": ["@malpanez"],
   "schedule": ["before 4am on monday"],
   "timezone": "Europe/Madrid",
+  "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "labels": ["security"],
     "assignees": ["@malpanez"]
