@@ -19,10 +19,13 @@ jobs:
     # after every CI check has posted its conclusion for head_sha, so develop's
     # required-status-check gate is already satisfied by the time this pushes.
     # The event == 'push' clause excludes ci.yml's pull_request/schedule/dispatch runs.
+    # The head_repository clause pins that CI run's origin to this repo, so a fork's run
+    # can never reach this job and no fork code is ever checked out (githubactions:S7631).
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.head_branch == 'main'
-      && github.event.workflow_run.event == 'push' }}
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
