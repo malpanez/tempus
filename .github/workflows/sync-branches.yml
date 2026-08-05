@@ -1,0 +1,38 @@
+name: Sync Branches
+
+on:
+  push:
+    branches: [ main ]
+
+# Serialize: batched merges (e.g. several Renovate PRs landing back to back) would
+# otherwise race, and the older run's push would be rejected as non-fast-forward.
+# Only the newest main matters, so supersede any in-flight run.
+concurrency:
+  group: sync-branches
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync main to develop
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fast-forward develop to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout develop
+          git merge --ff-only origin/main || {
+            echo "::error::Fast-forward of develop to main failed - develop has diverged. Manual intervention required."
+            exit 1
+          }
+          git push origin develop
