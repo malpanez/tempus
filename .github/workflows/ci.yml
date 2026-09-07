@@ -11,6 +11,13 @@ on:
   # Allow manual triggering
   workflow_dispatch:
 
+# Least privilege: every job in this workflow is read-only. It only checks out
+# code, sets up Go, lints, builds, and uploads artifacts/coverage — codecov
+# authenticates with CODECOV_TOKEN and its PR comments come from the Codecov
+# GitHub App, not from GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test
