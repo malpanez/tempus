@@ -265,7 +265,7 @@ func (e *Event) writeDateTimeProperties(b *strings.Builder) {
 
 func (e *Event) writeRecurrenceProperties(b *strings.Builder) {
 	if strings.TrimSpace(e.RRule) != "" {
-		writeProp(b, "RRULE", e.RRule)
+		writeProp(b, "RRULE", SanitizeStructuralValue(e.RRule))
 	}
 
 	if len(e.ExDates) > 0 {
@@ -306,7 +306,7 @@ func (e *Event) writeOptionalProperties(b *strings.Builder) {
 			if a == "" {
 				continue
 			}
-			writeProp(b, "ATTENDEE", "mailto:"+a)
+			writeProp(b, "ATTENDEE", "mailto:"+SanitizeStructuralValue(a))
 		}
 	}
 
@@ -404,6 +404,27 @@ func escapeText(text string) string {
 	text = strings.ReplaceAll(text, ",", `\,`)
 	text = strings.ReplaceAll(text, "\n", `\n`)
 	return text
+}
+
+// SanitizeStructuralValue neutralises CR and LF inside a property value that is
+// written to the ICS stream verbatim (RRULE, and the ATTENDEE "mailto:" value).
+//
+// It is deliberately NOT escapeText: those values carry their own ";" / "," / ":"
+// micro-syntax — "FREQ=WEEKLY;BYDAY=MO,TU" must survive byte-for-byte, and
+// escapeText would corrupt it into "FREQ=WEEKLY\;BYDAY=MO\,TU". This is the
+// narrower guard whose only job is to stop a value from terminating its own
+// logical line and forging additional ICS content (CWE-93).
+//
+// CRLF is replaced before the bare CR and LF cases so "\r\n" collapses to a
+// single space rather than two.
+func SanitizeStructuralValue(s string) string {
+	if s == "" {
+		return ""
+	}
+	s = strings.ReplaceAll(s, "\r\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return s
 }
 
 // normalizeUserNewlines converts user-typed "\n" sequences into real newlines

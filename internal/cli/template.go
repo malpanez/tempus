@@ -572,7 +572,16 @@ func deriveTemplateFilename(tm *tpl.TemplateManager, templateName string, values
 	if ftmpl, ok := tm.FilenameTemplate(templateName); ok {
 		if out, err := tpl.RenderTmpl(ftmpl, values, tr); err == nil {
 			if cleaned := strings.TrimSpace(out); cleaned != "" {
-				return cleaned
+				// The rendered value can carry attacker-supplied record data, so
+				// collapse it to a bare basename: filepath.Join does not neutralise
+				// "..", and an absolute result would skip the output-dir join
+				// entirely. Windows separators are normalised first so a Linux run
+				// also collapses "..\..\etc\passwd".
+				base := filepath.Base(filepath.Clean(strings.ReplaceAll(cleaned, `\`, "/")))
+				if base != "." && base != ".." && base != string(filepath.Separator) && base != "/" {
+					return base
+				}
+				// Degenerate basename: fall through to the Slugify fallbacks below.
 			}
 		}
 	}

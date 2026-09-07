@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"tempus/internal/testutil"
 	"testing"
@@ -251,6 +252,56 @@ func TestSave(t *testing.T) {
 	}
 	if cfg2.Timezone != testutil.TZEuropeDublin {
 		t.Errorf("expected timezone 'Europe/Dublin', got %q", cfg2.Timezone)
+	}
+}
+
+// TestSaveConfigPermissions is the CN-008 regression test: config.yaml must be
+// mode 0600, both when Save() creates it and when Save() rewrites an existing
+// file. Windows does not model POSIX permission bits, so it is skipped there.
+func TestSaveConfigPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits are not modelled on Windows")
+	}
+
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, testConfigDir, "tempus")
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, testConfigDir))
+
+	viper.Reset()
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configFile := filepath.Join(configDir, "config.yaml")
+
+	// First Save() creates the file.
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("first Save() failed: %v", err)
+	}
+	info, err := os.Stat(configFile)
+	if err != nil {
+		t.Fatalf("stat after first Save(): %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("after first Save(): config.yaml mode = %04o, want 0600", perm)
+	}
+
+	// Loosen it the way a pre-change Tempus would have left it, then rewrite:
+	// Save() must tighten it back, which is what makes the fix idempotent.
+	if err := os.Chmod(configFile, 0o644); err != nil {
+		t.Fatalf("chmod 0644: %v", err)
+	}
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("second Save() failed: %v", err)
+	}
+	info, err = os.Stat(configFile)
+	if err != nil {
+		t.Fatalf("stat after second Save(): %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o600 {
+		t.Errorf("after second Save(): config.yaml mode = %04o, want 0600", perm)
 	}
 }
 
