@@ -1,5 +1,7 @@
 # Build stage
-FROM golang:1.26-alpine AS builder
+# Digest resolved 2026-09-07 from the multi-arch manifest index (serves
+# linux/amd64 and linux/arm64, both required by release.yml).
+FROM golang:1.26-alpine@sha256:ce864e7223ac17b1775e6fd0b4c0db580c2eb50e7953a427916379e4b92a1628 AS builder
 
 # Version injected at build time (release.yml passes --build-arg VERSION=vX.Y.Z)
 ARG VERSION=dev
@@ -22,7 +24,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o tempus .
 
 # Final stage
-FROM alpine:3.21
+# Digest resolved 2026-09-07 from the multi-arch manifest index (serves
+# linux/amd64 and linux/arm64, both required by release.yml).
+FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
 # Install dependencies, create user, and set up directories in one layer
 RUN apk --no-cache add ca-certificates tzdata && \

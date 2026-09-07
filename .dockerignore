@@ -48,3 +48,8 @@ Thumbs.db
 *.temp
 test_*.ics
 my_*.ics
+
+# Local tooling and generated state (never needed in the build context)
+.planning/
+.venv/
+.coverage/
