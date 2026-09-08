@@ -5,6 +5,34 @@ All notable changes to Tempus are documented here. The format follows
 adheres to [Semantic Versioning](https://semver.org/) (0.x: minor bumps may
 include breaking changes, listed explicitly below).
 
+## [v0.7.0] - 2026-09-08
+
+### Security
+
+- **CRLF injection in RRULE/ATTENDEE.** A batch-imported CSV/JSON/YAML field
+  carrying an embedded newline in `rrule` or an attendee address could break
+  RFC 5545 line structure in the generated `.ics` and forge additional
+  content (e.g. a spoofed `X-` property or `VALARM` block). Both values are
+  now sanitized at write time and at ingestion.
+- **Path traversal in data-driven template filenames.** A `filename_tmpl`
+  field value containing `../` could place a generated `.ics` file outside
+  `--output-dir`. Rendered filenames are now collapsed to a bare basename
+  before being written.
+- **Local config file permissions.** `~/.config/tempus/config.yaml` is now
+  written (and, if pre-existing, tightened) to mode `0600` instead of the
+  previous world-readable `0644`.
+- **CI/CD hardening.** `ci.yml` and the remaining jobs in `security.yml` now
+  declare an explicit least-privilege `permissions: contents: read`;
+  `govulncheck` is installed from a pinned release instead of `@latest`; the
+  release Dockerfile's `golang`/`alpine` base images are now pinned by
+  immutable digest (verified to still serve both `linux/amd64` and
+  `linux/arm64`) instead of a mutable tag.
+
+### Changed
+
+- Bumped `spf13/cobra` v1.8.0 → v1.10.2, `spf13/pflag` v1.0.5 → v1.0.10,
+  `spf13/viper` v1.18.2 → v1.21.0.
+
 ## [v0.6.0] - 2026-06-12
 
 ### Breaking Changes
