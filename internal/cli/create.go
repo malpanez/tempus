@@ -269,7 +269,7 @@ func configureEvent(event *calendar.Event, opts *createOptions, cfg *config.Conf
 	setEventTimezones(event, opts.startTZ, opts.endTZ)
 
 	if strings.TrimSpace(opts.rrule) != "" {
-		event.RRule = NormalizeRRuleUntil(strings.TrimSpace(opts.rrule), opts.allDay)
+		event.RRule = NormalizeRRuleUntil(strings.TrimSpace(calendar.SanitizeStructuralValue(opts.rrule)), opts.allDay)
 	}
 
 	if err := addExDates(event, opts.exdates, opts.startTZ, opts.allDay); err != nil {
@@ -330,7 +330,7 @@ func addEventCategories(event *calendar.Event, categories []string) {
 
 func addEventAttendees(event *calendar.Event, attendees []string) {
 	for _, attendee := range attendees {
-		if a := strings.TrimSpace(attendee); a != "" {
+		if a := strings.TrimSpace(calendar.SanitizeStructuralValue(attendee)); a != "" {
 			event.AddAttendee(a)
 		}
 	}

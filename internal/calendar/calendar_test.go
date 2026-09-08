@@ -477,6 +477,72 @@ func TestEscapeText(t *testing.T) {
 }
 
 // ========================================
+// Test SanitizeStructuralValue function
+// ========================================
+
+func TestSanitizeStructuralValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{testutil.TestNameEmptyString, "", ""},
+		{"LF injection", "FREQ=DAILY\nX-EVIL:1", "FREQ=DAILY X-EVIL:1"},
+		{"CRLF injection", "a\r\nb", "a b"},
+		{"bare CR", "a\rb", "a b"},
+		{"rrule micro-syntax preserved", "FREQ=WEEKLY;BYDAY=MO,TU", "FREQ=WEEKLY;BYDAY=MO,TU"},
+		{"mailto value preserved", "mailto:user@example.com", "mailto:user@example.com"},
+		{"backslash preserved", `a\nb`, `a\nb`},
+		{"only newline", "\n", " "},
+		{"trailing CRLF", "FREQ=DAILY\r\n", "FREQ=DAILY "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SanitizeStructuralValue(tt.input)
+			if result != tt.expected {
+				t.Errorf("SanitizeStructuralValue(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestToICSRejectsStructuralInjection is the CN-002 regression test: an RRULE or
+// ATTENDEE value carrying an embedded CR/LF must not be able to open a new
+// logical line in the generated ICS. Payloads are kept short so RFC 5545 line
+// folding cannot confound the assertions.
+func TestToICSRejectsStructuralInjection(t *testing.T) {
+	cal := NewCalendar()
+	ev := NewEvent("Injection",
+		time.Date(2025, 6, 15, 10, 0, 0, 0, time.UTC),
+		time.Date(2025, 6, 15, 11, 0, 0, 0, time.UTC))
+	ev.RRule = "FREQ=DAILY\nX-EVIL:1"
+	ev.Attendees = []string{"a@b.c\r\nX-EVIL:2"}
+	cal.AddEvent(ev)
+
+	ics := cal.ToICS()
+
+	if got := strings.Count(ics, "RRULE:"); got != 1 {
+		t.Errorf("expected exactly 1 RRULE: line, got %d\n%s", got, ics)
+	}
+	if got := strings.Count(ics, "ATTENDEE:"); got != 1 {
+		t.Errorf("expected exactly 1 ATTENDEE: line, got %d\n%s", got, ics)
+	}
+	if strings.Contains(ics, "\r\nX-EVIL:") {
+		t.Errorf("injected value started a new logical line:\n%s", ics)
+	}
+	if strings.Contains(ics, "\nX-EVIL:") {
+		t.Errorf("injected value started a new line:\n%s", ics)
+	}
+	if !strings.Contains(ics, "RRULE:FREQ=DAILY X-EVIL:1") {
+		t.Errorf("expected sanitized RRULE value on one line, got:\n%s", ics)
+	}
+	if !strings.Contains(ics, "ATTENDEE:mailto:a@b.c X-EVIL:2") {
+		t.Errorf("expected sanitized ATTENDEE value on one line, got:\n%s", ics)
+	}
+}
+
+// ========================================
 // Test normalizeUserNewlines function
 // ========================================
 

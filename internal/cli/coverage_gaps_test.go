@@ -1253,6 +1253,73 @@ func TestDeriveTemplateFilenameNoEvent(t *testing.T) {
 	}
 }
 
+// TestDeriveTemplateFilenameRejectsTraversal is the CN-005 regression test: a
+// filename_tmpl rendering to a path with ../ must be collapsed to a bare
+// basename so it cannot escape --output-dir.
+func TestDeriveTemplateFilenameRejectsTraversal(t *testing.T) {
+	tests := []struct {
+		name  string
+		title string
+		want  string
+	}{
+		{"posix traversal", "../../../etc/passwd", "passwd.ics"},
+		{"windows traversal", `..\..\etc\passwd`, "passwd.ics"},
+		{"absolute path", "/etc/passwd", "passwd.ics"},
+		{"benign name untouched", "team-meeting", "team-meeting.ics"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tm := tpl.NewTemplateManager()
+			tm.RegisterDDTemplate(tpl.DataDrivenTemplate{
+				Name:             "traversal",
+				FilenameTemplate: "{{title}}.ics",
+			})
+			ev := &calendar.Event{}
+			values := map[string]string{"title": tt.title}
+
+			got := deriveTemplateFilename(tm, "traversal", values, ev, nil)
+			if got != tt.want {
+				t.Errorf("deriveTemplateFilename() = %q, want %q", got, tt.want)
+			}
+			if strings.ContainsAny(got, `/\`) {
+				t.Errorf("filename %q still contains a path separator", got)
+			}
+			if strings.Contains(got, "..") {
+				t.Errorf("filename %q still contains ..", got)
+			}
+		})
+	}
+}
+
+// TestDeriveTemplateFilenameRejectsDegenerateBase covers the case where the
+// rendered filename collapses to a degenerate basename (".", "..", "/"): the
+// function must fall through to the Slugify fallback instead of returning it.
+func TestDeriveTemplateFilenameRejectsDegenerateBase(t *testing.T) {
+	for _, title := range []string{"..", ".", "/", "../..", "../"} {
+		t.Run(title, func(t *testing.T) {
+			tm := tpl.NewTemplateManager()
+			tm.RegisterDDTemplate(tpl.DataDrivenTemplate{
+				Name:             "degenerate",
+				FilenameTemplate: "{{title}}",
+			})
+			ev := &calendar.Event{}
+			values := map[string]string{"title": title}
+
+			got := deriveTemplateFilename(tm, "degenerate", values, ev, nil)
+			if got == title {
+				t.Errorf("deriveTemplateFilename() returned the degenerate value %q", got)
+			}
+			if !strings.HasSuffix(got, ".ics") {
+				t.Errorf("expected fallback name ending in .ics, got %q", got)
+			}
+			if strings.ContainsAny(got, `/\`) {
+				t.Errorf("filename %q contains a path separator", got)
+			}
+		})
+	}
+}
+
 // =====================================================================
 // template.go — newTranslator fallback path
 // =====================================================================

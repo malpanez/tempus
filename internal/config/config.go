@@ -215,7 +215,20 @@ func (c *Config) Save() error {
 		return err
 	}
 	configFile := filepath.Join(configDir, "config.yaml")
-	return viper.WriteConfigAs(configFile)
+
+	// The config file can hold user-specific settings; keep it owner-only.
+	// SetConfigPermissions alone is not enough: viper hands the mode to
+	// os.OpenFile, which only applies it when it CREATES the file, so a
+	// config.yaml that predates this change would stay 0644. The explicit
+	// Chmod is what makes the fix idempotent.
+	viper.SetConfigPermissions(0o600)
+	if err := viper.WriteConfigAs(configFile); err != nil {
+		return fmt.Errorf("writing config file: %w", err)
+	}
+	if err := os.Chmod(configFile, 0o600); err != nil {
+		return fmt.Errorf("securing config file permissions: %w", err)
+	}
+	return nil
 }
 
 // getConfigDir returns the platform-appropriate config directory:
