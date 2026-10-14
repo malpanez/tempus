@@ -49,12 +49,13 @@
       "matchDatasources": ["go"],
       "groupName": "Go modules",
       "separateMajorMinor": true
+    },
+    {
+      "matchCategories": ["golang"],
+      "commitMessageTopic": "module {{depName}}",
+      "postUpdateOptions": ["gomodTidy"]
     }
   ],
-  "golang": {
-    "commitMessageTopic": "module {{depName}}",
-    "postUpdateOptions": ["gomodTidy"]
-  },
   "prConcurrentLimit": 3,
   "prCreation": "not-pending",
   "prHourlyLimit": 2,

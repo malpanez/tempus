@@ -70,7 +70,6 @@ token.json
 # ==========================================
 # From: https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
@@ -85,6 +84,9 @@ token.json
 
 # Claude Code CLI
 .claude/
+
+# Python virtualenv (local tooling)
+.venv/
 
 # Operating System files
 # ==========================================

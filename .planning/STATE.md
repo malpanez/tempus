@@ -29,7 +29,7 @@ Phase: 03 (interactive-mode-cli-structure) — EXECUTING
 Plan: 4 of 4
 Phase: 03 (interactive-mode) — NOT STARTED
 Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Last activity: 2026-10-14 - Completed quick task 261013-tdw: security cleanup
 
 Progress: [..........] 0%
 
@@ -122,9 +122,16 @@ None yet.
 | 260405-ida | Extract parseMapsToRecords and newGeneratedEvent helpers to eliminate CPD duplication | 2026-04-05 | 91c6042 | [260405-ida-fix-remaining-sonarcloud-cpd-duplication](./quick/260405-ida-fix-remaining-sonarcloud-cpd-duplication/) |
 | 260405-ixt | Extract loadBatchFromStructured and unify parseDurationEnd to eliminate CPD duplication | 2026-04-05 | d6d5187 | [260405-ixt-fix-remaining-sonarcloud-cpd-duplication](./quick/260405-ixt-fix-remaining-sonarcloud-cpd-duplication/) |
 | 260405-ixt3 | Export FmtDurationHuman/SplitDateTime from parsing, delegate from helpers, raise cpd minimumTokens=150 | 2026-04-05 | 87478e8 | — |
+| 260805-arn | Consolidate Renovate to single config at .github/renovate.json + enable OSV vulnerability alerts | 2026-08-05 | 461f602 | [260805-arn-fix-renovate-setup-single-config-valid-o](./quick/260805-arn-fix-renovate-setup-single-config-valid-o/) |
+| 260805-d0t | Remove redundant sonarcloud.yml (Automatic Analysis conflict, 71/71 historical runs failed) | 2026-08-05 | d153614 | [260805-d0t-remove-redundant-sonarcloud-yml-ci-workf](./quick/260805-d0t-remove-redundant-sonarcloud-yml-ci-workf/) |
+| 260805-di2 | Add one-way sync-branches.yml (main -> develop ff-only, no promote-back — avoids the deadlock removed in 06cca03) | 2026-08-05 | a63c1a6 | [260805-di2-recreate-one-way-sync-branches-yml-push-](./quick/260805-di2-recreate-one-way-sync-branches-yml-push-/) |
+| 260805-du1 | Fix sync-branches.yml race (workflow_run on CI completion, pin to head_sha) + drop develop's redundant required_status_checks | 2026-08-05 | 5dc715f | [260805-du1-fix-sync-branches-yml-race-condition-swi](./quick/260805-du1-fix-sync-branches-yml-race-condition-swi/) |
+| 260805-eq4 | Harden sync-branches.yml: gate on head_repository == github.repository (SonarCloud S7631, defense-in-depth) | 2026-08-05 | 1338fcf | [260805-eq4-harden-sync-branches-yml-against-sonarcl](./quick/260805-eq4-harden-sync-branches-yml-against-sonarcl/) |
+| 260907-q7c | Fix Cyber Neo audit findings CN-001..CN-009 (CRLF injection, path traversal, CI permissions, supply chain) — PR #18 | 2026-09-08 | 07b143a | [260907-q7c-fix-cyber-neo-security-audit-findings-sa](./quick/260907-q7c-fix-cyber-neo-security-audit-findings-sa/) |
+| 261013-tdw | Security cleanup: x/text v0.41.0, installer tarball + SHA-256 + HTTPS, golden harness LookPath, Renovate migration, .gitignore | 2026-10-14 | 1269b82 | [261013-tdw-security-and-housekeeping-go-toolchain-1](./quick/261013-tdw-security-and-housekeeping-go-toolchain-1/) |
 
 ## Session Continuity
 
-Last session: 2026-04-05T00:00:00Z
-Stopped at: Completed 260405-ixt3
+Last session: 2026-10-14T00:00:00Z
+Stopped at: 261013-tdw committed on branch chore/security-cleanup (not pushed). Renovate PRs #19 (toolchain go1.26.9) and #20 (x/vuln v1.9.0) merged to main.
 Resume file: None
