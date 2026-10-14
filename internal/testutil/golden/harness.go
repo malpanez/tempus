@@ -65,7 +65,11 @@ func BuildBinary(dir, repoRoot string) (string, error) {
 		args = append(args, "-cover")
 	}
 	args = append(args, "-o", bin, ".")
-	cmd := exec.Command("go", args...)
+	goBin, err := exec.LookPath("go")
+	if err != nil {
+		return "", fmt.Errorf("locating go toolchain: %w", err)
+	}
+	cmd := exec.Command(goBin, args...)
 	cmd.Dir = repoRoot
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("building tempus: %v\n%s", err, out)
