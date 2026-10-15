@@ -63,17 +63,17 @@ against CURRENT behavior (bugs included). No bug fixes in this phase.
 
 - [x] 0.1 `git worktree prune`; delete all `worktree-agent-*` branches; merge PR #3;
       archive stale `.planning/quick/` plans.
-- [ ] 0.2 `.golangci.yml` → `default: standard`. Run `golangci-lint run ./...` and commit
+- [x] 0.2 `.golangci.yml` → `default: standard`. Run `golangci-lint run ./...` and commit
       the full errcheck violation list to `.planning/tempus-remediation/errcheck-map.md`.
       Do NOT fix violations yet.
-- [ ] 0.3 Create golden harness in `internal/testutil`: builds the binary once per test
+- [x] 0.3 Create golden harness in `internal/testutil`: builds the binary once per test
       run, runs full CLI flows (create, quick, batch, wizard via scripted stdin),
       compares `.ics` output against `testdata/golden/*.ics` with DTSTAMP/UID
       normalization. `-update` flag to regenerate.
-- [ ] 0.4 Minimum 6 golden scenarios capturing CURRENT (buggy) output:
+- [x] 0.4 Minimum 6 golden scenarios capturing CURRENT (buggy) output:
       create simple / create --start-tz / wizard with adhd-default profile (zero
       VALARMs — that's the point) / batch with exdates / rrule recurring / all-day.
-- [ ] 0.5 CI runs the golden tests (same job as unit tests).
+- [x] 0.5 CI runs the golden tests (same job as unit tests).
 
 ### Verification
 
@@ -92,18 +92,18 @@ message and exit code != 0. Wizard alarm profiles actually produce VALARMs.
 
 ### Tasks
 
-- [ ] 1.1 `addEventAlarms` / `addExDates` return `error`; propagate at create.go:263-266
+- [x] 1.1 `addEventAlarms` / `addExDates` return `error`; propagate at create.go:263-266
       and batch.go:613-620; CLI exits non-zero with a message naming the offending value.
-- [ ] 1.2 Fix `profile:` handling — one canonical expansion path shared by create/wizard/
+- [x] 1.2 Fix `profile:` handling — one canonical expansion path shared by create/wizard/
       batch; remove the batch-only special case (batch.go:623).
-- [ ] 1.3 `--exdate` with unparseable value → fatal error (helpers.go:271-276).
-- [ ] 1.4 Wire `--config/-c` (main.go:35): precedence flags > env > config file >
+- [x] 1.3 `--exdate` with unparseable value → fatal error (helpers.go:271-276).
+- [x] 1.4 Wire `--config/-c` (main.go:35): precedence flags > env > config file >
       defaults. Missing file pointed to explicitly by flag = fatal error.
-- [ ] 1.5 Clear errcheck map for all touched packages.
-- [ ] 1.6 Update affected goldens to correct behavior (`-update`, review diff by hand).
+- [x] 1.5 Clear errcheck map for all touched packages.
+- [x] 1.6 Update affected goldens to correct behavior (`-update`, review diff by hand).
       Negative tests: invalid `--exdate` → exit != 0; invalid alarm spec → exit != 0;
       `-c /nonexistent` → exit != 0.
-- [ ] 1.7 Wizard Ctrl+C exits with code != 0.
+- [x] 1.7 Wizard Ctrl+C exits with code != 0.
 
 ### Verification
 
@@ -179,20 +179,28 @@ IANA validation; invalid zone = fatal error.
 
 ### Tasks
 
-- [ ] 4.1 sonarcloud.yml: golangci-lint v2 matching local config; remove `|| true`.
-- [ ] 4.2 Remove sync-branches.yml + develop/main dance → trunk-based with branch
+- [x] 4.1 sonarcloud.yml: golangci-lint v2 matching local config; remove `|| true`.
+      Superseded 2026-08-05: sonarcloud.yml deleted (Automatic Analysis is the only
+      method); golangci-lint v2 runs in ci.yml `Lint`.
+- [x] 4.2 Remove sync-branches.yml + develop/main dance → trunk-based with branch
       protection + auto-merge after checks.
+      Closed, not done: develop is kept as a one-way warm mirror of main via
+      sync-branches.yml (decision 2026-06-12, one-way version 2026-08-05).
 - [ ] 4.3 Sonar CPD exclusions back to tests-only; extract real duplicated helpers.
-- [ ] 4.4 `make release`: `$$binary` fix; `ARG VERSION` + build-arg in Dockerfile/release.yml.
-- [ ] 4.5 security.yml: remove `continue-on-error` from gates; fix or delete
+      Partial: the exclusions in sonar-project.properties never applied (Automatic
+      Analysis ignores that file); .sonarcloud.properties added 2026-10-15
+      (quick 261015-csv). Duplicated helpers in internal/cli/batch.go still open.
+- [x] 4.4 `make release`: `$$binary` fix; `ARG VERSION` + build-arg in Dockerfile/release.yml.
+- [x] 4.5 security.yml: remove `continue-on-error` from gates; fix or delete
       dependency-check.
 - [ ] 4.6 Test diet: triage coverage_gaps_test.go; goldens + negative tests become the
       meaningful gate.
+      Open: coverage_gaps_test.go is still 3,712 lines (2026-10-15).
 
 ### Verification
 
 - A PR with a lint violation, failing security check, or golden diff cannot merge.
-- `docker run <image> --version` reports the tagged version.
+- `docker run <image> version` reports the tagged version (there is no `--version` flag).
 - Renovate bump → PR → checks → auto-merge; no parallel promotion path.
 
 ---

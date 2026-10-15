@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05-nd-extraction-performance-02-PLAN.md
-last_updated: "2026-03-30T20:41:22.648Z"
-last_activity: 2026-03-30
+status: milestone-complete
+stopped_at: GSD milestone v1.0 (phases 1-5) verified; remediation milestone shipped in v0.6.0/v0.7.0; open work tracked in ROADMAP-1.0.md
+last_updated: "2026-10-15T00:00:00.000Z"
+last_activity: 2026-10-15
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 15
   completed_plans: 15
-  percent: 0
+  percent: 100
 ---
 
 # Project State
@@ -21,23 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Un usuario neurodivergente puede crear un evento de calendario correcto con el minimo de friccion.
-**Current focus:** Phase 03 — interactive-mode-cli-structure
+**Current focus:** Road to 1.0 (ROADMAP-1.0.md) — CLI surface freeze + one real dogfooding cycle
 
 ## Current Position
 
-Phase: 03 (interactive-mode-cli-structure) — EXECUTING
-Plan: 4 of 4
-Phase: 03 (interactive-mode) — NOT STARTED
-Status: Phase complete — ready for verification
-Last activity: 2026-10-14 - Completed quick task 261013-tdw: security cleanup
+Phase: all 5 phases complete and verified (01, 02, 04, 05 VERIFICATION.md: passed; 03 completed 2026-03-30)
+Status: Milestone complete — post-milestone work runs as quick tasks
+Last activity: 2026-10-15 - Completed quick task 261015-csv: CI masks, Sonar config, planning reconcile
 
-Progress: [..........] 0%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 15
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -110,7 +108,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 3: Verify charmbracelet/huh Go 1.23 compatibility before planning
+None. (Resolved: huh v1.0.0 shipped in phase 3 and builds on the Go 1.26 toolchain.)
 
 ### Quick Tasks Completed
 
@@ -129,9 +127,10 @@ None yet.
 | 260805-eq4 | Harden sync-branches.yml: gate on head_repository == github.repository (SonarCloud S7631, defense-in-depth) | 2026-08-05 | 1338fcf | [260805-eq4-harden-sync-branches-yml-against-sonarcl](./quick/260805-eq4-harden-sync-branches-yml-against-sonarcl/) |
 | 260907-q7c | Fix Cyber Neo audit findings CN-001..CN-009 (CRLF injection, path traversal, CI permissions, supply chain) — PR #18 | 2026-09-08 | 07b143a | [260907-q7c-fix-cyber-neo-security-audit-findings-sa](./quick/260907-q7c-fix-cyber-neo-security-audit-findings-sa/) |
 | 261013-tdw | Security cleanup: x/text v0.41.0, installer tarball + SHA-256 + HTTPS, golden harness LookPath, Renovate migration, .gitignore | 2026-10-14 | 1269b82 | [261013-tdw-security-and-housekeeping-go-toolchain-1](./quick/261013-tdw-security-and-housekeeping-go-toolchain-1/) |
+| 261015-csv | Unmask Functional Tests steps, add .sonarcloud.properties, fix README version output, reconcile STATE/ROADMAP/remediation milestone | 2026-10-15 | 8938e7b | [261015-csv-fix-masked-functional-tests-steps-sonar-](./quick/261015-csv-fix-masked-functional-tests-steps-sonar-/) |
 
 ## Session Continuity
 
-Last session: 2026-10-14T00:00:00Z
-Stopped at: 261013-tdw committed on branch chore/security-cleanup (not pushed). Renovate PRs #19 (toolchain go1.26.9) and #20 (x/vuln v1.9.0) merged to main.
+Last session: 2026-10-15T00:00:00Z
+Stopped at: 261015-csv on branch fix/ci-functional-tests-sonar-config (PR pending). PR #21 (security cleanup) merged 2026-10-14.
 Resume file: None
