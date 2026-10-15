@@ -173,8 +173,8 @@ jobs:
           echo "✅ Testing --help"
           ./tempus --help
 
-          echo "✅ Testing --version"
-          ./tempus --version || true
+          echo "✅ Testing version"
+          ./tempus version
 
           echo "✅ Testing config commands"
           ./tempus config list
@@ -233,6 +233,7 @@ jobs:
             --dry-run
 
       - name: Test conflict detection
+        shell: bash
         run: |
           echo "✅ Testing conflict detection"
           cat > /tmp/test-conflicts.csv << 'EOF'
@@ -244,7 +245,17 @@ jobs:
           ./tempus batch \
             --input /tmp/test-conflicts.csv \
             --output /tmp/test-conflicts.ics \
-            --check-conflicts || true
+            --check-conflicts | tee /tmp/test-conflicts.out
+
+          echo "✅ Verifying the overlap was reported"
+          grep -qi "conflict" /tmp/test-conflicts.out || { echo "❌ Expected a conflict warning"; exit 1; }
+
+          echo "✅ Verifying both events were still written"
+          count=$(grep -c "BEGIN:VEVENT" /tmp/test-conflicts.ics)
+          if [ "$count" != "2" ]; then
+            echo "❌ Expected 2 events, got $count"
+            exit 1
+          fi
 
       - name: Test timezone commands
         run: |
@@ -262,7 +273,7 @@ jobs:
       - name: Test RRULE helper
         run: |
           echo "✅ Testing RRULE command exists"
-          ./tempus rrule --help || ./tempus --help | grep -i rrule || true
+          ./tempus rrule --help
 
   coverage-check:
     name: Coverage Check
