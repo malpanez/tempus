@@ -595,13 +595,14 @@ Display version information and build details.
 tempus version
 ```
 
-**Example output:**
+**Example output** (release binaries):
 ```
-tempus version 0.5.0
-Built: 2025-03-14 10:23:45
-Commit: a1b2c3d
-Go: go1.26.0
-Platform: linux/amd64
+tempus v0.7.0
+```
+
+Local builds with `make build` also embed the commit and build date:
+```
+tempus v0.7.0-10-gb8f233c (b8f233c) built 2026-10-15T08:12:43Z
 ```
 
 ---
